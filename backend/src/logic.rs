@@ -2,6 +2,7 @@
 
 use chrono::{DateTime, Duration, Local, Utc};
 use sqlx::{Row, SqlitePool};
+use std::collections::HashMap;
 use uuid::Uuid;
 
 use crate::error::AppResult;
@@ -203,34 +204,37 @@ pub struct TodaySummary {
 pub async fn today_summary(pool: &SqlitePool, child_id: &str) -> AppResult<TodaySummary> {
     let today = Local::now().date_naive();
     let today_str = today.format("%Y-%m-%d").to_string();
-    let yesterday_str = (today - Duration::days(1)).format("%Y-%m-%d").to_string();
 
-    let learned_today: i64 = sqlx::query_scalar(
-        "SELECT COALESCE(learn_count,0) FROM child_daily WHERE child_id=? AND day=?",
+    // 一次查出历史打卡数据（今天往前 400 天，足以覆盖任何现实连续打卡），
+    // 避免 streak 循环逐日查库（N+1 查询，首页每次加载都会跑）
+    let cutoff = (today - Duration::days(400)).format("%Y-%m-%d").to_string();
+    let rows = sqlx::query(
+        "SELECT day, learn_count, rec_count, screen_sec, frozen \
+         FROM child_daily WHERE child_id=? AND day > ? AND day <= ?",
     )
     .bind(child_id)
+    .bind(&cutoff)
     .bind(&today_str)
-    .fetch_optional(pool)
-    .await?
-    .unwrap_or(0);
+    .fetch_all(pool)
+    .await?;
 
-    let rec_today: i64 = sqlx::query_scalar(
-        "SELECT COALESCE(rec_count,0) FROM child_daily WHERE child_id=? AND day=?",
-    )
-    .bind(child_id)
-    .bind(&today_str)
-    .fetch_optional(pool)
-    .await?
-    .unwrap_or(0);
+    let mut day_map: HashMap<String, (i64, i64, i64, i64)> = HashMap::new();
+    for r in &rows {
+        day_map.insert(
+            r.try_get("day")?,
+            (
+                r.try_get::<i64, _>("learn_count")?,
+                r.try_get::<i64, _>("rec_count")?,
+                r.try_get::<i64, _>("screen_sec")?,
+                r.try_get::<i64, _>("frozen")?,
+            ),
+        );
+    }
 
-    let screen_sec_today: i64 = sqlx::query_scalar(
-        "SELECT COALESCE(screen_sec,0) FROM child_daily WHERE child_id=? AND day=?",
-    )
-    .bind(child_id)
-    .bind(&today_str)
-    .fetch_optional(pool)
-    .await?
-    .unwrap_or(0);
+    let today_data = day_map.get(&today_str).copied().unwrap_or((0, 0, 0, 0));
+    let learned_today = today_data.0;
+    let rec_today = today_data.1;
+    let screen_sec_today = today_data.2;
 
     // 打卡：当天有学习或录音即算打卡日
     let checked_today = learned_today > 0 || rec_today > 0;
@@ -259,15 +263,7 @@ pub async fn today_summary(pool: &SqlitePool, child_id: &str) -> AppResult<Today
 
     loop {
         let dstr = day.format("%Y-%m-%d").to_string();
-        let (cnt, frozen): (i64, i64) = sqlx::query_as(
-            "SELECT COALESCE(learn_count,0) + COALESCE(rec_count,0), COALESCE(frozen,0) FROM child_daily WHERE child_id=? AND day=?",
-        )
-        .bind(child_id)
-        .bind(&dstr)
-        .fetch_optional(pool)
-        .await?
-        .map(|(c, f): (i64, i64)| (c, f))
-        .unwrap_or((0, 0));
+        let (cnt, _frozen, _, _) = day_map.get(&dstr).copied().unwrap_or((0, 0, 0, 0));
 
         if cnt > 0 {
             streak += 1;

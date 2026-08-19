@@ -212,13 +212,12 @@ async function mark(motherMark) {
       })
     }
   } catch {
-    /* 网络失败：录音暂存本地，下次重试（5.4 重试队列语义） */
-    try {
-      const cached = localStorage.getItem('babyeng_pending_recs') || '[]'
-      const list = JSON.parse(cached)
-      list.push({ blobUrl: '', targetType: targetType.value, targetId: targetId.value, durationMs: kidDuration.value })
-      localStorage.setItem('babyeng_pending_recs', JSON.stringify(list))
-    } catch { /* ignore */ }
+    // PRD 9.2 / 5.4：录音落盘即上传、不前端堆积；上传失败不缓存死数据，
+    // 直接提示重录，避免「假重试队列」存了一堆永远恢复不了的 metadata
+    alert('网络不太好，这条录音没传上去，再录一次吧')
+    view.value = 'ready'
+    kidBlob.value = null
+    return
   }
   // 学习记录 + 母亲标记（掌握度主信号）
   try {
@@ -226,10 +225,10 @@ async function mark(motherMark) {
       child_id: store.childId,
       target_type: targetType.value,
       target_id: targetId.value,
-      action: targetType.value === 'sentence' ? 'learn' : 'learn',
+      action: 'learn',
       mother_mark: motherMark,
     })
-  } catch { /* ignore */ }
+  } catch { /* 学习记录失败不阻断鼓励 */ }
 
   // 鼓励弹窗（无论发音如何都鼓励，6.3）
   const p = PRAISE[Math.floor(Math.random() * PRAISE.length)]

@@ -218,23 +218,25 @@ impl Matcher {
         let mut scored: Vec<(f64, Target)> = Vec::new();
         let mut seen: std::collections::HashSet<String> = std::collections::HashSet::new();
 
-        // 1. 编辑距离：q vs 每个目标的每个别名
+        // 1. 编辑距离：q vs 每个目标的每个别名，取该目标的所有别名中的最高相似度
+        //    （修复：首个达阈值的别名可能不是最高分，seen 去重会错误丢弃更高分候选）
         for t in &self.targets {
             let mut cands: Vec<&str> = vec![&t.zh];
             for a in &t.aliases {
                 cands.push(a);
             }
+            let mut best = 0.0f64;
             for cand in cands {
                 let cc: Vec<char> = cand.chars().collect();
                 let dist = Self::levenshtein(&qc, &cc);
                 let max_len = qc.len().max(cc.len()).max(1);
                 let sim = 1.0 - (dist as f64 / max_len as f64);
-                // 阈值：同长时一个错字即 0.5~0.8；允许小距离
-                if sim >= 0.6 {
-                    if seen.insert(t.id.clone()) {
-                        scored.push((sim, t.clone()));
-                    }
+                if sim > best {
+                    best = sim;
                 }
+            }
+            if best >= 0.6 && seen.insert(t.id.clone()) {
+                scored.push((best, t.clone()));
             }
         }
 
