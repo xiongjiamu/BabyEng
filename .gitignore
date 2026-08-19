@@ -1,0 +1,26 @@
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# 编辑器
+.vscode/
+.idea/
+*.swp
+*~
+
+# 环境变量与密钥
+.env
+.env.*
+!.env.example
+
+# 依赖与构建产物
+node_modules/
+dist/
+build/
+target/
+__pycache__/
+
+# AI 工具本地配置与会话记录（机器相关，且 .entire/metadata 含完整对话内容）
+.claude/
+.codex/
+.entire/
