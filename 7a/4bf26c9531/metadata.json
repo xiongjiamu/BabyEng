@@ -1,0 +1,39 @@
+{
+  "cli_version": "0.10.1",
+  "checkpoint_id": "7a4bf26c9531",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 2,
+  "files_touched": [
+    "prototype/assets/tokens.css",
+    "prototype/index.html",
+    "prototype/pages/ask.html",
+    "prototype/pages/audio-only.html",
+    "prototype/pages/compare.html",
+    "prototype/pages/home.html",
+    "prototype/pages/learn.html",
+    "prototype/pages/onboarding.html",
+    "prototype/pages/profile.html",
+    "prototype/pages/review.html",
+    "prototype/pages/sentences.html",
+    "prototype/pages/settings.html",
+    "prototype/pages/states.html",
+    "prototype/pages/word-learn.html"
+  ],
+  "sessions": [
+    {
+      "metadata": "/7a/4bf26c9531/0/metadata.json",
+      "transcript": "/7a/4bf26c9531/0/full.jsonl",
+      "compact_transcript": "/7a/4bf26c9531/0/transcript.jsonl",
+      "content_hash": "/7a/4bf26c9531/0/content_hash.txt",
+      "prompt": "/7a/4bf26c9531/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 158,
+    "cache_creation_tokens": 14569706,
+    "cache_read_tokens": 1701240,
+    "output_tokens": 177044,
+    "api_call_count": 79
+  }
+}
