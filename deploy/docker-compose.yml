@@ -1,0 +1,108 @@
+# BabyEng Docker Compose 编排（PRD 9.9）
+# 服务：web(nginx+前端) / backend(Rust) / tts(Piper) / asr(sherpa-onnx) / llm(可选, profile: full)
+# 用法：
+#   MVP（无 LLM）：        docker compose --profile mvp up -d --build
+#   Full（含本地 LLM）：   docker compose --profile full up -d --build
+# 模型文件放 ./models/ 目录（tts/piper/en_US-lessig-medium.onnx 等），见 deploy/README.md
+
+name: babyeng
+
+services:
+  web:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.web
+    ports:
+      - "80:80"
+    depends_on:
+      backend:
+        condition: service_started
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.backend
+    environment:
+      BIND_ADDR: "0.0.0.0:8080"
+      DATABASE_URL: "sqlite:///data/babyeng.db"
+      SEED_DIR: "/app/data/seed"
+      AUDIO_DIR: "/data/audio"
+      STATIC_DIR: "/app/static"
+      TTS_URL: "http://tts:8101"
+      ASR_URL: "http://asr:8102"
+      LLM_URL: "http://llm:8103"
+      MASTER_KEY: "${MASTER_KEY:-change-me-in-prod}"
+      SVC_TIMEOUT_SECS: "15"
+    volumes:
+      - data:/data
+      - audio:/data/audio
+    depends_on:
+      tts:
+        condition: service_healthy
+      asr:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/api/healthz"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  tts:
+    build:
+      context: ../services/tts
+    environment:
+      MODEL_DIR: "/models/piper"
+      PIPER_VOICE: "en_US-lessig-medium"
+      PORT: "8101"
+    volumes:
+      - models:/models
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request;urllib.request.urlopen('http://127.0.0.1:8101/readyz')"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  asr:
+    build:
+      context: ../services/asr
+    environment:
+      MODEL_DIR: "/models/asr"
+      PORT: "8102"
+    volumes:
+      - models:/models
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request;urllib.request.urlopen('http://127.0.0.1:8102/readyz')"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  llm:
+    profiles: ["full"]
+    build:
+      context: ../services/llm
+    environment:
+      OPENAI_BASE_URL: "${LLM_BASE_URL:-http://host.docker.internal:11434/v1}"
+      OPENAI_API_KEY: "${LLM_API_KEY:-}"
+      LLM_MODEL: "${LLM_MODEL:-qwen2.5:7b-instruct}"
+      PORT: "8103"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request;urllib.request.urlopen('http://127.0.0.1:8103/readyz')"]
+      interval: 30s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  models:     # 模型文件（tts/piper、asr/... 首次需手动放入）
+  audio:      # 录音与合成音频
+  data:       # sqlite 文件

@@ -24,3 +24,8 @@ __pycache__/
 .claude/
 .codex/
 .entire/
+
+# 运行时数据（个人服务器本地数据不入库）
+data/babyeng.db*
+data/audio/
+deploy/verify.js.shots/

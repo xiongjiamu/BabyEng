@@ -1,0 +1,18 @@
+{
+  "name": "BabyEng",
+  "short_name": "BabyEng",
+  "description": "幼儿英语启蒙教学应用：妈妈问，马上教，宝宝跟读",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FFF8F0",
+  "theme_color": "#FFF8F0",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

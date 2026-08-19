@@ -1,0 +1,161 @@
+[
+  {
+    "id": "sent_good_morning",
+    "zh": "早上好",
+    "aliases": [
+      "早上好",
+      "早安",
+      "早晨好",
+      "早上好呀"
+    ],
+    "en": "Good morning.",
+    "phonetic": "/ɡʊd ˈmɔːrnɪŋ/",
+    "phonetic_source": "dict",
+    "scene": "morning",
+    "example_context": "宝宝睁眼、你走进房间的第一句",
+    "review_status": "published"
+  },
+  {
+    "id": "sent_wake_up",
+    "zh": "起床啦",
+    "aliases": [
+      "起床啦",
+      "起床了",
+      "该起床了",
+      "醒醒"
+    ],
+    "en": "Wake up!",
+    "phonetic": "/weɪk ʌp/",
+    "phonetic_source": "dict",
+    "scene": "morning",
+    "example_context": "拉开窗帘时说，配一个夸张的语调",
+    "review_status": "published"
+  },
+  {
+    "id": "sent_time_to_eat",
+    "zh": "该吃饭了",
+    "aliases": [
+      "该吃饭了",
+      "吃饭了",
+      "要吃饭了",
+      "开饭了"
+    ],
+    "en": "Time to eat.",
+    "phonetic": "/taɪm tuː iːt/",
+    "phonetic_source": "dict",
+    "scene": "meal",
+    "example_context": "把他抱上餐椅的那一刻",
+    "review_status": "published"
+  },
+  {
+    "id": "sent_yummy",
+    "zh": "好吃",
+    "aliases": [
+      "好吃",
+      "真好吃",
+      "好香",
+      "真香"
+    ],
+    "en": "Yummy!",
+    "phonetic": "/ˈjʌmi/",
+    "phonetic_source": "dict",
+    "scene": "meal",
+    "example_context": "宝宝吃第一口时，夸张地示范",
+    "review_status": "published"
+  },
+  {
+    "id": "sent_lets_play",
+    "zh": "我们一起玩吧",
+    "aliases": [
+      "我们一起玩吧",
+      "来玩吧",
+      "玩吧",
+      "一起玩"
+    ],
+    "en": "Let's play.",
+    "phonetic": "/lɛts pleɪ/",
+    "phonetic_source": "dict",
+    "scene": "play",
+    "example_context": "拿出玩具时自然带出",
+    "review_status": "published"
+  },
+  {
+    "id": "sent_be_careful",
+    "zh": "小心",
+    "aliases": [
+      "小心",
+      "当心",
+      "注意安全",
+      "慢点"
+    ],
+    "en": "Be careful.",
+    "phonetic": "/bi ˈkɛrfəl/",
+    "phonetic_source": "dict",
+    "scene": "play",
+    "example_context": "宝宝爬高或跑动时提醒，语气平稳不吓人",
+    "review_status": "published"
+  },
+  {
+    "id": "sent_time_for_bed",
+    "zh": "该睡觉了",
+    "aliases": [
+      "该睡觉了",
+      "要睡觉了",
+      "去睡觉",
+      "睡觉了"
+    ],
+    "en": "Time for bed.",
+    "phonetic": "/taɪm fɔːr bɛd/",
+    "phonetic_source": "dict",
+    "scene": "bedtime",
+    "example_context": "关灯前抱着他说，声音放轻放慢",
+    "review_status": "published"
+  },
+  {
+    "id": "sent_good_night",
+    "zh": "晚安",
+    "aliases": [
+      "晚安",
+      "睡觉觉",
+      "做个好梦"
+    ],
+    "en": "Good night.",
+    "phonetic": "/ɡʊd naɪt/",
+    "phonetic_source": "dict",
+    "scene": "bedtime",
+    "example_context": "盖好被子、关灯后的最后一句话",
+    "review_status": "published"
+  },
+  {
+    "id": "sent_lets_go",
+    "zh": "我们走吧",
+    "aliases": [
+      "我们走吧",
+      "走吧",
+      "出发",
+      "出门啦"
+    ],
+    "en": "Let's go.",
+    "phonetic": "/lɛts ɡoʊ/",
+    "phonetic_source": "dict",
+    "scene": "outing",
+    "example_context": "出门前在门口说，配上背书包的动作",
+    "review_status": "published"
+  },
+  {
+    "id": "sent_hold_my_hand",
+    "zh": "牵着我的手",
+    "aliases": [
+      "牵着我的手",
+      "拉手",
+      "手拉手",
+      "牵着妈妈"
+    ],
+    "en": "Hold my hand.",
+    "phonetic": "/hoʊld maɪ hænd/",
+    "phonetic_source": "dict",
+    "scene": "outing",
+    "example_context": "过马路前蹲下来，伸手等他来牵",
+    "review_status": "published"
+  }
+]

@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- BabyEng 吉祥物占位：小章鱼 🐙（PRD 12.2 候选，最终待定） -->
+  <rect width="512" height="512" rx="96" fill="#FF8A3D"/>
+  <circle cx="256" cy="236" r="120" fill="#FFEEE0"/>
+  <circle cx="214" cy="210" r="14" fill="#26170B"/>
+  <circle cx="298" cy="210" r="14" fill="#26170B"/>
+  <path d="M238 262 q18 20 36 0" stroke="#26170B" stroke-width="12" fill="none" stroke-linecap="round"/>
+  <ellipse cx="256" cy="300" rx="22" ry="14" fill="#C2410C"/>
+  <path d="M176 330 q-30 40 -14 84" stroke="#C2410C" stroke-width="20" fill="none" stroke-linecap="round"/>
+  <path d="M212 346 q-24 44 -6 86" stroke="#C2410C" stroke-width="20" fill="none" stroke-linecap="round"/>
+  <path d="M256 352 q-16 46 0 92" stroke="#C2410C" stroke-width="20" fill="none" stroke-linecap="round"/>
+  <path d="M300 346 q10 48 26 78" stroke="#C2410C" stroke-width="20" fill="none" stroke-linecap="round"/>
+  <path d="M336 330 q22 44 26 76" stroke="#C2410C" stroke-width="20" fill="none" stroke-linecap="round"/>
+</svg>
