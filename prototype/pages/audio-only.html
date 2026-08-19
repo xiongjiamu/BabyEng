@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>纯音频模式 · BabyEng 原型</title>
+<link rel="stylesheet" href="../assets/tokens.css">
+<style>
+  /* PRD 6.6：母亲侧极简单页，大播放键 + 大录音键，无动画、无贴纸、无图片 */
+  .audio-screen { background: var(--c-surface); }
+  .audio-word { text-align: center; padding: var(--sp-8) 0; }
+  .audio-word .en { font-size: 56px; font-weight: 800; letter-spacing: -1px; line-height: 1.05; }
+  .audio-word .ipa { font-size: 26px; font-weight: 600; color: var(--c-ink-2); margin-top: var(--sp-3); }
+  .audio-word .zh { font-size: var(--fs-zh); color: var(--c-ink-2); margin-top: var(--sp-4); }
+  .big-keys { display: flex; gap: var(--sp-5); justify-content: center; }
+  .bigkey {
+    width: 132px; height: 132px; border-radius: var(--r-full);
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+    font-size: var(--fs-mom); font-weight: 800;
+    transition: transform var(--t-press) var(--ease), box-shadow var(--t-press) var(--ease);
+  }
+  .bigkey .ico { font-size: 46px; line-height: 1 }
+  .bigkey.play { background: var(--c-mom); color: #fff; box-shadow: 0 6px 0 #0A5B55 }
+  .bigkey.play:active { transform: translateY(3px); box-shadow: 0 3px 0 #0A5B55 }
+  .bigkey.rec { background: var(--c-primary); color: var(--c-on-primary); box-shadow: 0 6px 0 var(--c-primary-press) }
+  .bigkey.rec:active { transform: translateY(3px); box-shadow: 0 3px 0 var(--c-primary-press) }
+  .stepper { display: flex; align-items: center; justify-content: space-between; }
+  .stepper button { display: flex; align-items: center; gap: 6px; font-size: var(--fs-mom); font-weight: 700; color: var(--c-ink-2); min-height: var(--size-tap-min); padding: 0 var(--sp-3) }
+  .lockscreen {
+    background: #14100C; color: #F5EDE4; border-radius: var(--r-lg);
+    padding: var(--sp-5); display: flex; flex-direction: column; gap: var(--sp-4);
+  }
+  .lockscreen .lk-row { display: flex; align-items: center; gap: var(--sp-4) }
+  .lockscreen .lk-btn { width: 44px; height: 44px; border-radius: var(--r-full); display: grid; place-items: center; background: rgba(255,255,255,.14); font-size: 18px; color: #F5EDE4 }
+  .lockscreen .lk-title { font-size: 22px; font-weight: 800 }
+  .lockscreen .lk-sub { font-size: var(--fs-mom-sm); color: #B7A996 }
+</style>
+</head>
+<body>
+<div class="stage">
+
+  <div class="proto-bar">
+    <strong>纯音频模式</strong>
+    <span class="proto-tag mvp">MVP</span>
+    <span>PRD 6.6 / 11.3</span>
+    <span class="sp"></span>
+    <a href="../index.html">← 原型首页</a>
+  </div>
+
+  <div class="phone">
+    <div class="screen audio-screen">
+      <div class="statusbar"><span>9:41</span><span>●●● ᯤ 84%</span></div>
+
+      <header class="appbar">
+        <a class="icon-btn" href="home.html" aria-label="返回首页">←</a>
+        <h1 style="font-size:18px">纯音频</h1>
+        <button class="icon-btn" onclick="toggleLock()" aria-label="锁屏播放演示">🌙</button>
+      </header>
+
+      <section class="screen-body pad stack-6" data-view="normal">
+
+        <div class="banner ok">
+          <span class="ico">🎧</span>
+          <span>宝宝不看屏幕，只听声音。<br><b>这段时间不计入宝宝屏幕时间。</b></span>
+        </div>
+
+        <div class="audio-word">
+          <div class="en">cup</div>
+          <div class="ipa">/kʌp/</div>
+          <div class="zh">杯子</div>
+        </div>
+
+        <div class="big-keys">
+          <button class="bigkey play"><span class="ico">▶</span><span>放给他听</span></button>
+          <button class="bigkey rec"><span class="ico">🎤</span><span>录他跟读</span></button>
+        </div>
+
+        <div class="stepper">
+          <button>‹ 上一个</button>
+          <span class="t-mom-sm">3 / 8 · 餐具</span>
+          <button>下一个 ›</button>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="stack-3">
+          <div class="t-label">怎么用</div>
+          <p class="t-mom" style="margin:0">
+            手机可以扣在桌上或攥在手里。你先听一遍、跟读一遍，再教给宝宝，宝宝跟读时按橙色键录音。
+            整个过程宝宝一次屏幕都不用看。
+          </p>
+        </div>
+
+        <a class="btn btn-ghost btn-block" href="home.html">切回看图模式</a>
+
+        <p class="note">
+          PRD 6.6：本页刻意不放图片、贴纸和动画——A 段（12~24 月）默认开启此模式，把幼儿屏幕时间压到零，同时不损失任何教学闭环。
+          副作用是没有画面可以掩饰，逼着发音质量必须做扎实。
+        </p>
+      </section>
+
+      <!-- 锁屏播放（Media Session）演示 -->
+      <section class="screen-body pad stack-5" data-view="lock" hidden>
+        <p class="t-mom center-text">锁屏后的样子</p>
+        <div class="lockscreen">
+          <div class="lk-sub">BabyEng · 纯音频</div>
+          <div class="lk-title">cup /kʌp/</div>
+          <div class="lk-row">
+            <span class="lk-btn">‹‹</span>
+            <span class="lk-btn" style="width:56px;height:56px;background:rgba(255,255,255,.22);font-size:22px">▶</span>
+            <span class="lk-btn">››</span>
+            <span class="grow"></span>
+            <span class="lk-sub">3 / 8</span>
+          </div>
+        </div>
+        <div class="banner warn">
+          <span class="ico">⚠️</span>
+          <span><b>此项需真机实测。</b>iOS 上添加到主屏幕的 PWA，后台音频行为不稳定（PRD 9.2）。若不可用，降级为下面这种「黑屏播放页」，而不是推翻 PWA 方案。</span>
+        </div>
+        <div class="lockscreen" style="background:#000">
+          <div class="lk-title" style="text-align:center;padding:var(--sp-8) 0">cup</div>
+          <div class="lk-sub" style="text-align:center">点任意位置播放 · 屏幕保持黑屏</div>
+        </div>
+        <button class="btn btn-ghost btn-block" onclick="toggleLock()">返回</button>
+      </section>
+
+    </div>
+  </div>
+
+</div>
+
+<script>
+function toggleLock() {
+  const n = document.querySelector('[data-view="normal"]');
+  const l = document.querySelector('[data-view="lock"]');
+  const showLock = n.hidden === false;
+  n.hidden = showLock;
+  l.hidden = !showLock;
+}
+</script>
+</body>
+</html>

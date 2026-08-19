@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>情景短句页 Sentences · BabyEng 原型</title>
+<link rel="stylesheet" href="../assets/tokens.css">
+<style>
+  .timetabs { display: flex; gap: var(--sp-2); overflow-x: auto; padding: 0 var(--sp-5) var(--sp-4); }
+  .timetabs button {
+    flex: none; display: flex; align-items: center; gap: 6px;
+    min-height: var(--size-tap-min); padding: 0 var(--sp-4); border-radius: var(--r-full);
+    background: var(--c-surface); border: 2px solid var(--c-line);
+    font-size: var(--fs-mom); font-weight: 700; color: var(--c-ink-2);
+  }
+  .timetabs button[aria-pressed="true"] { background: var(--c-primary); border-color: var(--c-primary); color: var(--c-on-primary) }
+  .sent-card { display: flex; flex-direction: column; gap: var(--sp-3) }
+  .sent-card .en { font-size: 34px; font-weight: 800; line-height: 1.2 }
+  .sent-card .ipa { font-size: var(--fs-phonetic); color: var(--c-ink-2); font-weight: 600 }
+  .sent-card .zh { font-size: var(--fs-zh); color: var(--c-ink-2) }
+  .sent-acts { display: flex; gap: var(--sp-3); }
+  .sent-acts .btn { flex: 1; min-height: 60px; font-size: 19px }
+  .ctx { font-size: var(--fs-mom-sm); color: var(--c-ink-3); background: var(--c-surface-2); border-radius: var(--r-sm); padding: var(--sp-2) var(--sp-3) }
+</style>
+</head>
+<body>
+<div class="stage">
+
+  <div class="proto-bar">
+    <strong>情景短句页 Sentences</strong>
+    <span class="proto-tag v1">V1</span>
+    <span>PRD 3.5 / 4.2</span>
+    <span class="sp"></span>
+    <a href="../index.html">← 原型首页</a>
+  </div>
+
+  <div class="phone">
+    <div class="screen">
+      <div class="statusbar"><span>9:41</span><span>●●● ᯤ 84%</span></div>
+
+      <header class="appbar">
+        <a class="icon-btn" href="learn.html" aria-label="返回">←</a>
+        <h1>情景短句</h1>
+        <span class="icon-btn" aria-hidden="true"></span>
+      </header>
+
+      <div class="timetabs">
+        <button aria-pressed="true">🌅 起床</button>
+        <button aria-pressed="false">🍚 吃饭</button>
+        <button aria-pressed="false">🧸 玩耍</button>
+        <button aria-pressed="false">🌙 睡前</button>
+        <button aria-pressed="false">🚪 出门</button>
+      </div>
+
+      <div class="screen-body pad stack-5" style="padding-top:0">
+
+        <div class="banner info">
+          <span class="ico">🌅</span>
+          <span>现在是早上 8:41，先用起床这几句。<br>同一句每天在同一个场景重复，比一次学很多句管用。</span>
+        </div>
+
+        <div class="card sent-card">
+          <div>
+            <div class="en">Good morning.</div>
+            <div class="ipa">/ɡʊd ˈmɔːrnɪŋ/</div>
+            <div class="zh">早上好。</div>
+          </div>
+          <div class="ctx">宝宝睁眼、你走进房间的第一句</div>
+          <div class="sent-acts">
+            <button class="btn btn-primary">▶ 播放</button>
+            <a class="btn btn-ghost" href="compare.html">🎤 跟读</a>
+          </div>
+        </div>
+
+        <div class="card sent-card">
+          <div>
+            <div class="en">Wake up!</div>
+            <div class="ipa">/weɪk ʌp/</div>
+            <div class="zh">起床啦！</div>
+          </div>
+          <div class="ctx">拉开窗帘时说，配一个夸张的语调</div>
+          <div class="sent-acts">
+            <button class="btn btn-primary">▶ 播放</button>
+            <a class="btn btn-ghost" href="compare.html">🎤 跟读</a>
+          </div>
+        </div>
+
+        <div class="card sent-card">
+          <div>
+            <div class="en">Time to eat.</div>
+            <div class="ipa">/taɪm tuː iːt/</div>
+            <div class="zh">该吃饭了。</div>
+          </div>
+          <div class="ctx">把他抱上餐椅的那一刻</div>
+          <div class="sent-acts">
+            <button class="btn btn-primary">▶ 播放</button>
+            <a class="btn btn-ghost" href="compare.html">🎤 跟读</a>
+          </div>
+        </div>
+
+        <p class="note">
+          PRD 8.2：句子的中文说法变体比词更多（「该睡觉了 / 要睡觉了 / 去睡觉」），因此 Sentence 表同样带 <code>aliases</code> 字段，
+          否则母亲在「问一问」里换个说法就查不到。
+        </p>
+      </div>
+
+      <nav class="tabbar">
+        <a href="home.html"><span class="ico">🏠</span><span>首页</span></a>
+        <a href="profile.html"><span class="ico">📔</span><span>我的</span></a>
+        <a href="settings.html"><span class="ico">⚙</span><span>设置</span></a>
+      </nav>
+    </div>
+  </div>
+
+</div>
+
+<script>
+document.querySelectorAll('.timetabs button').forEach(b => b.onclick = () => {
+  document.querySelectorAll('.timetabs button').forEach(x => x.setAttribute('aria-pressed', x === b));
+});
+</script>
+</body>
+</html>

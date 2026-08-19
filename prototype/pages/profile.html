@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>我的页 Profile · BabyEng 原型</title>
+<link rel="stylesheet" href="../assets/tokens.css">
+<style>
+  .cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px }
+  .cal span { aspect-ratio: 1; border-radius: var(--r-sm); display: grid; place-items: center; font-size: 12px; font-weight: 700; background: var(--c-surface-2); color: var(--c-ink-3) }
+  .cal span.on { background: var(--c-primary); color: var(--c-on-primary) }
+  .cal span.freeze { background: var(--c-mom-soft); color: #0B4F49 }
+  .cal .hd { background: none; color: var(--c-ink-3); font-size: 11px }
+  .medals { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--sp-3) }
+  .medal { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: var(--sp-4) var(--sp-2); border-radius: var(--r-md); background: var(--c-surface); box-shadow: var(--shadow-1) }
+  .medal .ico { font-size: 34px; line-height: 1 }
+  .medal .t { font-size: 12px; font-weight: 700; text-align: center; color: var(--c-ink-2) }
+  .medal.locked { background: var(--c-surface-2); box-shadow: none }
+  .medal.locked .ico { filter: grayscale(1); opacity: .35 }
+  .rec-row { display: flex; align-items: center; gap: var(--sp-3); padding: var(--sp-3) var(--sp-4); border-bottom: 1px solid var(--c-line) }
+  .rec-row:last-child { border-bottom: 0 }
+  .rec-row .play { width: 44px; height: 44px; border-radius: var(--r-full); display: grid; place-items: center; background: var(--c-primary); color: var(--c-on-primary); font-size: 18px; flex: none }
+  .newword { display: flex; flex-wrap: wrap; gap: var(--sp-2) }
+  .newword span { padding: 6px 12px; border-radius: var(--r-full); background: var(--c-primary-soft); color: #8A3D06; font-size: 20px; font-weight: 800 }
+</style>
+</head>
+<body>
+<div class="stage">
+
+  <div class="proto-bar">
+    <strong>我的页 Profile</strong>
+    <span class="proto-tag v1">V1</span>
+    <span>PRD 7.1 / 7.3 / 7.5</span>
+    <span class="sp"></span>
+    <a href="../index.html">← 原型首页</a>
+  </div>
+
+  <div class="phone">
+    <div class="screen">
+      <div class="statusbar"><span>9:41</span><span>●●● ᯤ 84%</span></div>
+
+      <header class="appbar">
+        <span class="icon-btn" aria-hidden="true"></span>
+        <h1>我的</h1>
+        <span class="icon-btn" aria-hidden="true"></span>
+      </header>
+
+      <div style="padding:0 var(--sp-5) var(--sp-4)">
+        <div class="seg">
+          <button aria-pressed="true" onclick="tab('daily')">日报</button>
+          <button aria-pressed="false" onclick="tab('rec')">录音</button>
+          <button aria-pressed="false" onclick="tab('medal')">成就</button>
+        </div>
+      </div>
+
+      <!-- ============ 日报 ============ -->
+      <div class="screen-body pad stack-5" data-tab="daily" style="padding-top:0">
+        <div class="card stack-4">
+          <div class="row-between">
+            <span class="t-zh" style="font-size:24px">8 月 20 日</span>
+            <span class="chip kid">🔥 连续 6 天</span>
+          </div>
+          <div class="row" style="gap:var(--sp-6)">
+            <span><div style="font-size:32px;font-weight:800">5</div><div class="t-mom-sm">学了几个词</div></span>
+            <span><div style="font-size:32px;font-weight:800">7</div><div class="t-mom-sm">跟读次数</div></span>
+            <span><div style="font-size:32px;font-weight:800">6′</div><div class="t-mom-sm">亲子时长</div></span>
+          </div>
+          <div class="divider"></div>
+          <div class="stack-3">
+            <div class="t-label">今天新学</div>
+            <div class="newword"><span>spoon</span><span>bowl</span><span>fork</span><span>plate</span><span>cup</span></div>
+          </div>
+        </div>
+
+        <div class="card stack-3">
+          <div class="t-label">妈妈学习卡</div>
+          <div class="row" style="align-items:flex-start;gap:var(--sp-3)">
+            <span style="font-size:24px">📖</span>
+            <div class="grow">
+              <div class="t-word-en-s" style="font-size:24px">spoon /spuːn/</div>
+              <p class="t-mom" style="margin:6px 0 0">开头 sp 要连着出，别念成「思-普」。结尾 n 舌尖顶上颚，中文「恩」的位置就对了。</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="card stack-3">
+          <div class="t-label">明天先复习</div>
+          <div class="newword"><span>spoon</span><span>fork</span></div>
+          <p class="t-mom-sm" style="margin:0">这两个昨天标了「再练练」。</p>
+        </div>
+
+        <div class="banner info">
+          <span class="ico">🎧</span>
+          <span>今天 6 分钟里有 6 分钟是纯音频，<b>宝宝屏幕时间 0 分钟</b>。</span>
+        </div>
+
+        <p class="note">PRD 7.3：日报定位为轻量复盘工具，一屏可读完，不堆数据。每日 21:00 生成。</p>
+      </div>
+
+      <!-- ============ 录音 ============ -->
+      <div class="screen-body pad stack-5" data-tab="rec" hidden style="padding-top:0">
+        <div class="banner info">
+          <span class="ico">🗓</span>
+          <span>录音默认保留 30 天。点右侧 ♡ 收藏后长期保留，不受清理影响。</span>
+        </div>
+        <div class="list">
+          <div class="rec-row"><span class="play">▶</span><span class="grow"><div class="t-word-en-s" style="font-size:22px">spoon</div><div class="t-mom-sm">今天 08:52 · 0:02</div></span><button class="icon-btn" style="width:40px;height:40px">♡</button></div>
+          <div class="rec-row"><span class="play">▶</span><span class="grow"><div class="t-word-en-s" style="font-size:22px">cup</div><div class="t-mom-sm">今天 08:49 · 0:01</div></span><button class="icon-btn" style="width:40px;height:40px;color:var(--c-primary-deep)">♥</button></div>
+          <div class="rec-row"><span class="play">▶</span><span class="grow"><div class="t-word-en-s" style="font-size:22px">apple</div><div class="t-mom-sm">昨天 19:10 · 0:03</div></span><button class="icon-btn" style="width:40px;height:40px">♡</button></div>
+          <div class="rec-row"><span class="play">▶</span><span class="grow"><div class="t-word-en-s" style="font-size:22px">mom</div><div class="t-mom-sm">8 月 15 日 · 0:02</div></span><button class="icon-btn" style="width:40px;height:40px;color:var(--c-primary-deep)">♥</button></div>
+        </div>
+        <p class="note">PRD 8.4 / 11.4：录音全部存在自己的服务器上，30 天自动过期，设置页可一键导出或清空。</p>
+      </div>
+
+      <!-- ============ 成就 ============ -->
+      <div class="screen-body pad stack-5" data-tab="medal" hidden style="padding-top:0">
+        <div class="card stack-4">
+          <div class="row-between">
+            <span class="t-label">8 月打卡</span>
+            <span class="chip mom">❄ 保护还剩 1 次</span>
+          </div>
+          <div class="cal">
+            <span class="hd">一</span><span class="hd">二</span><span class="hd">三</span><span class="hd">四</span><span class="hd">五</span><span class="hd">六</span><span class="hd">日</span>
+            <span>28</span><span>29</span><span>30</span><span>31</span><span class="on">1</span><span class="on">2</span><span>3</span>
+            <span class="on">4</span><span class="on">5</span><span>6</span><span class="on">7</span><span class="on">8</span><span class="on">9</span><span class="on">10</span>
+            <span class="on">11</span><span class="freeze">12</span><span class="on">13</span><span class="on">14</span><span class="on">15</span><span>16</span><span>17</span>
+            <span class="on">18</span><span class="on">19</span><span class="on">20</span><span>21</span><span>22</span><span>23</span><span>24</span>
+          </div>
+          <p class="t-mom-sm" style="margin:0">❄ 12 日用了打卡保护，连续天数没断。每月自动送 2 次。</p>
+        </div>
+
+        <div class="stack-3">
+          <div class="t-label">勋章</div>
+          <div class="medals">
+            <div class="medal"><span class="ico">🍽</span><span class="t">餐具学完</span></div>
+            <div class="medal"><span class="ico">🔥</span><span class="t">连续 7 天</span></div>
+            <div class="medal"><span class="ico">🎤</span><span class="t">跟读 50 次</span></div>
+            <div class="medal locked"><span class="ico">👪</span><span class="t">人物学完</span></div>
+            <div class="medal locked"><span class="ico">🌙</span><span class="t">睡前 10 天</span></div>
+            <div class="medal locked"><span class="ico">💯</span><span class="t">100 个词</span></div>
+          </div>
+        </div>
+
+        <p class="note">
+          PRD 12.3 / 13.3：没有 XP 数字、没有排行榜、没有心数惩罚。连续打卡天数<b>不进核心指标</b>——
+          它只是降低放弃成本的脚手架，一旦当成目标就会诱发「为保打卡而打卡」。
+        </p>
+      </div>
+
+      <nav class="tabbar">
+        <a href="home.html"><span class="ico">🏠</span><span>首页</span></a>
+        <a href="profile.html" aria-current="page"><span class="ico">📔</span><span>我的</span></a>
+        <a href="settings.html"><span class="ico">⚙</span><span>设置</span></a>
+      </nav>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function tab(name) {
+  document.querySelectorAll('[data-tab]').forEach(el => el.hidden = el.dataset.tab !== name);
+  document.querySelectorAll('.seg button').forEach(b =>
+    b.setAttribute('aria-pressed', b.getAttribute('onclick').includes("'" + name + "'")));
+}
+</script>
+</body>
+</html>

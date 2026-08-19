@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>语音问答页 Ask · BabyEng 原型</title>
+<link rel="stylesheet" href="../assets/tokens.css">
+<style>
+  .ask-hint { text-align: center; color: var(--c-ink-2); font-size: var(--fs-zh); font-weight: 600; }
+  .heard {
+    display: flex; align-items: center; gap: var(--sp-2);
+    padding: var(--sp-2) var(--sp-4); border-radius: var(--r-full);
+    background: var(--c-mom-soft); color: #0B4F49;
+    font-size: var(--fs-mom); font-weight: 700; align-self: center;
+  }
+  .heard button { font-size: var(--fs-mom-sm); color: #0B4F49; text-decoration: underline; font-weight: 700; }
+  .result-photo { width: 190px; margin: 0 auto; }
+  .word-block { text-align: center; }
+  .word-block .t-phonetic { margin-top: 6px; }
+  .word-block .t-zh { margin-top: var(--sp-2); color: var(--c-ink-2); }
+  .play-row { display: flex; gap: var(--sp-3); justify-content: center; }
+  .play-big {
+    display: inline-flex; align-items: center; gap: var(--sp-2);
+    height: 64px; padding: 0 var(--sp-6); border-radius: var(--r-full);
+    background: var(--c-primary); color: var(--c-on-primary);
+    font-size: 21px; font-weight: 800; box-shadow: 0 5px 0 var(--c-primary-press);
+    transition: transform var(--t-press) var(--ease), box-shadow var(--t-press) var(--ease);
+  }
+  .play-big:active { transform: translateY(3px) scale(.98); box-shadow: 0 2px 0 var(--c-primary-press); }
+  .play-slow {
+    height: 64px; width: 64px; border-radius: var(--r-full);
+    background: var(--c-surface); border: 2px solid var(--c-line-strong);
+    display: grid; place-items: center; font-size: 13px; font-weight: 800; color: var(--c-ink-2);
+  }
+  .example { background: var(--c-surface-2); border: 1px solid var(--c-line); border-radius: var(--r-md); padding: var(--sp-4); }
+  .example .en { font-size: 24px; font-weight: 700; }
+  .example .zh { font-size: var(--fs-mom); color: var(--c-ink-2); margin-top: 4px; }
+  .footer-act { flex: none; padding: var(--sp-3) var(--sp-5) var(--sp-6); background: linear-gradient(to top, var(--c-bg) 72%, transparent); }
+  .suggest { display: flex; gap: var(--sp-3); overflow-x: auto; padding-bottom: 4px; }
+  .suggest button {
+    flex: none; display: flex; flex-direction: column; align-items: center; gap: 6px;
+    padding: var(--sp-3); border-radius: var(--r-md); background: var(--c-surface);
+    border: 1px solid var(--c-line); min-width: 104px;
+  }
+  .suggest .t-word-en-s { font-size: 24px; }
+  .textinput { display: flex; gap: var(--sp-2); }
+  .textinput input {
+    flex: 1; min-height: 56px; padding: 0 var(--sp-4); font-size: var(--fs-mom);
+    border: 2px solid var(--c-line-strong); border-radius: var(--r-md); background: var(--c-surface);
+  }
+  .choice { display: flex; flex-direction: column; gap: var(--sp-3); }
+  .choice button {
+    display: flex; align-items: center; gap: var(--sp-4); padding: var(--sp-4);
+    background: var(--c-surface); border: 2px solid var(--c-line-strong); border-radius: var(--r-lg);
+    text-align: left;
+  }
+  .choice button:active { border-color: var(--c-primary); background: var(--c-primary-soft); }
+  .statebar { display: flex; flex-wrap: wrap; gap: 6px; width: 100%; max-width: 413px; }
+  .statebar button {
+    font-size: 12px; font-weight: 700; padding: 6px 10px; border-radius: var(--r-full);
+    background: #E2D5C6; color: #4A3A2C;
+  }
+  .statebar button[aria-pressed="true"] { background: #2A2118; color: #fff; }
+</style>
+</head>
+<body>
+<div class="stage">
+
+  <div class="proto-bar">
+    <strong>语音问答页 Ask</strong>
+    <span class="proto-tag mvp">MVP</span>
+    <span>PRD 4.1 / 5.3 / 6.1</span>
+    <span class="sp"></span>
+    <a href="../index.html">← 原型首页</a>
+  </div>
+
+  <div class="phone">
+    <div class="screen">
+      <div class="statusbar"><span>9:41</span><span>●●● ᯤ 84%</span></div>
+
+      <header class="appbar">
+        <a class="icon-btn" href="home.html" aria-label="返回首页">←</a>
+        <h1>问一问</h1>
+        <a class="icon-btn" href="settings.html" aria-label="设置">⚙</a>
+      </header>
+
+      <!-- ============ 1. 待提问 ============ -->
+      <section class="screen-body pad center stack-8" data-state="idle">
+        <div class="stack-4" style="text-align:center">
+          <p class="ask-hint">按住下面的按钮<br>说出你想教的东西</p>
+          <p class="t-mom">比如「杯子英语怎么说」「爷爷」「该睡觉了」</p>
+        </div>
+        <div class="stack-4" style="align-items:center">
+          <button class="record record-mom" onclick="go('recording')" aria-label="按住说话">
+            <span class="ico">🎙</span>
+          </button>
+          <span class="chip mom">妈妈按住说 · 松开就查</span>
+        </div>
+        <button class="btn-quiet" onclick="go('nomatch')">改用打字 →</button>
+      </section>
+
+      <!-- ============ 2. 录音中 ============ -->
+      <section class="screen-body pad center stack-8" data-state="recording" hidden>
+        <p class="ask-hint">在听……</p>
+        <div class="stack-4" style="align-items:center">
+          <button class="record record-mom is-recording" onclick="go('recognizing')" aria-label="松开结束">
+            <span class="wave"><i></i><i></i><i></i><i></i><i></i></span>
+          </button>
+          <span class="chip mom">0:02 · 松开结束</span>
+        </div>
+        <p class="t-mom center-text">原型说明：真机为按住式（press-to-talk），<br>此处点一下模拟松手。</p>
+      </section>
+
+      <!-- ============ 3. 识别中（800ms 内必须回显） ============ -->
+      <section class="screen-body pad stack-6" data-state="recognizing" hidden>
+        <div class="heard enter">
+          <span>听到：杯子英语怎么说</span>
+        </div>
+        <div class="photo result-photo" style="opacity:.35">
+          <span class="emoji">☕</span>
+        </div>
+        <p class="ask-hint">正在查……</p>
+        <div class="progress"><i style="width:62%"></i></div>
+        <p class="note">PRD 4.1.3：识别文本必须在 <b>800ms</b> 内回显，库内命中整条链路 P95 ≤ <b>1.2s</b>。这一屏的存在本身就是性能预算的一部分——母亲不能对着空白屏等待。</p>
+        <button class="btn btn-ghost btn-block" onclick="go('result')">▸ 模拟出结果</button>
+      </section>
+
+      <!-- ============ 4. 结果卡（库内命中） ============ -->
+      <section class="screen-body pad stack-5 enter" data-state="result" hidden>
+        <div class="heard">
+          <span>听到：杯子英语怎么说</span>
+          <button onclick="go('idle')">不对？</button>
+        </div>
+
+        <div class="photo result-photo"><span class="emoji">☕</span></div>
+
+        <div class="word-block">
+          <div class="t-word-en">cup</div>
+          <div class="t-phonetic">/kʌp/</div>
+          <div class="t-zh">杯子</div>
+        </div>
+
+        <div class="play-row">
+          <button class="play-big"><span>▶</span><span>播放发音</span></button>
+          <button class="play-slow" aria-label="慢速播放">0.6×</button>
+        </div>
+
+        <div class="example">
+          <div class="en">Here is your cup.</div>
+          <div class="zh">这是你的杯子。</div>
+        </div>
+
+        <button class="list-item" style="border-radius:var(--r-lg);box-shadow:var(--shadow-1);border-bottom:0" onclick="alert('母亲学习卡 M9 属于 V1，MVP 阶段此入口隐藏')">
+          <span style="font-size:22px">📖</span>
+          <span class="grow">
+            <div style="font-weight:700">妈妈学习卡</div>
+            <div class="sub">cup 的 /ʌ/ 比中文「啊」短促</div>
+          </span>
+          <span class="proto-tag v1">V1</span>
+        </button>
+
+        <p class="note">音标来源 <code>dict</code>（PRD 4.1.2）：音标只取发音词典与 g2p，永不采信 LLM 输出。取不到时这一行整体隐藏，不显示可能错的音标。</p>
+      </section>
+
+      <!-- ============ 5. 识别歧义：二选一 ============ -->
+      <section class="screen-body pad stack-6 enter" data-state="ambiguous" hidden>
+        <div class="heard"><span>听到：beizi</span></div>
+        <h2 class="t-zh-lg center-text">你是说哪一个？</h2>
+        <div class="choice">
+          <button onclick="go('result')">
+            <span class="photo sm"><span class="emoji">☕</span></span>
+            <span class="grow">
+              <div class="t-word-en-s">cup</div>
+              <div class="t-mom">杯子 · 喝水用的</div>
+            </span>
+          </button>
+          <button onclick="go('result')">
+            <span class="photo sm"><span class="emoji">🛏</span></span>
+            <span class="grow">
+              <div class="t-word-en-s">quilt</div>
+              <div class="t-mom">被子 · 盖的</div>
+            </span>
+          </button>
+        </div>
+        <button class="btn-quiet" onclick="go('idle')">都不是，重新说</button>
+        <p class="note">PRD 4.1.1 L2 层：拼音相似度接近阈值时不猜，交给母亲一次点选。同音错字（被子/杯子）是中文 ASR 的高频失败模式。</p>
+      </section>
+
+      <!-- ============ 6. 彻底未命中 ============ -->
+      <section class="screen-body pad stack-5 enter" data-state="nomatch" hidden>
+        <div class="heard"><span>听到：妈妈的口红</span></div>
+        <div class="banner warn">
+          <span class="ico">💡</span>
+          <span>这个词还没准备好，我记下了。<br>先试试下面这些，或者打字告诉我。</span>
+        </div>
+
+        <div>
+          <div class="t-label" style="margin-bottom:var(--sp-3)">同类目，宝宝也常听到</div>
+          <div class="suggest">
+            <button onclick="go('result')"><span class="photo sm"><span class="emoji">👛</span></span><span class="t-word-en-s">bag</span><span class="t-mom-sm">包</span></button>
+            <button onclick="go('result')"><span class="photo sm"><span class="emoji">🪞</span></span><span class="t-word-en-s">mirror</span><span class="t-mom-sm">镜子</span></button>
+            <button onclick="go('result')"><span class="photo sm"><span class="emoji">🧴</span></span><span class="t-word-en-s">soap</span><span class="t-mom-sm">香皂</span></button>
+          </div>
+        </div>
+
+        <div class="stack-3">
+          <div class="t-label">或者打字</div>
+          <div class="textinput">
+            <input type="text" placeholder="输入中文，如 口红" aria-label="文字输入">
+            <button class="btn btn-mom">查</button>
+          </div>
+        </div>
+
+        <p class="note">这条查询已静默写入 <code>unmatched_query</code>（PRD 8.8）。未命中不是错误页，是词库增长的输入源——按 <code>hit_count</code> 排序后进入待补清单。</p>
+      </section>
+
+      <!-- ============ 7. ASR 无结果 ============ -->
+      <section class="screen-body pad center stack-6 enter" data-state="asrfail" hidden>
+        <div style="text-align:center">
+          <div style="font-size:72px">🔇</div>
+          <h2 class="t-zh-lg" style="margin:var(--sp-4) 0 var(--sp-2)">没听清</h2>
+          <p class="t-mom">周围有点吵，或者离得远了一点</p>
+        </div>
+        <div class="stack-3">
+          <button class="btn btn-primary btn-block btn-lg" onclick="go('recording')">再说一次</button>
+          <div class="textinput">
+            <input type="text" placeholder="也可以直接打字" aria-label="文字输入">
+            <button class="btn btn-mom">查</button>
+          </div>
+        </div>
+        <p class="note">PRD 6.1：连续两次识别失败，文字输入框主动展开，不让母亲自己去找。</p>
+      </section>
+
+      <!-- ============ 8. TTS 不可用（降级但不阻断） ============ -->
+      <section class="screen-body pad stack-5 enter" data-state="ttsdown" hidden>
+        <div class="banner danger">
+          <span class="ico">🔈</span>
+          <span>发音暂时不可用，其他都能用。<br>可以先看着音标教，稍后自动恢复。</span>
+        </div>
+        <div class="photo result-photo"><span class="emoji">☕</span></div>
+        <div class="word-block">
+          <div class="t-word-en">cup</div>
+          <div class="t-phonetic">/kʌp/</div>
+          <div class="t-zh">杯子</div>
+        </div>
+        <div class="play-row">
+          <button class="play-big" aria-disabled="true" style="background:var(--c-surface-2);color:var(--c-ink-3);box-shadow:none">
+            <span>▶</span><span>发音暂时不可用</span>
+          </button>
+        </div>
+        <p class="note">PRD 4.1.3 / 9.10：TTS 挂掉只降级发音一项，文字结果照出，跟读录音照常可用。任何单点故障都不得整页报错。</p>
+      </section>
+
+      <!-- 底部动作条：结果态才出现 -->
+      <div class="footer-act" data-foot="result" hidden>
+        <div class="stack-3">
+          <a class="btn btn-primary btn-block btn-lg" href="compare.html">🎤 让宝宝跟读</a>
+          <button class="btn-quiet btn-block" onclick="go('idle')">再问一个</button>
+        </div>
+      </div>
+      <div class="footer-act" data-foot="ttsdown" hidden>
+        <a class="btn btn-primary btn-block btn-lg" href="compare.html">🎤 让宝宝跟读</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="statebar">
+    <button onclick="go('idle')" aria-pressed="true">1 待提问</button>
+    <button onclick="go('recording')">2 录音中</button>
+    <button onclick="go('recognizing')">3 识别中</button>
+    <button onclick="go('result')">4 结果卡</button>
+    <button onclick="go('ambiguous')">5 二选一</button>
+    <button onclick="go('nomatch')">6 未命中</button>
+    <button onclick="go('asrfail')">7 没听清</button>
+    <button onclick="go('ttsdown')">8 TTS 降级</button>
+  </div>
+
+</div>
+
+<script>
+function go(name) {
+  document.querySelectorAll('[data-state]').forEach(el => el.hidden = el.dataset.state !== name);
+  document.querySelectorAll('[data-foot]').forEach(el => el.hidden = el.dataset.foot !== name);
+  document.querySelectorAll('.statebar button').forEach(b =>
+    b.setAttribute('aria-pressed', b.getAttribute('onclick').includes("'" + name + "'")));
+  const body = document.querySelector('[data-state="' + name + '"]');
+  if (body) body.scrollTop = 0;
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>单词学习页 WordLearn · BabyEng 原型</title>
+<link rel="stylesheet" href="../assets/tokens.css">
+<style>
+  .steps { display: flex; gap: 6px; padding: 0 var(--sp-5) var(--sp-4) }
+  .steps i { flex: 1; height: 6px; border-radius: var(--r-full); background: var(--c-line) }
+  .steps i.done { background: var(--c-primary) }
+  .steps i.now { background: var(--c-primary); opacity: .55 }
+  .flow { display: flex; flex-direction: column; gap: var(--sp-2); }
+  .flow-step { display: flex; align-items: center; gap: var(--sp-3); padding: var(--sp-3) var(--sp-4); border-radius: var(--r-md); font-size: var(--fs-mom); color: var(--c-ink-3) }
+  .flow-step .n { width: 26px; height: 26px; border-radius: var(--r-full); display: grid; place-items: center; font-size: 13px; font-weight: 800; background: var(--c-line); color: var(--c-ink-3); flex: none }
+  .flow-step.done { color: var(--c-ink-2) } .flow-step.done .n { background: var(--c-ok); color: #fff }
+  .flow-step.now { background: var(--c-primary-soft); color: #8A3D06; font-weight: 700 }
+  .flow-step.now .n { background: var(--c-primary); color: var(--c-on-primary) }
+  .quiz-opts { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-4) }
+  .quiz-opt { padding: var(--sp-3); border-radius: var(--r-lg); background: var(--c-surface); border: 3px solid var(--c-line); box-shadow: var(--shadow-1) }
+  .quiz-opt:active { border-color: var(--c-primary) }
+  .quiz-opt .photo { border: 0 }
+  .band-switch { display: flex; align-items: center; gap: var(--sp-2); width: 100%; max-width: 413px; font-size: 12px; color: #5C4A3A }
+  .band-switch .seg { flex: 1; background: #E2D5C6 }
+  .band-switch .seg button { min-height: 32px; font-size: 12px }
+</style>
+</head>
+<body>
+<div class="stage">
+
+  <div class="proto-bar">
+    <strong>单词学习页 WordLearn</strong>
+    <span class="proto-tag v1">V1</span>
+    <span>PRD 4.2 / 5.3</span>
+    <span class="sp"></span>
+    <a href="../index.html">← 原型首页</a>
+  </div>
+
+  <div class="phone">
+    <div class="screen">
+      <div class="statusbar"><span>9:41</span><span>●●● ᯤ 84%</span></div>
+
+      <header class="appbar">
+        <a class="icon-btn" href="learn.html" aria-label="退出学习">✕</a>
+        <h1 style="font-size:17px">餐具 · 第 3 / 5 个</h1>
+        <span class="icon-btn" aria-hidden="true"></span>
+      </header>
+
+      <div class="steps"><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i></div>
+
+      <!-- ============ 逐词流 ============ -->
+      <section class="screen-body pad stack-5" data-state="learn">
+        <div class="photo" style="width:186px;margin:0 auto"><span class="emoji">🥄</span></div>
+
+        <div style="text-align:center">
+          <div class="t-word-en">spoon</div>
+          <div class="t-phonetic">/spuːn/</div>
+          <div class="t-zh" style="color:var(--c-ink-2);margin-top:var(--sp-2)">勺子</div>
+        </div>
+
+        <div class="flow">
+          <div class="flow-step done"><span class="n">1</span><span>看图</span></div>
+          <div class="flow-step done"><span class="n">2</span><span>听标准音</span></div>
+          <div class="flow-step now"><span class="n">3</span><span>妈妈先跟读一遍</span></div>
+          <div class="flow-step"><span class="n">4</span><span>宝宝跟读并录音</span></div>
+        </div>
+
+        <div class="row" style="gap:var(--sp-3)">
+          <button class="btn btn-ghost" style="flex:none;width:76px;min-height:60px">▶</button>
+          <a class="btn btn-primary grow" style="min-height:60px" href="compare.html">🎤 让宝宝跟读</a>
+        </div>
+
+        <div class="row-between">
+          <button class="btn-quiet">‹ 上一个</button>
+          <button class="btn-quiet" onclick="groupEnd()">跳过，下一个 ›</button>
+        </div>
+      </section>
+
+      <!-- ============ B 段组末：听音选图小测 ============ -->
+      <section class="screen-body pad stack-6 enter" data-state="quiz" hidden>
+        <div style="text-align:center">
+          <span class="chip kid">小测 · 5 个词学完了</span>
+        </div>
+        <h2 class="t-zh-lg center-text">哪个是 <span style="font-size:34px">spoon</span>？</h2>
+        <div style="display:flex;justify-content:center">
+          <button class="btn btn-primary btn-lg" style="min-width:180px">🔊 再听一次</button>
+        </div>
+        <div class="quiz-opts">
+          <button class="quiz-opt" onclick="go('summaryB')"><span class="photo"><span class="emoji">🥄</span></span></button>
+          <button class="quiz-opt" onclick="go('summaryB')"><span class="photo"><span class="emoji">🍴</span></span></button>
+        </div>
+        <p class="note">
+          PRD 4.2：<b>小测只在 B 段（24~36 月）出现</b>，且只做二选一。A 段幼儿无法稳定完成选择题，强行加测只会制造挫败。
+          小测结果写入 <code>progress.last_quiz_results</code>，在没有母亲标记时作为掌握度的备用信号。
+        </p>
+      </section>
+
+      <!-- ============ A 段组末：直接鼓励，不测 ============ -->
+      <section class="screen-body pad center stack-6 enter" data-state="cheer" hidden>
+        <div style="text-align:center">
+          <div style="font-size:88px">🐙</div>
+          <h2 class="t-zh-lg" style="margin:var(--sp-4) 0 var(--sp-2)">这一组学完啦</h2>
+          <p class="t-mom">糖糖今天跟读了 5 次，都很棒。</p>
+        </div>
+        <div class="stack-3">
+          <a class="btn btn-primary btn-block btn-lg" href="learn.html">再来一组</a>
+          <a class="btn-quiet btn-block" href="home.html">今天先到这儿</a>
+        </div>
+        <p class="note">A 段跳过小测，直接进入组末鼓励（PRD 4.2）。这一屏没有任何分数、等级或对错。</p>
+      </section>
+
+      <!-- ============ B 段小测后总结 ============ -->
+      <section class="screen-body pad center stack-6 enter" data-state="summaryB" hidden>
+        <div style="text-align:center">
+          <div style="font-size:88px">🎉</div>
+          <h2 class="t-zh-lg" style="margin:var(--sp-4) 0 var(--sp-2)">这一组学完啦</h2>
+          <p class="t-mom">5 个词，跟读 5 次，小测 1 次。</p>
+        </div>
+        <div class="card stack-3">
+          <div class="t-label">明天会先复习</div>
+          <div class="row"><span class="photo sm"><span class="emoji">🥄</span></span><span class="grow"><div class="t-word-en-s">spoon</div><div class="t-mom-sm">还没稳，明天再来一次</div></span></div>
+        </div>
+        <div class="stack-3">
+          <a class="btn btn-primary btn-block btn-lg" href="learn.html">再来一组</a>
+          <a class="btn-quiet btn-block" href="home.html">今天先到这儿</a>
+        </div>
+      </section>
+
+    </div>
+  </div>
+
+  <div class="band-switch">
+    <span>年龄分段</span>
+    <div class="seg">
+      <button aria-pressed="false" onclick="setBand('A')">A 段 12~24 月</button>
+      <button aria-pressed="true" onclick="setBand('B')">B 段 24~36 月</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+let band = 'B';
+function go(name) { document.querySelectorAll('[data-state]').forEach(el => el.hidden = el.dataset.state !== name); }
+function groupEnd() { go(band === 'A' ? 'cheer' : 'quiz'); }
+function setBand(b) {
+  band = b;
+  const btns = document.querySelectorAll('.band-switch .seg button');
+  btns[0].setAttribute('aria-pressed', b === 'A');
+  btns[1].setAttribute('aria-pressed', b === 'B');
+  go('learn');
+}
+</script>
+</body>
+</html>

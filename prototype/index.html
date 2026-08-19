@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BabyEng 界面原型 · 对应 PRD v0.4</title>
+<link rel="stylesheet" href="assets/tokens.css">
+<style>
+  body { background: #F0E7DC; }
+  .wrap { max-width: 940px; margin: 0 auto; padding: 48px 20px 80px; }
+  .hero-head { margin-bottom: 40px }
+  .hero-head h1 { font-size: 34px; font-weight: 800; margin: 0 0 var(--sp-3) }
+  .hero-head .lead { font-size: 17px; line-height: 1.7; color: var(--c-ink-2); max-width: 62ch; margin: 0 }
+  .meta { display: flex; flex-wrap: wrap; gap: var(--sp-2); margin-top: var(--sp-5) }
+
+  h2.sec { font-size: 20px; font-weight: 800; margin: 44px 0 var(--sp-3) }
+  h2.sec + .sec-note { font-size: 15px; color: var(--c-ink-2); line-height: 1.7; margin: 0 0 var(--sp-5); max-width: 62ch }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(258px, 1fr)); gap: var(--sp-4) }
+  .page-card {
+    display: flex; flex-direction: column; gap: 6px; padding: var(--sp-5);
+    background: var(--c-surface); border-radius: var(--r-lg); box-shadow: var(--shadow-1);
+    text-decoration: none; color: var(--c-ink);
+    transition: transform var(--t-press) var(--ease), box-shadow var(--t-press) var(--ease);
+  }
+  .page-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-2) }
+  .page-card .top { display: flex; align-items: center; gap: var(--sp-2) }
+  .page-card .ico { font-size: 24px; line-height: 1 }
+  .page-card .name { font-size: 18px; font-weight: 800; flex: 1 }
+  .page-card .desc { font-size: 14px; line-height: 1.6; color: var(--c-ink-2) }
+  .page-card .ref { font-size: 12px; color: var(--c-ink-3); margin-top: var(--sp-2) }
+  .page-card.core { border: 2px solid var(--c-primary) }
+
+  .tokens { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: var(--sp-4) }
+  .tok { background: var(--c-surface); border-radius: var(--r-md); padding: var(--sp-4); box-shadow: var(--shadow-1) }
+  .tok .sw { height: 44px; border-radius: var(--r-sm); margin-bottom: var(--sp-3) }
+  .tok .n { font-size: 14px; font-weight: 800 }
+  .tok .v { font-size: 12px; color: var(--c-ink-3); font-family: ui-monospace, Menlo, monospace; margin-top: 2px }
+  .tok .c { font-size: 12px; color: var(--c-ink-2); margin-top: 6px; line-height: 1.5 }
+
+  .rules { background: var(--c-surface); border-radius: var(--r-lg); padding: var(--sp-6); box-shadow: var(--shadow-1) }
+  .rules p { font-size: 15px; line-height: 1.75; color: var(--c-ink-2); margin: 0 0 var(--sp-4) }
+  .rules p:last-child { margin-bottom: 0 }
+  .rules b { color: var(--c-ink) }
+
+  .path { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); font-size: 15px }
+  .path a { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: var(--r-full); background: var(--c-surface); box-shadow: var(--shadow-1); text-decoration: none; color: var(--c-ink); font-weight: 700 }
+  .path a:hover { background: var(--c-primary-soft) }
+  .path .arrow { color: var(--c-ink-3) }
+
+  .typo-row { display: flex; align-items: baseline; gap: var(--sp-4); padding: var(--sp-3) 0; border-bottom: 1px solid var(--c-line) }
+  .typo-row:last-child { border-bottom: 0 }
+  .typo-row .lbl { width: 120px; flex: none; font-size: 13px; color: var(--c-ink-3); font-weight: 700 }
+  .typo-row .px { width: 68px; flex: none; font-size: 12px; color: var(--c-ink-3); font-family: ui-monospace, Menlo, monospace }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="hero-head">
+    <h1>BabyEng 界面原型</h1>
+    <p class="lead">
+      幼儿英语启蒙教学应用的可交互界面原型，按 <b>PRD v0.4</b> 逐条落地。共 12 个页面，MVP 五页做完整交互与全部分支状态，
+      V1 页面标注阶段。用手机浏览器打开效果最准；桌面上会自动套一层手机外壳。
+    </p>
+    <div class="meta">
+      <span class="chip">对应文档 PRD v0.4</span>
+      <span class="chip kid">MVP 6 页</span>
+      <span class="chip mom">V1 5 页</span>
+      <span class="chip">异常态 7 种</span>
+      <span class="chip">无依赖 · 纯 HTML/CSS</span>
+    </div>
+  </header>
+
+  <h2 class="sec">先走这条路径</h2>
+  <p class="sec-note">
+    这是产品的核心链路，也是 MVP 唯一要验证的假设：母亲会不会在真实的带娃日常里反复打开它。
+    其余页面都是围绕这条链路的补充。
+  </p>
+  <div class="path">
+    <a href="pages/onboarding.html">① 首次引导</a><span class="arrow">→</span>
+    <a href="pages/home.html">② 首页</a><span class="arrow">→</span>
+    <a href="pages/ask.html">③ 问一问</a><span class="arrow">→</span>
+    <a href="pages/compare.html">④ 跟读对比</a><span class="arrow">→</span>
+    <a href="pages/audio-only.html">⑤ 纯音频模式</a>
+  </div>
+
+  <h2 class="sec">MVP 页面</h2>
+  <p class="sec-note">
+    PRD 10.1 的范围。核心链路两页（橙框）内含全部分支状态，页面底部有状态切换器可以逐个走查。
+  </p>
+  <div class="grid">
+    <a class="page-card core" href="pages/ask.html">
+      <div class="top"><span class="ico">🎙</span><span class="name">语音问答页 Ask</span><span class="proto-tag mvp">MVP</span></div>
+      <div class="desc">母亲提问到出结果卡的全过程。含 8 种状态：待提问、录音中、识别中、结果卡、二选一、未命中、没听清、TTS 降级。</div>
+      <div class="ref">PRD 4.1 · 4.1.1~4.1.3 · 5.3 · 6.1</div>
+    </a>
+    <a class="page-card core" href="pages/compare.html">
+      <div class="top"><span class="ico">🎤</span><span class="name">录音对比页 Compare</span><span class="proto-tag mvp">MVP</span></div>
+      <div class="desc">幼儿跟读、双轨回放、母亲一键标记。点按录音而非按住说话，可切 A/B 段看按钮位置差异。</div>
+      <div class="ref">PRD 4.3 · 6.2 · 8.6</div>
+    </a>
+    <a class="page-card" href="pages/home.html">
+      <div class="top"><span class="ico">🏠</span><span class="name">首页 Home</span><span class="proto-tag mvp">MVP</span></div>
+      <div class="desc">入口聚合与进度激励。可切 MVP 态 / V1 态，看未解锁功能的置灰处理。</div>
+      <div class="ref">PRD 5.1 · 5.2 · 7.1</div>
+    </a>
+    <a class="page-card" href="pages/onboarding.html">
+      <div class="top"><span class="ico">👶</span><span class="name">引导页 Onboarding</span><span class="proto-tag mvp">MVP</span></div>
+      <div class="desc">三步：问生日定分段、要麦克风权限、手把手示范一次完整问答。</div>
+      <div class="ref">PRD 6.7</div>
+    </a>
+    <a class="page-card" href="pages/audio-only.html">
+      <div class="top"><span class="ico">🎧</span><span class="name">纯音频模式</span><span class="proto-tag mvp">MVP</span></div>
+      <div class="desc">A 段默认模式，宝宝不看屏幕只听声音。含锁屏播放与黑屏降级两种形态。</div>
+      <div class="ref">PRD 6.6 · 11.3</div>
+    </a>
+    <a class="page-card" href="pages/settings.html">
+      <div class="top"><span class="ico">⚙</span><span class="name">设置页 Settings</span><span class="proto-tag mvp">MVP</span></div>
+      <div class="desc">宝宝、屏幕时间、发音与模型、数据四组。含云端模型的知情同意二次确认。</div>
+      <div class="ref">PRD 6.5 · 11.3 · 11.4</div>
+    </a>
+    <a class="page-card" href="pages/states.html">
+      <div class="top"><span class="ico">⚠️</span><span class="name">异常状态与降级</span><span class="proto-tag mvp">MVP</span></div>
+      <div class="desc">七种异常态全部画出：麦克风被拒、非 HTTPS、网络中断、服务未就绪、录音过短、磁盘将满、屏幕时间用尽。</div>
+      <div class="ref">PRD 5.4</div>
+    </a>
+  </div>
+
+  <h2 class="sec">V1 页面</h2>
+  <p class="sec-note">
+    PRD 10.2 的范围。M2 学习模式在 v0.4 从 MVP 移出——它需要全量配图、排期逻辑与题型交互，是最重的一块，却一件都不验证核心假设。
+  </p>
+  <div class="grid">
+    <a class="page-card" href="pages/learn.html">
+      <div class="top"><span class="ico">📖</span><span class="name">学习模式选择 Learn</span><span class="proto-tag v1">V1</span></div>
+      <div class="desc">情景短句 / 单词学习 / 单词复习三选一，页内说明 M1 与 M2 的边界。</div>
+      <div class="ref">PRD 4.2 · 5.2</div>
+    </a>
+    <a class="page-card" href="pages/word-learn.html">
+      <div class="top"><span class="ico">📚</span><span class="name">单词学习 WordLearn</span><span class="proto-tag v1">V1</span></div>
+      <div class="desc">逐词流与每 5 词一组。切 A/B 段可看组末差异：B 段进小测，A 段直接鼓励。</div>
+      <div class="ref">PRD 4.2 · 5.3</div>
+    </a>
+    <a class="page-card" href="pages/review.html">
+      <div class="top"><span class="ico">🔁</span><span class="name">单词复习 Review</span><span class="proto-tag v1">V1</span></div>
+      <div class="desc">听音选图仅 B 段启用。总结页把掌握度翻译成「明天 / 3 天后」，不给母亲看数字。</div>
+      <div class="ref">PRD 4.2 · 8.6</div>
+    </a>
+    <a class="page-card" href="pages/sentences.html">
+      <div class="top"><span class="ico">💬</span><span class="name">情景短句 Sentences</span><span class="proto-tag v1">V1</span></div>
+      <div class="desc">按生活时段分组浏览短句卡，当前时段默认高亮。</div>
+      <div class="ref">PRD 3.5 · 4.2</div>
+    </a>
+    <a class="page-card" href="pages/profile.html">
+      <div class="top"><span class="ico">📔</span><span class="name">我的 Profile</span><span class="proto-tag v1">V1</span></div>
+      <div class="desc">日报 / 录音 / 成就三个分页。含妈妈学习卡、打卡保护与勋章墙。</div>
+      <div class="ref">PRD 7.1 · 7.3 · 7.5</div>
+    </a>
+  </div>
+
+  <h2 class="sec">设计令牌</h2>
+  <p class="sec-note">
+    定义在 <code>assets/tokens.css</code>，全部页面共用。色板的核心思路是幼儿区用暖色、母亲区用冷色，两侧在视觉上就分开，
+    呼应 PRD 6.5「母亲侧操作与幼儿主操作区物理分离」。
+  </p>
+  <div class="tokens">
+    <div class="tok">
+      <div class="sw" style="background:#FF8A3D"></div>
+      <div class="n">幼儿主操作</div>
+      <div class="v">--c-primary #FF8A3D</div>
+      <div class="c">PRD 6.2 指定。亮度高，其上只压深色文字（对比 8.9:1），不用白字。</div>
+    </div>
+    <div class="tok">
+      <div class="sw" style="background:#C2410C"></div>
+      <div class="n">深橙（承载白字）</div>
+      <div class="v">--c-primary-deep #C2410C</div>
+      <div class="c">需要白字的小标签用这一档，白字对比 5.18:1 合格。</div>
+    </div>
+    <div class="tok">
+      <div class="sw" style="background:#0F766E"></div>
+      <div class="n">母亲侧操作</div>
+      <div class="v">--c-mom #0F766E</div>
+      <div class="c">冷色与幼儿区拉开距离，白字对比 5.47:1。</div>
+    </div>
+    <div class="tok">
+      <div class="sw" style="background:#26170B"></div>
+      <div class="n">正文</div>
+      <div class="v">--c-ink #26170B</div>
+      <div class="c">在 #FFF8F0 背景上对比 15.9:1，远超 4.5:1 要求。</div>
+    </div>
+    <div class="tok">
+      <div class="sw" style="background:#FFF8F0;border:1px solid #EADDCE"></div>
+      <div class="n">背景</div>
+      <div class="v">--c-bg #FFF8F0</div>
+      <div class="c">暖白而非纯白，长时间看更柔和。</div>
+    </div>
+    <div class="tok">
+      <div class="sw" style="background:linear-gradient(90deg,#15803D,#B45309,#B91C1C)"></div>
+      <div class="n">语义色</div>
+      <div class="v">ok / warn / danger</div>
+      <div class="c">均搭配图标与文字使用，不用颜色作为唯一信息载体。</div>
+    </div>
+  </div>
+
+  <h2 class="sec">字号与控件尺寸</h2>
+  <p class="sec-note">
+    PRD 6.4 的字号下限针对幼儿可见区，原型严格执行；设置页、日报这类母亲管理区另用 17px 一档以承载更多信息，
+    这是原型做的一处判断，若不认可可以统一上调。
+  </p>
+  <div class="rules">
+    <div class="typo-row"><span class="lbl">英文主词</span><span class="px">48px</span><span class="t-word-en">cup</span></div>
+    <div class="typo-row"><span class="lbl">英文（列表）</span><span class="px">34px</span><span class="t-word-en-s">spoon</span></div>
+    <div class="typo-row"><span class="lbl">音标</span><span class="px">22px</span><span class="t-phonetic">/kʌp/</span></div>
+    <div class="typo-row"><span class="lbl">中文（幼儿区）</span><span class="px">26px</span><span class="t-zh">杯子</span></div>
+    <div class="typo-row"><span class="lbl">中文（母亲区）</span><span class="px">17px</span><span class="t-mom" style="color:var(--c-ink)">今天学了 3 个词，目标 5 个</span></div>
+    <div class="typo-row"><span class="lbl">幼儿录音键</span><span class="px">116px</span><span class="t-mom">PRD 下限 88px，放大以降低误触</span></div>
+    <div class="typo-row"><span class="lbl">母亲语音键</span><span class="px">76px</span><span class="t-mom">PRD 下限 64px</span></div>
+    <div class="typo-row"><span class="lbl">最小点击区</span><span class="px">48px</span><span class="t-mom">所有可点元素的下限</span></div>
+  </div>
+
+  <h2 class="sec">原型里落地的几处关键判断</h2>
+  <div class="rules">
+    <p>
+      <b>幼儿录音键是点按而不是按住。</b>持续按压要到 2.5 岁前后才稳定，按住式会让 A 段幼儿产出大量 0.3 秒废录音。
+      改为点一下开始、静音 1.5 秒自动停。母亲侧的 ASR 输入仍用按住式，因为她是有完整精细动作能力的成年人——
+      两侧不能套用同一套交互，这一点在 compare 页可以切 A/B 段直接对比。
+    </p>
+    <p>
+      <b>跟读之后没有任何分数。</b>回放页只给「学会了 / 再练练」两个标记。幼儿含糊发音上的强制对齐结果接近噪声，
+      而一个不可靠的数字一旦显示出来，母亲一定会当真。这个标记同时是掌握度算法的主信号，权重 0.55。
+    </p>
+    <p>
+      <b>未命中不是错误页。</b>Ask 页的未命中态给相近词推荐、给文字输入、并静默写入未命中表。
+      它是词库增长的输入源，也是 MVP 阶段的头号观测指标——首月未命中率要低于 20%，四周内降到 10% 以下。
+    </p>
+    <p>
+      <b>A 段的幼儿屏幕时间是零。</b>纯音频模式刻意不放图片、贴纸和动画，手机可以扣在桌上。
+      主流育儿指南对 24 月龄以下建议不安排屏幕时间，产品不替家长突破这条线，设置页里上限只能下调不能上调。
+    </p>
+    <p>
+      <b>云端模型必须过一次知情同意。</b>设置页里打开云端开关会弹出说明，明确列出会发出去什么（只有归一后的提问文本）、
+      永远不会发出去什么（录音原声、宝宝姓名生日、学习记录）。默认全本地是承诺，云端是例外。
+    </p>
+    <p>
+      <b>七种异常态全部画出来了。</b>母亲带着孩子在场时的容错窗口极短，任何一次白屏都可能是最后一次打开。
+      到点收尾也是柔性的——小结页加吉祥物道别，而不是硬弹窗中断。
+    </p>
+  </div>
+
+  <h2 class="sec">已知取舍与待确认</h2>
+  <div class="rules">
+    <p>
+      <b>配图全部是占位。</b>凡带「实物照片位」标记的方块，最终都应替换为自家实物照片（PRD 3.7）。
+      原型里用 emoji 只为看清布局，不代表视觉方案——真做成 emoji 会违背 PRD 6.4「不用抽象图标」。
+    </p>
+    <p>
+      <b>吉祥物形象未定。</b>原型里暂用 🐙 占位，对应 PRD 12.2 里「小章鱼 / 小熊 / 小猫」的候选，最终待定。
+      M11 属于 V1，MVP 阶段只在收尾页出现。
+    </p>
+    <p>
+      <b>动效只做了关键几处。</b>录音脉冲环、波形、页面进入、鼓励弹跳按 PRD 6.4 控制在 100~300ms，
+      并响应 <code>prefers-reduced-motion</code>。转场、手势返回这类需要真实框架支撑的部分没有模拟。
+    </p>
+    <p>
+      <b>母亲管理区的 17px 字号是原型自行判断的。</b>PRD 6.4 的字号下限写在「幼儿友好的视觉与触觉设计」标题下，
+      按上下文应只约束幼儿可见区。若认为设置页也该用 24px，需要回改 PRD 而不是只改原型。
+    </p>
+  </div>
+
+</div>
+</body>
+</html>

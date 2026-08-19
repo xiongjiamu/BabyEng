@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>录音对比页 Compare · BabyEng 原型</title>
+<link rel="stylesheet" href="../assets/tokens.css">
+<style>
+  .target { display: flex; align-items: center; gap: var(--sp-4); }
+  .target .t-word-en-s { line-height: 1 }
+  .target .t-phonetic { font-size: 20px; margin-top: 4px }
+  .play-std {
+    width: 56px; height: 56px; flex: none; border-radius: var(--r-full);
+    display: grid; place-items: center; font-size: 22px;
+    background: var(--c-primary); color: var(--c-on-primary);
+    transition: transform var(--t-press) var(--ease);
+  }
+  .play-std:active { transform: scale(.94) }
+  .rec-zone { display: flex; flex-direction: column; align-items: center; gap: var(--sp-4); }
+  .rec-zone.band-a { align-items: flex-end; }
+  .rec-zone.band-a .rec-caption { text-align: right; }
+  .rec-caption { font-size: var(--fs-zh); font-weight: 700; color: var(--c-ink-2); text-align: center; }
+  .timer { font-size: 34px; font-weight: 800; font-variant-numeric: tabular-nums; letter-spacing: 1px; }
+  .track-pair { display: flex; flex-direction: column; gap: var(--sp-3); }
+  .track-label { display: flex; align-items: center; gap: var(--sp-2); font-size: var(--fs-mom); font-weight: 700; margin-bottom: var(--sp-2); }
+  .mark-row { display: flex; gap: var(--sp-3); }
+  .mark {
+    flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px;
+    min-height: 88px; justify-content: center; border-radius: var(--r-lg);
+    border: 2px solid var(--c-line-strong); background: var(--c-surface);
+    font-size: 19px; font-weight: 800; color: var(--c-ink);
+    transition: transform var(--t-press) var(--ease), border-color var(--t-press) var(--ease), background var(--t-press) var(--ease);
+  }
+  .mark .ico { font-size: 28px; line-height: 1 }
+  .mark:active { transform: scale(.97) }
+  .mark.got:active, .mark.got[aria-pressed="true"] { border-color: var(--c-ok); background: var(--c-ok-soft); color: #0E5C2C }
+  .mark.keep:active, .mark.keep[aria-pressed="true"] { border-color: var(--c-warn); background: var(--c-warn-soft); color: #8A4108 }
+  .band-switch { display: flex; align-items: center; gap: var(--sp-2); width: 100%; max-width: 413px; font-size: 12px; color: #5C4A3A }
+  .band-switch .seg { flex: 1; background: #E2D5C6 }
+  .band-switch .seg button { min-height: 32px; font-size: 12px }
+</style>
+</head>
+<body>
+<div class="stage">
+
+  <div class="proto-bar">
+    <strong>录音对比页 Compare</strong>
+    <span class="proto-tag mvp">MVP</span>
+    <span>PRD 4.3 / 6.2</span>
+    <span class="sp"></span>
+    <a href="../index.html">← 原型首页</a>
+  </div>
+
+  <div class="phone">
+    <div class="screen">
+      <div class="statusbar"><span>9:41</span><span>●●● ᯤ 84%</span></div>
+
+      <header class="appbar">
+        <a class="icon-btn" href="ask.html" aria-label="返回">←</a>
+        <h1>跟读</h1>
+        <span class="icon-btn" aria-hidden="true"></span>
+      </header>
+
+      <!-- ============ 1. 准备录音 ============ -->
+      <section class="screen-body pad stack-8" data-state="ready">
+        <div class="card target">
+          <span class="photo sm"><span class="emoji">☕</span></span>
+          <div class="grow">
+            <div class="t-word-en-s">cup</div>
+            <div class="t-phonetic">/kʌp/</div>
+          </div>
+          <button class="play-std" aria-label="播放标准音">▶</button>
+        </div>
+
+        <p class="t-mom center-text">先让宝宝听一遍标准音，<br>你自己也跟着念一次，再让他跟读。</p>
+
+        <div class="rec-zone" id="recZone">
+          <button class="record" onclick="go('recording')" aria-label="点一下开始录音">
+            <span class="ico">🎤</span>
+          </button>
+          <div class="rec-caption" id="recCaption">点一下，跟我读</div>
+        </div>
+
+        <p class="note" id="bandNote">
+          <b>B 段（24~36 月）</b>：按钮居中，宝宝可自行点按。<br>
+          PRD 6.2 用「点按 + 静音自动停」而非「按住说话」——持续按压要到 2.5 岁前后才稳定，按住式会产出大量 0.3 秒废录音。
+        </p>
+      </section>
+
+      <!-- ============ 2. 录音中 ============ -->
+      <section class="screen-body pad center stack-8" data-state="recording" hidden>
+        <div class="stack-3" style="text-align:center">
+          <div class="t-word-en-s">cup</div>
+          <div class="t-phonetic">/kʌp/</div>
+        </div>
+        <div class="rec-zone">
+          <button class="record is-recording" onclick="go('playback')" aria-label="再点一次结束">
+            <span class="wave"><i></i><i></i><i></i><i></i><i></i></span>
+          </button>
+          <div class="timer">0:01</div>
+          <div class="rec-caption" style="color:var(--c-ink-3);font-size:var(--fs-mom)">安静 1.5 秒会自动停</div>
+        </div>
+        <button class="btn-quiet" onclick="go('tooshort')">▸ 模拟录得太短</button>
+      </section>
+
+      <!-- ============ 3. 录音过短 ============ -->
+      <section class="screen-body pad center stack-6 enter" data-state="tooshort" hidden>
+        <div style="text-align:center">
+          <div style="font-size:72px">🙊</div>
+          <h2 class="t-zh-lg" style="margin:var(--sp-4) 0 var(--sp-2)">这次没录到</h2>
+          <p class="t-mom">好像只碰了一下，再来一次</p>
+        </div>
+        <button class="btn btn-primary btn-block btn-lg" onclick="go('recording')">再录一次</button>
+        <p class="note">PRD 5.4 / 6.2：时长 &lt; 0.5s 不入库、不计入学习记录。废片率是 13.2 的过程指标之一，目标 &lt; 5%。</p>
+      </section>
+
+      <!-- ============ 4. 双轨回放 + 母亲标记 ============ -->
+      <section class="screen-body pad stack-6 enter" data-state="playback" hidden>
+        <div class="stack-2" style="text-align:center">
+          <div class="t-word-en-s">cup</div>
+          <div class="t-phonetic">/kʌp/</div>
+        </div>
+
+        <div class="track-pair">
+          <div>
+            <div class="track-label"><span>🔊</span><span>标准发音</span></div>
+            <div class="playbar kid">
+              <button class="play" aria-label="播放标准音">▶</button>
+              <span class="track"><i style="width:100%"></i></span>
+              <span class="t-mom-sm">0:01</span>
+            </div>
+          </div>
+          <div>
+            <div class="track-label"><span>👶</span><span>宝宝的声音</span></div>
+            <div class="playbar">
+              <button class="play" aria-label="播放宝宝录音">▶</button>
+              <span class="track"><i style="width:64%"></i></span>
+              <span class="t-mom-sm">0:02</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="stack-3">
+          <div class="t-mom" style="font-weight:700;color:var(--c-ink)">你觉得这次怎么样？</div>
+          <div class="mark-row">
+            <button class="mark got" onclick="praise()"><span class="ico">🌟</span><span>学会了</span></button>
+            <button class="mark keep" onclick="praise()"><span class="ico">🔁</span><span>再练练</span></button>
+          </div>
+          <p class="t-mom-sm">你的耳朵比任何算法都准。这个标记只用来决定明天先复习哪个词。</p>
+        </div>
+
+        <div class="row" style="justify-content:center;gap:var(--sp-5)">
+          <button class="btn-quiet" onclick="go('ready')">↺ 重录</button>
+          <a class="btn-quiet" href="ask.html">跳过 →</a>
+        </div>
+
+        <p class="note">
+          PRD 4.3 修订：<b>不显示任何相似度分数</b>。幼儿含糊发音上的强制对齐结果接近噪声，而一个不可靠的数字一旦显示，母亲一定会当真。
+          改由母亲一键标记，这个标记正是 8.6 掌握度算法的主信号（权重 0.55）。
+        </p>
+      </section>
+
+      <!-- ============ 5. 鼓励弹窗 ============ -->
+      <div class="overlay center" id="praiseLayer" hidden>
+        <div class="dialog praise">
+          <div class="face" id="praiseFace">🎉</div>
+          <div class="t-word-en-s" id="praiseEn" style="margin-top:var(--sp-3)">Great job!</div>
+          <div class="t-zh" style="color:var(--c-ink-2);margin-top:var(--sp-2)">真棒！</div>
+          <div class="stack-3" style="margin-top:var(--sp-6)">
+            <a class="btn btn-primary btn-block btn-lg" href="ask.html">再问一个</a>
+            <button class="btn-quiet" onclick="closePraise()">留在这一页</button>
+          </div>
+          <p class="note" style="margin-top:var(--sp-5);text-align:left">
+            无论发音如何都鼓励，文案随机避免机械重复（PRD 6.3）。MVP 只做文案 + 表情动效；可收藏的贴纸本是 M10，属于 V2。
+          </p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="band-switch">
+    <span>年龄分段</span>
+    <div class="seg">
+      <button aria-pressed="false" onclick="setBand('A')">A 段 12~24 月</button>
+      <button aria-pressed="true" onclick="setBand('B')">B 段 24~36 月</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const PRAISE = [
+  ['🎉', 'Great job!', '真棒！'],
+  ['👏', 'Well done!', '做得好！'],
+  ['⭐️', 'You did it!', '你做到啦！'],
+  ['🌈', 'Good try!', '试得不错！']
+];
+
+function go(name) {
+  document.querySelectorAll('[data-state]').forEach(el => el.hidden = el.dataset.state !== name);
+  closePraise();
+}
+
+function praise() {
+  const p = PRAISE[Math.floor(Math.random() * PRAISE.length)];
+  document.getElementById('praiseFace').textContent = p[0];
+  document.getElementById('praiseEn').textContent = p[1];
+  document.querySelector('#praiseLayer .t-zh').textContent = p[2];
+  document.getElementById('praiseLayer').hidden = false;
+}
+function closePraise() { document.getElementById('praiseLayer').hidden = true; }
+
+function setBand(band) {
+  const zone = document.getElementById('recZone');
+  const caption = document.getElementById('recCaption');
+  const note = document.getElementById('bandNote');
+  const btns = document.querySelectorAll('.band-switch .seg button');
+  btns[0].setAttribute('aria-pressed', band === 'A');
+  btns[1].setAttribute('aria-pressed', band === 'B');
+
+  if (band === 'A') {
+    zone.classList.add('band-a');
+    caption.textContent = '妈妈点一下，让宝宝说';
+    note.innerHTML = '<b>A 段（12~24 月）</b>：按钮靠向母亲惯用手侧，由母亲代为点按，宝宝只管开口。<br>' +
+      'A 段幼儿不操作应用（PRD 1.2），这一页对他来说只有声音——纯音频模式下屏幕甚至可以扣着放。';
+  } else {
+    zone.classList.remove('band-a');
+    caption.textContent = '点一下，跟我读';
+    note.innerHTML = '<b>B 段（24~36 月）</b>：按钮居中，宝宝可自行点按。<br>' +
+      'PRD 6.2 用「点按 + 静音自动停」而非「按住说话」——持续按压要到 2.5 岁前后才稳定，按住式会产出大量 0.3 秒废录音。';
+  }
+}
+</script>
+</body>
+</html>

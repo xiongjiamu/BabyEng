@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>学习模式选择页 Learn · BabyEng 原型</title>
+<link rel="stylesheet" href="../assets/tokens.css">
+<style>
+  .mode {
+    display: flex; gap: var(--sp-4); align-items: center; width: 100%;
+    padding: var(--sp-5); border-radius: var(--r-xl); background: var(--c-surface);
+    box-shadow: var(--shadow-1); text-decoration: none; color: var(--c-ink);
+    transition: transform var(--t-press) var(--ease);
+  }
+  .mode:active { transform: scale(.985) }
+  .mode .ico { width: 64px; height: 64px; border-radius: var(--r-lg); display: grid; place-items: center; font-size: 32px; flex: none }
+  .mode .t { display: block; font-size: 24px; font-weight: 800 }
+  .mode .s { display: block; font-size: var(--fs-mom); color: var(--c-ink-2); margin-top: 4px; line-height: 1.5 }
+  .mode .m { display: block; font-size: var(--fs-mom-sm); color: var(--c-ink-3); margin-top: var(--sp-2) }
+  .mode.s1 .ico { background: #E8F1FF }
+  .mode.s2 .ico { background: var(--c-primary-soft) }
+  .mode.s3 .ico { background: var(--c-mom-soft) }
+</style>
+</head>
+<body>
+<div class="stage">
+
+  <div class="proto-bar">
+    <strong>学习模式选择页 Learn</strong>
+    <span class="proto-tag v1">V1</span>
+    <span>PRD 4.2 / 5.2</span>
+    <span class="sp"></span>
+    <a href="../index.html">← 原型首页</a>
+  </div>
+
+  <div class="phone">
+    <div class="screen">
+      <div class="statusbar"><span>9:41</span><span>●●● ᯤ 84%</span></div>
+
+      <header class="appbar">
+        <a class="icon-btn" href="home.html" aria-label="返回">←</a>
+        <h1>学一学</h1>
+        <span class="icon-btn" aria-hidden="true"></span>
+      </header>
+
+      <div class="screen-body pad stack-5">
+
+        <p class="t-mom">这三个都是<b>有编排</b>的学习流，内容顺序由应用决定。想到什么问什么请回首页用「问一问」。</p>
+
+        <a class="mode s1" href="sentences.html">
+          <span class="ico">💬</span>
+          <span class="grow">
+            <span class="t">情景短句</span>
+            <span class="s">按生活时段浏览短句卡，逐句听 + 跟读</span>
+            <span class="m">现在是早上 · 建议「起床」组 4 句</span>
+          </span>
+        </a>
+
+        <a class="mode s2" href="word-learn.html">
+          <span class="ico">📚</span>
+          <span class="grow">
+            <span class="t">单词学习</span>
+            <span class="s">按场景分类，看图 — 听音 — 跟读，每 5 词一组</span>
+            <span class="m">物品 12/30 · 人物 5/8</span>
+          </span>
+        </a>
+
+        <a class="mode s3" href="review.html">
+          <span class="ico">🔁</span>
+          <span class="grow">
+            <span class="t">单词复习</span>
+            <span class="s">只推送学过、但还没稳的词</span>
+            <span class="m">今天 4 个待复习</span>
+          </span>
+        </a>
+
+        <div class="divider"></div>
+
+        <p class="note">
+          PRD 4.2 修订：v0.3 把 M1 语音问答同时叫作「日常对话模式」，导致 Ask 页与 Dialog 页职责重叠。
+          v0.4 把它更名为「情景短句」并明确 M1 与 M2 是并列关系——M1 无编排、随时发起，M2 有编排、由应用决定顺序。
+        </p>
+      </div>
+
+      <nav class="tabbar">
+        <a href="home.html"><span class="ico">🏠</span><span>首页</span></a>
+        <a href="profile.html"><span class="ico">📔</span><span>我的</span></a>
+        <a href="settings.html"><span class="ico">⚙</span><span>设置</span></a>
+      </nav>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
