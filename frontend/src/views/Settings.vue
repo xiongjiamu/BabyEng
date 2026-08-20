@@ -68,7 +68,7 @@
           </div>
         </div>
         <p class="note">
-          PRD 11.3：A 段（12~24 月）默认幼儿屏幕时间为 0，靠纯音频模式实现；B 段默认上限 15 分钟。
+          A 段（12~24 月）默认使用纯音频模式；B 段默认屏幕时间上限为 15 分钟。
           上限<b>只能下调不能上调</b>——主流育儿指南对 24 月龄以下建议不安排屏幕时间。
         </p>
       </div>
@@ -92,7 +92,7 @@
             <button class="switch" role="switch" :aria-checked="store.settings.cloudModel" @click="askCloud" aria-label="使用云端模型"></button>
           </div>
         </div>
-        <p class="note">PRD 11.4：默认全本地是产品承诺，云端是母亲可主动打开的例外。开启必须先做一次明确告知并二次确认。</p>
+        <p class="note">学习数据默认只在本地处理。主动开启云端模型前，会说明数据用途并再次确认。</p>
       </div>
 
       <!-- 数据 -->
@@ -119,7 +119,6 @@
           <div class="list-item"><span class="grow">当前账号</span><span class="val">{{ username }}</span></div>
           <button class="list-item danger" @click="logout"><span class="grow">退出登录</span><span class="val">›</span></button>
           <div class="list-item"><span class="grow">版本</span><span class="val">MVP 0.4</span></div>
-          <div class="list-item"><span class="grow">对应文档</span><span class="val">PRD v0.4</span></div>
         </div>
       </div>
     </div>

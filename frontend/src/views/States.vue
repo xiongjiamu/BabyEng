@@ -7,7 +7,7 @@
     </header>
 
     <div class="page-body pad stack-6" style="padding-top:0">
-      <p class="t-mom" style="margin:0">以下是七种异常态的界面表现（PRD 5.4）。真实使用中按触发条件自动出现。</p>
+      <p class="t-mom" style="margin:0">以下提示会在遇到相应问题时自动出现。</p>
 
       <!-- 1 麦克风权限被拒 -->
       <div class="card stack-4">
@@ -36,14 +36,14 @@
           <div class="t-label" style="margin-bottom:6px">换成这个</div>
           <div class="addr" style="color:var(--c-ok)">https://babyeng.home.lan</div>
         </div>
-        <p class="note" style="margin:0">浏览器只在加密地址下才允许用麦克风（PRD 9.2 / 5.4）。</p>
+        <p class="note" style="margin:0">浏览器只在加密地址下才允许使用麦克风。</p>
       </div>
 
       <!-- 3 网络中断 -->
       <div class="card stack-4">
         <div class="banner warn"><span class="ico">📶</span><span><b>连不上服务器</b>，已缓存的词还能用</span></div>
         <p class="t-mom" style="margin:0">已缓存的词条发音离线也能听、也能录。宝宝刚才的录音已存好，网络恢复后自动补传。</p>
-        <p class="note" style="margin:0">PRD 5.4 / 9.10：离线不等于不可用。高频词的发音音频在前端预缓存，录音落盘后进重试队列。</p>
+        <p class="note" style="margin:0">离线时仍可播放已缓存的常用发音；录音会在网络恢复后重试上传。</p>
       </div>
 
       <!-- 4 服务未就绪 -->
@@ -62,7 +62,7 @@
         <div class="big-ico" style="font-size:44px">🙊</div>
         <h3 class="t-zh-lg" style="margin:0">这次没录到</h3>
         <p class="t-mom" style="margin:0">好像只碰了一下，再来一次</p>
-        <p class="note" style="margin:0">PRD 6.2：&lt; 0.5s 不入库、不计学习记录。这条错误提示不带任何责备语气——按错的多半是孩子。</p>
+        <p class="note" style="margin:0">少于 0.5 秒的录音不会保存，也不会计入学习记录。</p>
       </div>
 
       <!-- 6 磁盘将满 -->
@@ -89,7 +89,7 @@
             <span style="text-align:center"><div style="font-size:30px;font-weight:800">7</div><div class="t-mom-sm">次跟读</div></span>
           </div>
         </div>
-        <p class="note" style="margin:0">PRD 5.4 / 11.3：到点是<b>柔性收尾</b>而非硬弹窗——走小结页、吉祥物道别，母亲仍可查看日报。</p>
+        <p class="note" style="margin:0">到达屏幕时间上限后会<b>柔性收尾</b>，仍可查看当日学习报告。</p>
       </div>
     </div>
   </div>

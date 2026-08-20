@@ -39,7 +39,7 @@
           </span>
           <router-link class="t-mom-sm" to="/profile" style="text-decoration:none;font-weight:700;color:var(--c-mom)">日报 →</router-link>
         </div>
-        <p v-if="summary && summary.freeze_left > 0" class="t-mom-sm" style="margin:0">❄ 是打卡保护，本月还剩 {{ summary.freeze_left }} 次（PRD 7.1）</p>
+        <p v-if="summary && summary.freeze_left > 0" class="t-mom-sm" style="margin:0">❄ 是打卡保护，本月还剩 {{ summary.freeze_left }} 次</p>
       </div>
 
       <!-- 主入口（5.1 三大按钮：MVP 只有问一问可用） -->

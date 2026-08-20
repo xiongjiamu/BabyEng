@@ -30,7 +30,7 @@
       <p class="note">
         <b>{{ isBandA ? 'A 段（12~24 月）' : 'B 段（24~36 月）' }}</b>：
         {{ isBandA ? '按钮靠向母亲惯用手侧，由母亲代为点按，宝宝只管开口。' : '按钮居中，宝宝可自行点按。' }}
-        PRD 6.2 用「点按 + 静音自动停」而非「按住说话」——持续按压要到 2.5 岁前后才稳定。
+        宝宝只需点一下开始录音，安静后会自动停止，无需持续按住按钮。
       </p>
     </section>
 
@@ -57,7 +57,7 @@
         <p class="t-mom">好像只碰了一下，再来一次</p>
       </div>
       <button class="btn btn-primary btn-block btn-lg" @click="view = 'ready'">再录一次</button>
-      <p class="note">PRD 5.4 / 6.2：时长 &lt; 0.5s 不入库、不计入学习记录。废片率是过程指标之一，目标 &lt; 5%。</p>
+      <p class="note">少于 0.5 秒的录音不会保存，也不会计入学习记录。</p>
     </section>
 
     <!-- ============ 4. 双轨回放 + 母亲标记 ============ -->
@@ -102,7 +102,7 @@
         <button class="btn-quiet" @click="backToAsk">跳过 →</button>
       </div>
 
-      <p class="note">PRD 4.3 修订：<b>不显示任何相似度分数</b>。改由母亲一键标记，这个标记正是掌握度算法的主信号（权重 0.55）。</p>
+      <p class="note"><b>这里不显示发音分数</b>，请根据宝宝的实际表现做简单标记。</p>
     </section>
 
     <!-- ============ 5. 鼓励弹窗 ============ -->
@@ -115,7 +115,7 @@
           <router-link class="btn btn-primary btn-block btn-lg" to="/ask">再问一个</router-link>
           <button class="btn-quiet" @click="praise.show = false">留在这一页</button>
         </div>
-        <p class="note" style="margin-top:var(--sp-5);text-align:left">无论发音如何都鼓励，文案随机避免机械重复（PRD 6.3）。</p>
+        <p class="note" style="margin-top:var(--sp-5);text-align:left">每次尝试都值得鼓励。</p>
       </div>
     </div>
   </div>

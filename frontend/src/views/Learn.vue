@@ -38,7 +38,7 @@
 
       <div class="divider"></div>
 
-      <p class="note">PRD 4.2：M1 语音问答是无编排的自由提问；M2 学习模式有编排、内容顺序由应用决定。两者并列不重叠。</p>
+      <p class="note">语音问答支持自由提问；学习模式有固定编排，内容顺序由应用决定。</p>
     </div>
 
     <TabBar current="home" />

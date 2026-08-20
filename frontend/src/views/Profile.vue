@@ -62,7 +62,7 @@
         <span>今天亲子时长 {{ report?.parent_time_min || 0 }} 分钟，<b>宝宝屏幕时间 {{ report?.screen_sec_today || 0 }} 秒</b>。</span>
       </div>
 
-      <p class="note">PRD 7.3：日报定位为轻量复盘工具，一屏可读完，不堆数据。每日 21:00 生成。</p>
+      <p class="note">日报用于快速回顾当天的学习情况，每日 21:00 生成。</p>
     </div>
 
     <!-- ============ 录音（8.4 / 11.4：30 天保留 + 收藏） ============ -->
@@ -101,7 +101,7 @@
             <span v-else :class="{ on: cell.on, freeze: cell.frozen }">{{ cell.day }}</span>
           </template>
         </div>
-        <p class="t-mom-sm" style="margin:0">❄ 用了打卡保护的当天，连续天数不断。每月自动送 2 次（PRD 7.1）。</p>
+        <p class="t-mom-sm" style="margin:0">❄ 用了打卡保护的当天，连续天数不断。每月自动送 2 次。</p>
       </div>
 
       <div class="stack-3">
@@ -115,7 +115,7 @@
       </div>
 
       <p class="note">
-        PRD 12.3 / 13.3：没有 XP 数字、没有排行榜、没有心数惩罚。连续打卡天数<b>不进核心指标</b>——
+        没有 XP 数字、排行榜或心数惩罚。连续打卡天数<b>不作为学习效果指标</b>——
         它只是降低放弃成本的脚手架，一旦当成目标就会诱发「为保打卡而打卡」。
       </p>
     </div>

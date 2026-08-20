@@ -57,7 +57,7 @@
         <span class="chip mom">{{ formatTime(askDuration) }} · 松开结束</span>
       </div>
       <button class="btn-quiet" @click="cancelAsk">取消这次录音</button>
-      <p class="t-mom center-text">母亲侧用按住式（press-to-talk，PRD 6.1）</p>
+      <p class="t-mom center-text">按住说话，松开后开始查询</p>
     </section>
 
     <!-- ============ 3. 识别中（800ms 内必须回显） ============ -->
@@ -70,7 +70,7 @@
       </div>
       <p class="ask-hint">正在查……</p>
       <div class="progress"><i style="width:62%"></i></div>
-      <p class="note">PRD 4.1.3：识别文本必须在 800ms 内回显，库内命中整条链路 P95 ≤ 1.2s。</p>
+      <p class="note">正在识别你说的话，请稍候。</p>
     </section>
 
     <!-- ============ 4. 结果卡（库内命中） ============ -->
@@ -105,7 +105,7 @@
         <p class="t-mom" style="margin:0">{{ result.mother_tip }}</p>
       </div>
 
-      <p v-if="result.match_level" class="note" style="margin:0">匹配 {{ result.match_level }} · 音标来源 {{ result.phonetic_source || 'dict' }}（PRD 4.1.2：音标只取词典与 g2p，永不采信 LLM）</p>
+      <p v-if="result.match_level" class="note" style="margin:0">匹配 {{ result.match_level }} · 音标来源 {{ result.phonetic_source || 'dict' }}</p>
     </section>
 
     <!-- ============ 5. 识别歧义：二选一 ============ -->
@@ -122,7 +122,7 @@
         </button>
       </div>
       <button class="btn-quiet" @click="reset">都不是，重新说</button>
-      <p class="note">PRD 4.1.1 L2 层：拼音相似度接近阈值时不猜，交给母亲一次点选。</p>
+      <p class="note">声音相近时，请点选你想查询的内容。</p>
     </section>
 
     <!-- ============ 6. 彻底未命中 ============ -->
@@ -152,7 +152,7 @@
         </div>
       </div>
 
-      <p class="note">这条查询已静默写入未命中表（PRD 8.8）：未命中不是错误页，是词库增长的输入源。</p>
+      <p class="note">这次查询已记下，方便后续补充更多教学内容。</p>
     </section>
 
     <!-- ============ 7. ASR 无结果 ============ -->
@@ -169,7 +169,7 @@
           <button class="btn btn-mom" @click="askByText">查</button>
         </div>
       </div>
-      <p class="note">PRD 6.1：连续两次识别失败，文字输入框主动展开，不让母亲自己去找。</p>
+      <p class="note">如果仍然识别不到，可以直接打字查询。</p>
     </section>
 
     <!-- ============ 8. TTS 不可用（降级但不阻断） ============ -->
@@ -189,7 +189,7 @@
           <span>▶</span><span>发音暂时不可用</span>
         </button>
       </div>
-      <p class="note">PRD 4.1.3 / 9.10：TTS 挂掉只降级发音一项，文字结果照出，跟读录音照常可用。</p>
+      <p class="note">发音服务恢复前，仍可查看文字结果和使用跟读录音。</p>
     </section>
 
     <!-- 底部动作条：结果态才出现 -->

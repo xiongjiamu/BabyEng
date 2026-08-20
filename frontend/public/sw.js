@@ -1,4 +1,4 @@
-/* BabyEng Service Worker（PRD 9.2：离线缓存静态资源，弱网可用）
+/* BabyEng Service Worker（离线缓存静态资源，弱网可用）
    策略：构建产物缓存优先（cache-first），API 请求始终走网络（network-only）。
    站点存储可能被 iOS 回收（9.2）——缓存丢失后可静默重建。 */
 
