@@ -38,7 +38,7 @@ impl AppState {
             pool,
             matcher: RwLock::new(matcher),
             inference,
-            auth: AuthService::default(),
+            auth: AuthService,
         }))
     }
 }

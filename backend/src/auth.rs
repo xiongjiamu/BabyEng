@@ -1,12 +1,10 @@
 //! auth.json 多账号认证与账号数据空间辅助。
 
-use std::collections::HashMap;
-use std::sync::RwLock;
-
 use axum::extract::{Request, State};
 use axum::http::header;
 use axum::middleware::Next;
 use axum::response::Response;
+use chrono::{Duration, Utc};
 use serde::Deserialize;
 use sqlx::SqlitePool;
 use uuid::Uuid;
@@ -32,10 +30,7 @@ struct Account {
     password: String,
 }
 
-#[derive(Default)]
-pub struct AuthService {
-    sessions: RwLock<HashMap<String, String>>,
-}
+pub struct AuthService;
 
 impl AuthService {
     pub fn login(&self, path: &str, username: &str, password: &str) -> AppResult<String> {
@@ -54,21 +49,7 @@ impl AuthService {
             return Err(AppError::Unauthorized("账号或密码错误".into()));
         }
         let token = Uuid::new_v4().to_string();
-        self.sessions
-            .write()
-            .map_err(|_| AppError::Internal("会话锁异常".into()))?
-            .insert(token.clone(), username.to_string());
         Ok(token)
-    }
-
-    pub fn username_for_token(&self, token: &str) -> Option<String> {
-        self.sessions.read().ok()?.get(token).cloned()
-    }
-
-    pub fn logout(&self, token: &str) {
-        if let Ok(mut sessions) = self.sessions.write() {
-            sessions.remove(token);
-        }
     }
 }
 
@@ -91,10 +72,24 @@ pub async fn require_auth(
     let token = bearer_token(request.headers().get(header::AUTHORIZATION))
         .or_else(|| query_token(request.uri().query()))
         .ok_or_else(|| AppError::Unauthorized("请先登录".into()))?;
-    let username = state
-        .auth
-        .username_for_token(token)
-        .ok_or_else(|| AppError::Unauthorized("登录已失效，请重新登录".into()))?;
+    let now = Utc::now();
+    let expires_at = now + Duration::days(30);
+    let refreshed = sqlx::query(
+        "UPDATE auth_session SET last_seen_at=?, expires_at=? WHERE token=? AND expires_at>?",
+    )
+    .bind(now.to_rfc3339())
+    .bind(expires_at.to_rfc3339())
+    .bind(token)
+    .bind(now.to_rfc3339())
+    .execute(&state.pool)
+    .await?;
+    if refreshed.rows_affected() == 0 {
+        return Err(AppError::Unauthorized("登录已失效，请重新登录".into()));
+    }
+    let username: String = sqlx::query_scalar("SELECT username FROM auth_session WHERE token=?")
+        .bind(token)
+        .fetch_one(&state.pool)
+        .await?;
     request.extensions_mut().insert(AuthUser { username });
     Ok(next.run(request).await)
 }

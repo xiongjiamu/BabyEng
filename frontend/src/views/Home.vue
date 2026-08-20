@@ -79,10 +79,10 @@
       <div class="stack-3">
         <div class="t-label">按场景找</div>
         <div class="scenes">
-          <router-link class="scene" to="/ask"><span class="ico">🧸</span><span class="t">物品</span></router-link>
-          <router-link class="scene" to="/ask"><span class="ico">👪</span><span class="t">人物</span></router-link>
-          <router-link class="scene" to="/ask"><span class="ico">🔢</span><span class="t">数字</span></router-link>
-          <router-link class="scene" to="/ask"><span class="ico">😊</span><span class="t">情绪</span></router-link>
+          <router-link class="scene" :to="{ path: '/word-learn', query: { category: 'item' } }"><span class="ico">🧸</span><span class="t">物品</span></router-link>
+          <router-link class="scene" :to="{ path: '/word-learn', query: { category: 'person' } }"><span class="ico">👪</span><span class="t">人物</span></router-link>
+          <router-link class="scene" :to="{ path: '/word-learn', query: { category: 'number' } }"><span class="ico">🔢</span><span class="t">数字</span></router-link>
+          <router-link class="scene" :to="{ path: '/word-learn', query: { category: 'emotion' } }"><span class="ico">😊</span><span class="t">情绪</span></router-link>
           <router-link class="scene" to="/sentences"><span class="ico">💬</span><span class="t">短句</span></router-link>
           <router-link class="scene" to="/profile"><span class="ico">📖</span><span class="t">妈妈卡</span></router-link>
         </div>

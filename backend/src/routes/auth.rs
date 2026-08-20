@@ -4,6 +4,7 @@ use axum::extract::{Extension, State};
 use axum::http::{header, HeaderMap};
 use axum::routing::{get, post};
 use axum::{Json, Router};
+use chrono::{Duration, Utc};
 use serde::Deserialize;
 use serde_json::json;
 
@@ -36,6 +37,18 @@ async fn login(
         return Err(AppError::BadRequest("账号和密码不能为空".into()));
     }
     let token = state.auth.login(&state.cfg.auth_file, username, &body.password)?;
+    let now = Utc::now();
+    let expires_at = now + Duration::days(30);
+    sqlx::query(
+        "INSERT INTO auth_session (token, username, created_at, last_seen_at, expires_at) VALUES (?, ?, ?, ?, ?)",
+    )
+    .bind(&token)
+    .bind(username)
+    .bind(now.to_rfc3339())
+    .bind(now.to_rfc3339())
+    .bind(expires_at.to_rfc3339())
+    .execute(&state.pool)
+    .await?;
     sqlx::query("INSERT OR IGNORE INTO account_family (username) VALUES (?)")
         .bind(username)
         .execute(&state.pool)
@@ -50,7 +63,12 @@ async fn login(
     .bind(username)
     .execute(&state.pool)
     .await?;
-    Ok(Json(json!({ "ok": true, "token": token, "username": username })))
+    Ok(Json(json!({
+        "ok": true,
+        "token": token,
+        "username": username,
+        "expires_at": expires_at.to_rfc3339(),
+    })))
 }
 
 async fn me(Extension(user): Extension<AuthUser>) -> Json<serde_json::Value> {
@@ -60,6 +78,9 @@ async fn me(Extension(user): Extension<AuthUser>) -> Json<serde_json::Value> {
 async fn logout(State(state): State<SharedState>, headers: HeaderMap) -> AppResult<Json<serde_json::Value>> {
     let token = bearer_token(headers.get(header::AUTHORIZATION))
         .ok_or_else(|| AppError::Unauthorized("请先登录".into()))?;
-    state.auth.logout(token);
+    sqlx::query("DELETE FROM auth_session WHERE token=?")
+        .bind(token)
+        .execute(&state.pool)
+        .await?;
     Ok(Json(json!({ "ok": true })))
 }
