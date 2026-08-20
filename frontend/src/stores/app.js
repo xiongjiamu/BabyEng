@@ -1,6 +1,16 @@
 import { defineStore } from 'pinia'
 import { api, ApiError } from '../api'
 
+const DEFAULT_TTS_VOICE = 'en_US-mike-medium'
+const TTS_VOICES = new Set([
+  DEFAULT_TTS_VOICE,
+  'en_US-amy-medium',
+  'en_US-ryan-medium',
+  'en_US-kristin-medium',
+  'en_US-hfc_female-medium',
+  'en_US-hfc_male-medium',
+])
+
 // 全局状态：家庭/孩子/年龄分段/设置/屏幕时间（PRD 6.5 / 11.3）
 export const useAppStore = defineStore('app', {
   state: () => ({
@@ -12,7 +22,7 @@ export const useAppStore = defineStore('app', {
     ageMonths: null,
     settings: {
       ttsRate: 0.8,
-      ttsVoice: 'en_US-lessac-medium',
+      ttsVoice: DEFAULT_TTS_VOICE,
       audioOnly: true, // A 段默认开启（6.6）
       screenLimitMin: 5, // 分钟/天
       sessionLimitMin: 3,
@@ -54,7 +64,7 @@ export const useAppStore = defineStore('app', {
           const s = me.settings || {}
           this.settings = {
             ttsRate: s.tts_rate ?? 0.8,
-            ttsVoice: s.tts_voice ?? 'en_US-lessac-medium',
+            ttsVoice: TTS_VOICES.has(s.tts_voice) ? s.tts_voice : DEFAULT_TTS_VOICE,
             audioOnly: s.audio_only ?? this.ageBand === 'A',
             screenLimitMin: s.screen_limit_min ?? (this.ageBand === 'B' ? 15 : 5),
             sessionLimitMin: s.session_limit_min ?? (this.ageBand === 'B' ? 5 : 3),

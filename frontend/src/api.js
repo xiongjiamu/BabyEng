@@ -75,7 +75,7 @@ export const api = {
     request('/ask/confirm', { method: 'POST', body: JSON.stringify({ target_type: targetType, target_id: targetId, child_id: childId }) }),
 
   // ---------- TTS ----------
-  ttsUrl: (text, rate = 0.8, voice = 'en_US-lessac-medium') =>
+  ttsUrl: (text, rate = 0.8, voice = 'en_US-mike-medium') =>
     `${BASE}/tts/audio?text=${encodeURIComponent(text)}&voice=${encodeURIComponent(voice)}&rate=${rate}&access_token=${encodeURIComponent(authToken())}`,
 
   // ---------- 词库 / 场景（M5 / M2） ----------

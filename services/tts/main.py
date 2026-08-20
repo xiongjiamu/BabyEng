@@ -13,11 +13,14 @@ from fastapi.responses import Response
 app = FastAPI(title="BabyEng TTS", version="0.4.0")
 
 MODEL_DIR = Path(os.environ.get("MODEL_DIR", "/models/piper"))
-DEFAULT_VOICE = os.environ.get("PIPER_VOICE", "en_US-lessac-medium")
+DEFAULT_VOICE = os.environ.get("PIPER_VOICE", "en_US-mike-medium")
 ALLOWED_VOICES = {
-    "en_US-lessac-medium",
+    "en_US-mike-medium",
     "en_US-amy-medium",
     "en_US-ryan-medium",
+    "en_US-kristin-medium",
+    "en_US-hfc_female-medium",
+    "en_US-hfc_male-medium",
 }
 
 # 音色缓存：voice -> PiperVoice 实例
