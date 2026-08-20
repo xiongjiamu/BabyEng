@@ -38,13 +38,4 @@ impl AppState {
             inference,
         }))
     }
-
-    /// 刷新匹配器（词库变化后调用）
-    pub async fn reload_matcher(&self) {
-        if let Ok(words) = crate::store::load_words(&self.pool).await {
-            if let Ok(sentences) = crate::store::load_sentences(&self.pool).await {
-                *self.matcher.write().await = Matcher::new(&words, &sentences);
-            }
-        }
-    }
 }

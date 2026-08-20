@@ -22,9 +22,16 @@ cd deploy
 docker compose --profile mvp up -d --build
 
 # 3. 浏览器访问
-#    手机与服务器同局域网：http://<服务器IP>
+#    默认仅服务器本机：http://127.0.0.1
+#    家庭局域网：先设置 WEB_BIND_ADDR=<服务器内网IP>，再启动 Compose
 #    录音需要 HTTPS（PRD 9.2），配置 Let's Encrypt 后改 https://babyeng.home.lan
 ```
+
+## 访问边界
+
+BabyEng MVP 是单家庭应用，不包含公网账号鉴权。Compose 默认只把 Web 端口绑定到 `127.0.0.1`，后端 8080 不暴露给宿主机。家庭局域网使用时，将 `WEB_BIND_ADDR` 显式设为服务器内网 IP；不要设为 `0.0.0.0` 后直接映射公网。
+
+远程访问必须同时具备 HTTPS 和独立访问控制层，例如家庭 VPN 或反向代理身份验证。仅配置 TLS 不能替代访问控制。录音、孩子资料和学习记录都属于未成年人敏感数据。
 
 ## 模型下载
 
@@ -48,7 +55,7 @@ ASR（sherpa-onnx 流式中文，约 300MB）：
 
 | 变量 | 默认 | 说明 |
 |---|---|---|
-| `MASTER_KEY` | change-me-in-prod | API Key 加密主密钥（9.10） |
+| `WEB_BIND_ADDR` | 127.0.0.1 | Web 监听地址；家庭局域网使用时填写服务器内网 IP |
 | `LLM_BASE_URL` | http://host.docker.internal:11434/v1 | 本地 ollama 或云端 OpenAI 兼容地址（full profile） |
 | `LLM_API_KEY` | 空 | 云端 API Key（full profile） |
 | `LLM_MODEL` | qwen2.5:7b-instruct | 模型名（full profile） |
@@ -59,7 +66,7 @@ ASR（sherpa-onnx 流式中文，约 300MB）：
 - 录音与 TTS 缓存：`audio` volume（`/data/audio`）
 - 模型文件：`models` volume（首次需手动放入，不随镜像分发）
 
-备份 = 拷贝以上三个 volume + 环境变量。定时脚本建议：
+设置页“导出全部数据”会生成 `babyeng-backup.json`，其中包含家庭资料、学习记录、进度、未命中记录以及 Base64 编码的录音。服务器级灾备还应拷贝以上三个 volume 与环境变量。定时脚本建议：
 
 ```bash
 docker run --rm -v babyeng_data:/data -v babyeng_audio:/audio -v $PWD/backup:/backup alpine \
@@ -75,6 +82,20 @@ sudo certbot --nginx -d babyeng.home.lan
 # 方案 B：内网自签（无公网域名）
 # 生成自签证书并在手机本地信任；nginx 增加 443 server 块
 ```
+
+HTTPS 配置不会自动增加账号鉴权；远程访问仍需使用家庭 VPN 或独立访问控制层。
+
+## Release 验证
+
+```bash
+npm install
+npm run verify -- http://127.0.0.1:8080 /tmp/babyeng-shots
+npm run release-check -- http://127.0.0.1:8080
+```
+
+`verify` 检查 12 个页面、主要交互和 API；`release-check` 自动覆盖 A2 全量别名、A3 十例同音容错与 A4 十例未命中。它输出的 A1 数值只是本机文字 API 基线，不能替代局域网中端安卓语音链路的 P95 验收。
+
+A6 必须人工逐条试听 58 条 TTS 音频并核对音标；A8 必须在安卓 Chrome 与 iOS Safari 各完成完整闭环并记录 PRD 9.2 的四项结论。
 
 ## 无 GPU 说明（PRD 9.7）
 

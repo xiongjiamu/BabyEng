@@ -49,8 +49,21 @@ fn strip_question_frame(s: &str) -> (String, bool) {
 fn strip_noise(s: &str) -> String {
     let mut out = s.to_string();
     let prefixes = [
-        "这个", "那个", "这些", "那些", "这边", "那边", "这里", "那里", "我的", "你的", "咱们的",
-        "妈妈的", "爸爸的", "宝宝的", "小孩子的",
+        "这个",
+        "那个",
+        "这些",
+        "那些",
+        "这边",
+        "那边",
+        "这里",
+        "那里",
+        "我的",
+        "你的",
+        "咱们的",
+        "妈妈的",
+        "爸爸的",
+        "宝宝的",
+        "小孩子的",
     ];
     loop {
         let mut changed = false;
@@ -63,8 +76,11 @@ fn strip_noise(s: &str) -> String {
         // 剥离任意「称谓+的」结构（如 妈妈的手机 → 手机；杯子的 → 杯子）
         if let Some(pos) = out.find('的') {
             let before = out[..pos].trim().to_string();
-            let after = out[pos + 1..].trim().to_string();
-            let rel = ["妈妈", "爸爸", "宝宝", "爷爷", "奶奶", "哥哥", "姐姐", "弟弟", "妹妹", "我的", "你的"];
+            let after = out[pos + '的'.len_utf8()..].trim().to_string();
+            let rel = [
+                "妈妈", "爸爸", "宝宝", "爷爷", "奶奶", "哥哥", "姐姐", "弟弟", "妹妹", "我的",
+                "你的",
+            ];
             if rel.iter().any(|r| before == *r) && !after.is_empty() {
                 out = after;
                 changed = true;
@@ -85,8 +101,27 @@ fn strip_punct(s: &str) -> String {
             !c.is_whitespace()
                 && !matches!(
                     *c,
-                    '啊' | '呢' | '哦' | '嗯' | '哈' | '嘛' | '么' | '诶' | '唉' | '哎' | '嘞'
-                        | '，' | '。' | '？' | '！' | '、' | '；' | '：' | ',' | '.' | '?' | '!'
+                    '啊' | '呢'
+                        | '哦'
+                        | '嗯'
+                        | '哈'
+                        | '嘛'
+                        | '么'
+                        | '诶'
+                        | '唉'
+                        | '哎'
+                        | '嘞'
+                        | '，'
+                        | '。'
+                        | '？'
+                        | '！'
+                        | '、'
+                        | '；'
+                        | '：'
+                        | ','
+                        | '.'
+                        | '?'
+                        | '!'
                 )
         })
         .collect()
@@ -145,5 +180,10 @@ mod tests {
         // 数字+量词组合保留（L4 组合查询信号，避免误命中单词）
         assert_eq!(normalize("三个苹果"), "3个苹果");
         assert_eq!(normalize("嗯嗯，杯子吧"), "杯子吧");
+    }
+
+    #[test]
+    fn keeps_non_possessive_de_phrase_without_panicking() {
+        assert_eq!(normalize("睡觉的地方"), "睡觉的地方");
     }
 }

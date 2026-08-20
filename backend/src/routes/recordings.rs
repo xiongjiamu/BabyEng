@@ -7,6 +7,7 @@ use axum::{Json, Router};
 use chrono::{Duration, Local};
 use serde::Deserialize;
 use serde_json::json;
+use sqlx::sqlite::SqliteRow;
 use sqlx::Row;
 use uuid::Uuid;
 
@@ -28,16 +29,12 @@ struct ListQuery {
     child_id: Option<String>,
 }
 
-async fn list(State(state): State<SharedState>, Query(q): Query<ListQuery>) -> AppResult<Json<serde_json::Value>> {
+async fn list(
+    State(state): State<SharedState>,
+    Query(q): Query<ListQuery>,
+) -> AppResult<Json<serde_json::Value>> {
     let pool = &state.pool;
-    let mut sql = String::from(
-        "SELECT id, child_id, target_type, target_id, audio_path, duration_ms, favorited, created_at, expires_at FROM recording",
-    );
-    if let Some(cid) = &q.child_id {
-        sql.push_str(&format!(" WHERE child_id='{}'", cid));
-    }
-    sql.push_str(" ORDER BY created_at DESC LIMIT 100");
-    let rows = sqlx::query(&sql).fetch_all(pool).await?;
+    let rows = fetch_recording_rows(pool, q.child_id.as_deref()).await?;
 
     let mut out = Vec::new();
     for r in &rows {
@@ -55,6 +52,28 @@ async fn list(State(state): State<SharedState>, Query(q): Query<ListQuery>) -> A
     Ok(Json(json!({ "recordings": out })))
 }
 
+async fn fetch_recording_rows(
+    pool: &sqlx::SqlitePool,
+    child_id: Option<&str>,
+) -> Result<Vec<SqliteRow>, sqlx::Error> {
+    if let Some(cid) = child_id {
+        sqlx::query(
+            "SELECT id, child_id, target_type, target_id, audio_path, duration_ms, favorited, created_at, expires_at \
+             FROM recording WHERE child_id=? ORDER BY created_at DESC LIMIT 100",
+        )
+        .bind(cid)
+        .fetch_all(pool)
+        .await
+    } else {
+        sqlx::query(
+            "SELECT id, child_id, target_type, target_id, audio_path, duration_ms, favorited, created_at, expires_at \
+             FROM recording ORDER BY created_at DESC LIMIT 100",
+        )
+        .fetch_all(pool)
+        .await
+    }
+}
+
 /// 上传录音（webm/opus 或 mp4/aac，落盘即存，PRD 9.2：不在前端长期堆积）
 async fn upload(
     State(state): State<SharedState>,
@@ -67,7 +86,11 @@ async fn upload(
     let mut target_id = String::new();
     let mut duration_ms: i64 = 0;
 
-    while let Some(field) = multipart.next_field().await.map_err(|_| AppError::BadRequest("multipart 解析失败".into()))? {
+    while let Some(field) = multipart
+        .next_field()
+        .await
+        .map_err(|_| AppError::BadRequest("multipart 解析失败".into()))?
+    {
         match field.name().unwrap_or("") {
             "audio" => {
                 ext = field
@@ -83,12 +106,25 @@ async fn upload(
                     })
                     .unwrap_or("webm")
                     .to_string();
-                audio = Some(field.bytes().await.map_err(|_| AppError::BadRequest("读取音频失败".into()))?.to_vec());
+                audio = Some(
+                    field
+                        .bytes()
+                        .await
+                        .map_err(|_| AppError::BadRequest("读取音频失败".into()))?
+                        .to_vec(),
+                );
             }
             "child_id" => child_id = field.text().await.ok(),
             "target_type" => target_type = field.text().await.unwrap_or_else(|_| "word".into()),
             "target_id" => target_id = field.text().await.unwrap_or_default(),
-            "duration_ms" => duration_ms = field.text().await.ok().and_then(|s| s.parse().ok()).unwrap_or(0),
+            "duration_ms" => {
+                duration_ms = field
+                    .text()
+                    .await
+                    .ok()
+                    .and_then(|s| s.parse().ok())
+                    .unwrap_or(0)
+            }
             _ => {}
         }
     }
@@ -148,10 +184,7 @@ async fn favorite(
     Path(id): Path<String>,
     Query(q): Query<serde_json::Value>,
 ) -> AppResult<Json<serde_json::Value>> {
-    let fav = q
-        .get("favorited")
-        .and_then(|v| v.as_bool())
-        .unwrap_or(true);
+    let fav = q.get("favorited").and_then(|v| v.as_bool()).unwrap_or(true);
     let rows = sqlx::query("UPDATE recording SET favorited=? WHERE id=?")
         .bind(fav as i64)
         .bind(&id)
@@ -163,7 +196,10 @@ async fn favorite(
     Ok(Json(json!({ "ok": true, "favorited": fav })))
 }
 
-async fn remove(State(state): State<SharedState>, Path(id): Path<String>) -> AppResult<Json<serde_json::Value>> {
+async fn remove(
+    State(state): State<SharedState>,
+    Path(id): Path<String>,
+) -> AppResult<Json<serde_json::Value>> {
     let pool = &state.pool;
     let row = sqlx::query_as::<_, (String,)>("SELECT audio_path FROM recording WHERE id=?")
         .bind(&id)
@@ -173,12 +209,18 @@ async fn remove(State(state): State<SharedState>, Path(id): Path<String>) -> App
         return Err(AppError::NotFound("录音不存在".into()));
     };
     let _ = std::fs::remove_file(&path);
-    sqlx::query("DELETE FROM recording WHERE id=?").bind(&id).execute(pool).await?;
+    sqlx::query("DELETE FROM recording WHERE id=?")
+        .bind(&id)
+        .execute(pool)
+        .await?;
     Ok(Json(json!({ "ok": true })))
 }
 
 /// 回放音频（文件流式返回）
-async fn audio(State(state): State<SharedState>, Path(id): Path<String>) -> AppResult<axum::response::Response> {
+async fn audio(
+    State(state): State<SharedState>,
+    Path(id): Path<String>,
+) -> AppResult<axum::response::Response> {
     let row = sqlx::query_as::<_, (String,)>("SELECT audio_path FROM recording WHERE id=?")
         .bind(&id)
         .fetch_optional(&state.pool)
@@ -195,14 +237,17 @@ async fn audio(State(state): State<SharedState>, Path(id): Path<String>) -> AppR
         "audio/webm"
     };
     let mut resp = axum::response::Response::new(axum::body::Body::from(bytes));
-    resp.headers_mut().insert(header::CONTENT_TYPE, header::HeaderValue::from_static(mime));
+    resp.headers_mut()
+        .insert(header::CONTENT_TYPE, header::HeaderValue::from_static(mime));
     Ok(resp)
 }
 
 /// 过期清理（30 天前非收藏，PRD 5.4 / 8.4）：设置页一键清理入口
 async fn cleanup_expired(State(state): State<SharedState>) -> AppResult<Json<serde_json::Value>> {
     let pool = &state.pool;
-    let cutoff = (Local::now() - Duration::days(30)).format("%Y-%m-%dT%H:%M:%SZ").to_string();
+    let cutoff = (Local::now() - Duration::days(30))
+        .format("%Y-%m-%dT%H:%M:%SZ")
+        .to_string();
     let rows = sqlx::query_as::<_, (String, String)>(
         "SELECT id, audio_path FROM recording WHERE expires_at < ? AND favorited = 0",
     )
@@ -215,7 +260,39 @@ async fn cleanup_expired(State(state): State<SharedState>) -> AppResult<Json<ser
             freed += md.len() as usize;
         }
         let _ = std::fs::remove_file(&path);
-        sqlx::query("DELETE FROM recording WHERE id=?").bind(&id).execute(pool).await?;
+        sqlx::query("DELETE FROM recording WHERE id=?")
+            .bind(&id)
+            .execute(pool)
+            .await?;
     }
-    Ok(Json(json!({ "ok": true, "cleaned": freed, "freed_bytes": freed })))
+    Ok(Json(
+        json!({ "ok": true, "cleaned": freed, "freed_bytes": freed }),
+    ))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::fetch_recording_rows;
+
+    #[tokio::test]
+    async fn child_filter_treats_sql_metacharacters_as_data() {
+        let pool = sqlx::SqlitePool::connect("sqlite::memory:").await.unwrap();
+        sqlx::query(
+            "CREATE TABLE recording (id TEXT, child_id TEXT, target_type TEXT, target_id TEXT, audio_path TEXT, duration_ms INTEGER, favorited INTEGER, created_at TEXT, expires_at TEXT)",
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+        sqlx::query(
+            "INSERT INTO recording VALUES ('r1','child-1','word','word_cup','/tmp/r1',1000,0,'2026-01-01','2026-02-01')",
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+
+        let rows = fetch_recording_rows(&pool, Some("' OR 1=1 --"))
+            .await
+            .unwrap();
+        assert!(rows.is_empty());
+    }
 }

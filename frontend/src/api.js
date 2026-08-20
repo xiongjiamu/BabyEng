@@ -82,6 +82,13 @@ export const api = {
   deleteRecording: (id) => request(`/recordings/${id}`, { method: 'DELETE' }),
   cleanupExpired: () => request('/recordings/cleanup-expired', { method: 'POST' }),
 
+  // ---------- 数据隐私（11.4） ----------
+  exportData: () => request('/data/export'),
+  clearData: () => request('/data/clear', {
+    method: 'POST',
+    body: JSON.stringify({ confirmation: 'DELETE_ALL_LEARNING_DATA' }),
+  }),
+
   // ---------- 学习记录 / 进度 / 复习（M2 / 8.6） ----------
   recordLearning: (data) => request('/learning-records', { method: 'POST', body: JSON.stringify(data) }),
   progressSummary: (childId) => request(`/progress/summary?child_id=${childId}`),

@@ -29,7 +29,11 @@ pub async fn connect(cfg: &Config) -> AppResult<SqlitePool> {
     }
 
     let opts = SqliteConnectOptions::new()
-        .filename(cfg.database_url.strip_prefix("sqlite://").unwrap_or(&cfg.database_url))
+        .filename(
+            cfg.database_url
+                .strip_prefix("sqlite://")
+                .unwrap_or(&cfg.database_url),
+        )
         .create_if_missing(true)
         .journal_mode(sqlx::sqlite::SqliteJournalMode::Wal)
         .busy_timeout(std::time::Duration::from_secs(5))
@@ -39,7 +43,7 @@ pub async fn connect(cfg: &Config) -> AppResult<SqlitePool> {
         .max_connections(8)
         .connect_with(opts)
         .await
-        .map_err(|e| AppError::Db(e))?;
+        .map_err(AppError::Db)?;
 
     sqlx::migrate!("./migrations")
         .run(&pool)

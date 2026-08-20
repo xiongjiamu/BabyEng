@@ -16,8 +16,6 @@ pub struct Config {
     pub tts_url: String,
     pub asr_url: String,
     pub llm_url: String,
-    /// 主密钥（用于 API Key envelope 加密；开发默认随机，重启即失效）
-    pub master_key: String,
     /// 音频转码可执行文件
     pub ffmpeg_bin: String,
     /// 静态前端目录（PWA 产物）
@@ -37,7 +35,6 @@ impl Config {
             tts_url: env::var("TTS_URL").unwrap_or_else(|_| "http://127.0.0.1:8101".into()),
             asr_url: env::var("ASR_URL").unwrap_or_else(|_| "http://127.0.0.1:8102".into()),
             llm_url: env::var("LLM_URL").unwrap_or_else(|_| "http://127.0.0.1:8103".into()),
-            master_key: env::var("MASTER_KEY").unwrap_or_else(|_| "dev-insecure-key".into()),
             ffmpeg_bin: env::var("FFMPEG_BIN").unwrap_or_else(|_| "ffmpeg".into()),
             static_dir: env::var("STATIC_DIR").unwrap_or_else(|_| "frontend/dist".into()),
             svc_timeout_secs: env::var("SVC_TIMEOUT_SECS")

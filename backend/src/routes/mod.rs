@@ -1,6 +1,7 @@
 //! 路由汇总
 
 pub mod ask;
+pub mod data;
 pub mod family;
 pub mod health;
 pub mod progress;
@@ -17,6 +18,7 @@ use crate::state::SharedState;
 pub fn api_router(state: SharedState) -> Router<()> {
     Router::new()
         .merge(health::router())
+        .merge(data::router())
         .merge(ask::router())
         .merge(tts::router())
         .merge(words::router())

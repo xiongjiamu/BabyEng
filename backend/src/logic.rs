@@ -38,16 +38,15 @@ pub async fn record_learning(
     .await?;
 
     // 2. 更新 progress（upsert）
-    let row = sqlx::query(
-        "SELECT * FROM progress WHERE child_id=? AND target_type=? AND target_id=?",
-    )
-    .bind(child_id)
-    .bind(target_type)
-    .bind(target_id)
-    .fetch_optional(pool)
-    .await?;
+    let row =
+        sqlx::query("SELECT * FROM progress WHERE child_id=? AND target_type=? AND target_id=?")
+            .bind(child_id)
+            .bind(target_type)
+            .bind(target_id)
+            .fetch_optional(pool)
+            .await?;
 
-    let (mut learn_count, mut review_count, mut marks_json, mut quiz_json): (i64, i64, String, String) =
+    let (mut learn_count, mut review_count, marks_json, quiz_json): (i64, i64, String, String) =
         match row {
             Some(r) => (
                 r.try_get("learn_count")?,
@@ -108,7 +107,11 @@ pub async fn record_learning(
     .await?;
 
     // 3. 更新当日统计（打卡/日报）
-    let local_day = now.with_timezone(&Local).date_naive().format("%Y-%m-%d").to_string();
+    let local_day = now
+        .with_timezone(&Local)
+        .date_naive()
+        .format("%Y-%m-%d")
+        .to_string();
     match action {
         "learn" | "ask" => {
             sqlx::query(
@@ -171,11 +174,7 @@ fn compute_mastery(marks: &[String], quizs: &[String], exposure: f64, recency: f
 }
 
 /// 录音入库后更新当日统计与打卡（PRD 8.4 / 7.1）
-pub async fn bump_recording(
-    pool: &SqlitePool,
-    child_id: &str,
-    duration_ms: i64,
-) -> AppResult<()> {
+pub async fn bump_recording(pool: &SqlitePool, child_id: &str, duration_ms: i64) -> AppResult<()> {
     let local_day = Local::now().date_naive().format("%Y-%m-%d").to_string();
     sqlx::query(
         "INSERT INTO child_daily (child_id, day, rec_count, rec_ms) VALUES (?,?,1,?) \
@@ -241,7 +240,11 @@ pub async fn today_summary(pool: &SqlitePool, child_id: &str) -> AppResult<Today
 
     // 连续天数：今天已打卡从今天起算，否则从昨天起算
     let mut streak: i64 = 0;
-    let mut day = if checked_today { today } else { today - Duration::days(1) };
+    let mut day = if checked_today {
+        today
+    } else {
+        today - Duration::days(1)
+    };
     let month = today.format("%Y-%m").to_string();
     let mut freeze_used_this_month: i64 = 0;
     let mut freeze_days_used: Vec<String> = Vec::new();
@@ -293,11 +296,9 @@ pub async fn check_achievements(pool: &SqlitePool, child_id: &str) -> AppResult<
     let mut unlocked = Vec::new();
 
     // 场景学完：某 category 的全部词都有 progress
-    let scenes = sqlx::query(
-        "SELECT category, COUNT(*) total FROM word GROUP BY category",
-    )
-    .fetch_all(pool)
-    .await?;
+    let scenes = sqlx::query("SELECT category, COUNT(*) total FROM word GROUP BY category")
+        .fetch_all(pool)
+        .await?;
     for r in scenes {
         let category: String = r.try_get("category")?;
         let total: i64 = r.try_get("total")?;
@@ -322,11 +323,10 @@ pub async fn check_achievements(pool: &SqlitePool, child_id: &str) -> AppResult<
     }
 
     // 累计录音 50 次
-    let rec_total: i64 =
-        sqlx::query_scalar("SELECT COUNT(*) FROM recording WHERE child_id=?")
-            .bind(child_id)
-            .fetch_one(pool)
-            .await?;
+    let rec_total: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM recording WHERE child_id=?")
+        .bind(child_id)
+        .fetch_one(pool)
+        .await?;
     if rec_total >= 50 {
         unlocked.push(insert_achievement(pool, child_id, "medal", "rec_50").await?);
     }
@@ -373,19 +373,14 @@ async fn insert_achievement(
 }
 
 /// 本月打卡日历（我的页成就 Tab）
-pub async fn month_calendar(
-    pool: &SqlitePool,
-    child_id: &str,
-) -> AppResult<serde_json::Value> {
+pub async fn month_calendar(pool: &SqlitePool, child_id: &str) -> AppResult<serde_json::Value> {
     let now = Local::now();
     let month = now.format("%Y-%m").to_string();
-    let rows = sqlx::query(
-        "SELECT day, frozen FROM child_daily WHERE child_id=? AND day LIKE ?",
-    )
-    .bind(child_id)
-    .bind(format!("{}%", month))
-    .fetch_all(pool)
-    .await?;
+    let rows = sqlx::query("SELECT day, frozen FROM child_daily WHERE child_id=? AND day LIKE ?")
+        .bind(child_id)
+        .bind(format!("{}%", month))
+        .fetch_all(pool)
+        .await?;
 
     let mut days: Vec<serde_json::Value> = Vec::new();
     for r in rows {
@@ -397,37 +392,6 @@ pub async fn month_calendar(
         }));
     }
     Ok(serde_json::json!({ "month": month, "days": days }))
-}
-
-/// 使用一次打卡保护（断签日调用；每月 2 次，PRD 7.1）
-pub async fn use_streak_freeze(pool: &SqlitePool, child_id: &str) -> AppResult<bool> {
-    let s = today_summary(pool, child_id).await?;
-    if s.freeze_left <= 0 {
-        return Ok(false);
-    }
-    let today = Local::now().date_naive().format("%Y-%m-%d").to_string();
-    // 记录到 child_daily.frozen + achievement
-    sqlx::query(
-        "INSERT INTO child_daily (child_id, day, frozen) VALUES (?,?,1) \
-         ON CONFLICT(child_id, day) DO UPDATE SET frozen = 1",
-    )
-    .bind(child_id)
-    .bind(&today)
-    .execute(pool)
-    .await?;
-    let id = Uuid::new_v4().to_string();
-    let key = format!("freeze_{}", today);
-    sqlx::query(
-        "INSERT OR IGNORE INTO achievement (id, child_id, type, key, unlocked_at) VALUES (?,?,?,?,?)",
-    )
-    .bind(&id)
-    .bind(child_id)
-    .bind("streak")
-    .bind(&key)
-    .bind(Utc::now().to_rfc3339())
-    .execute(pool)
-    .await?;
-    Ok(true)
 }
 
 /// 格式化复习文案：把掌握度翻译成「明天 / 3 天后」（PRD 8.6：不给母亲看数字）

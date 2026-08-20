@@ -25,9 +25,6 @@ pub enum AppError {
     #[error("ASR 服务不可用")]
     AsrUnavailable,
 
-    #[error("LLM 服务不可用")]
-    LlmUnavailable,
-
     #[error("推理服务错误: {0}")]
     Inference(String),
 
@@ -47,7 +44,6 @@ impl AppError {
             AppError::NotFound(_) => "not_found",
             AppError::TtsUnavailable => "tts_unavailable",
             AppError::AsrUnavailable => "asr_unavailable",
-            AppError::LlmUnavailable => "llm_unavailable",
             AppError::Inference(_) => "inference_error",
             AppError::Io(_) => "io_error",
             AppError::Internal(_) => "internal_error",
@@ -58,9 +54,7 @@ impl AppError {
         match self {
             AppError::BadRequest(_) => StatusCode::BAD_REQUEST,
             AppError::NotFound(_) => StatusCode::NOT_FOUND,
-            AppError::TtsUnavailable | AppError::AsrUnavailable | AppError::LlmUnavailable => {
-                StatusCode::SERVICE_UNAVAILABLE
-            }
+            AppError::TtsUnavailable | AppError::AsrUnavailable => StatusCode::SERVICE_UNAVAILABLE,
             _ => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }

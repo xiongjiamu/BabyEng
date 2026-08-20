@@ -44,7 +44,29 @@ npm run dev # http://localhost:5173，/api 代理到 8080
 ## 部署
 
 见 `deploy/README.md`：docker compose 一键编排（web/backend/tts/asr/llm），
-MVP 与 full 两个 profile，模型文件与数据卷分离。
+MVP 与 full 两个 profile，模型文件与数据卷分离。默认只监听宿主机
+`127.0.0.1:80`；需要家庭局域网访问时必须显式设置 `WEB_BIND_ADDR` 为服务器的内网 IP。
+
+本项目的 MVP 是单家庭应用，没有公网账号鉴权。不要直接暴露到公网；远程访问必须在前面增加 HTTPS 与独立访问控制层。
+
+## 验证
+
+```bash
+cd backend
+cargo test --all-targets
+cargo clippy --all-targets -- -D warnings
+cargo build --release
+
+cd ../frontend
+npm run build
+
+cd ../deploy
+npm install
+npm run verify -- http://127.0.0.1:8080 /tmp/babyeng-shots
+npm run release-check -- http://127.0.0.1:8080
+```
+
+自动检查不替代 PRD A6 的 58 条音频人工试听与音标核对，也不替代 A8 的安卓 Chrome、iOS Safari 真机闭环。
 
 ## 需求覆盖速查
 
@@ -70,7 +92,7 @@ MVP 与 full 两个 profile，模型文件与数据卷分离。
 
 ## 验收标准（PRD 10.1 A1~A8）
 
-- A2 别名命中 / A3 同音容错 / A4 未命中兜底：`backend/src/matcher.rs` 内单测可验证
+- A2 别名命中 / A3 同音容错 / A4 未命中兜底：`deploy/release-check.js`
 - A5 录音闭环（静音自动停、双轨回放、母亲标记、<0.5s 不入库）：`views/Compare.vue` + `useRecorder.js`
 - A7 降级不崩：手动停 TTS/ASR 服务后，前端分别给出降级提示
-- A6/A8 需真机与人工试听：见 `deploy/README.md` 与 ROADMAP 待办
+- A6/A8 需真机与人工试听：见 `deploy/README.md` 与 `ROADMAP.md` 待办

@@ -63,7 +63,12 @@ impl InferenceClients {
     // ---------- TTS ----------
 
     /// 合成文本 → wav 字节。若模型缺失/服务不可用 → Err(AppError::TtsUnavailable)
-    pub async fn tts_synthesize(&self, text: String, voice: String, rate: f64) -> AppResult<Vec<u8>> {
+    pub async fn tts_synthesize(
+        &self,
+        text: String,
+        voice: String,
+        rate: f64,
+    ) -> AppResult<Vec<u8>> {
         let url = format!(
             "{}/synthesize?text={}&voice={}&length_scale={:.2}",
             self.tts_url.trim_end_matches('/'),
@@ -77,7 +82,7 @@ impl InferenceClients {
                 .get(&url)
                 .timeout(timeout)
                 .call()
-                .map_err(|e| classify_tts_err(e))?;
+                .map_err(classify_tts_err)?;
             if resp.status() != 200 {
                 return Err(AppError::TtsUnavailable);
             }
@@ -93,7 +98,12 @@ impl InferenceClients {
 
     /// 获取 TTS 音频：缓存优先（按 model+voice+text+rate hash，PRD 9.10）
     /// 返回 (字节, 扩展名, 是否缓存命中)
-    pub async fn tts_audio(&self, text: &str, voice: &str, rate: f64) -> AppResult<(Vec<u8>, String, bool)> {
+    pub async fn tts_audio(
+        &self,
+        text: &str,
+        voice: &str,
+        rate: f64,
+    ) -> AppResult<(Vec<u8>, String, bool)> {
         let key = format!("{}|{}|{:.2}", voice, text, rate);
         let hash = cache_hash(&key);
         let cache_dir = format!("{}/tts_cache", self.audio_dir);
@@ -112,7 +122,9 @@ impl InferenceClients {
         }
 
         // 未命中 → 实时合成（Piper 输出 wav）→ 压 Opus 减带宽（9.10），失败则存 wav
-        let wav = self.tts_synthesize(text.to_string(), voice.to_string(), rate).await?;
+        let wav = self
+            .tts_synthesize(text.to_string(), voice.to_string(), rate)
+            .await?;
         let converted = self.to_opus(&wav, &wav_path, &opus_path);
         match converted {
             Some(opus_bytes) => Ok((opus_bytes, "opus".into(), false)),
@@ -133,7 +145,9 @@ impl InferenceClients {
             let out_path = format!("{}/out_{}.wav", tmp_dir, uuid::Uuid::new_v4());
             std::fs::write(&in_path, &input_bytes)?;
             let status = std::process::Command::new(&ffmpeg)
-                .args(["-y", "-i", &in_path, "-ar", "16000", "-ac", "1", "-f", "wav", &out_path])
+                .args([
+                    "-y", "-i", &in_path, "-ar", "16000", "-ac", "1", "-f", "wav", &out_path,
+                ])
                 .stdout(std::process::Stdio::null())
                 .stderr(std::process::Stdio::null())
                 .status()
@@ -154,7 +168,9 @@ impl InferenceClients {
     fn to_opus(&self, wav: &[u8], wav_path: &str, opus_path: &str) -> Option<Vec<u8>> {
         std::fs::write(wav_path, wav).ok()?;
         let status = std::process::Command::new(&self.ffmpeg_bin)
-            .args(["-y", "-i", wav_path, "-c:a", "libopus", "-b:a", "64k", opus_path])
+            .args([
+                "-y", "-i", wav_path, "-c:a", "libopus", "-b:a", "64k", opus_path,
+            ])
             .stdout(std::process::Stdio::null())
             .stderr(std::process::Stdio::null())
             .status()
@@ -180,42 +196,22 @@ impl InferenceClients {
                 .set("Content-Type", "audio/wav")
                 .timeout(timeout)
                 .send_bytes(&wav_16k)
-                .map_err(|e| classify_asr_err(e))?;
+                .map_err(classify_asr_err)?;
             if resp.status() != 200 {
                 return Err(AppError::AsrUnavailable);
             }
-            let body: serde_json::Value = resp
-                .into_json()
-                .map_err(|_| AppError::AsrUnavailable)?;
+            let body: serde_json::Value = resp.into_json().map_err(|_| AppError::AsrUnavailable)?;
             Ok(AsrOutcome {
-                text: body.get("text").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+                text: body
+                    .get("text")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("")
+                    .to_string(),
                 confidence: body.get("confidence").and_then(|v| v.as_f64()),
             })
         })
         .await
         .map_err(|e| AppError::Internal(format!("asr task: {}", e)))?
-    }
-
-    // ---------- LLM ----------
-
-    /// L4 LLM 兜底（可选，需家庭配置云端或本地 LLM）。结构化输出，音标字段一律丢弃（4.1.2）
-    pub async fn llm_generate(&self, zh: String) -> AppResult<serde_json::Value> {
-        let url = format!("{}/generate", self.llm_url.trim_end_matches('/'));
-        let timeout = self.timeout;
-        tokio::task::spawn_blocking(move || {
-            let resp = ureq::agent()
-                .post(&url)
-                .timeout(timeout)
-                .send_json(serde_json::json!({ "zh": zh, "schema": "word_lookup" }))
-                .map_err(|_| AppError::LlmUnavailable)?;
-            if resp.status() != 200 {
-                return Err(AppError::LlmUnavailable);
-            }
-            resp.into_json::<serde_json::Value>()
-                .map_err(|_| AppError::LlmUnavailable)
-        })
-        .await
-        .map_err(|e| AppError::Internal(format!("llm task: {}", e)))?
     }
 }
 

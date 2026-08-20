@@ -209,10 +209,10 @@ async function cleanup() {
   }
 }
 
-function exportData() {
-  // 一键导出（11.4）：跳转一个只读聚合页（MVP 简化：下载日报 JSON）
+async function exportData() {
   try {
-    const blob = new Blob([JSON.stringify({ family: store.family, child: store.child, settings: store.settings }, null, 2)], {
+    const data = await api.exportData()
+    const blob = new Blob([JSON.stringify(data, null, 2)], {
       type: 'application/json',
     })
     const url = URL.createObjectURL(blob)
@@ -221,12 +221,19 @@ function exportData() {
     a.download = 'babyeng-backup.json'
     a.click()
     URL.revokeObjectURL(url)
-  } catch { /* ignore */ }
+  } catch {
+    alert('导出失败，请稍后重试')
+  }
 }
 
-function confirmClear() {
+async function confirmClear() {
   if (confirm('确认清空所有录音与学习记录？此操作不可撤销。')) {
-    alert('演示版不支持在线清空；可在服务器上执行一键清空脚本（见部署文档）。')
+    try {
+      const result = await api.clearData()
+      alert(`已清空 ${result.recordings_deleted} 条录音和 ${result.learning_records_deleted} 条学习记录`)
+    } catch {
+      alert('清空失败，数据未被删除')
+    }
   }
 }
 </script>

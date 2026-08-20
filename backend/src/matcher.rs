@@ -324,8 +324,15 @@ impl Matcher {
                 if t.id == exclude || t.target_type != "word" {
                     continue;
                 }
-                if ["word_cup", "word_ball", "word_apple", "word_mom", "word_dog", "word_car"]
-                    .contains(&t.id.as_str())
+                if [
+                    "word_cup",
+                    "word_ball",
+                    "word_apple",
+                    "word_mom",
+                    "word_dog",
+                    "word_car",
+                ]
+                .contains(&t.id.as_str())
                 {
                     out.push(t.clone());
                 }
@@ -336,7 +343,7 @@ impl Matcher {
 }
 
 impl Target {
-    pub fn into_ask_result(&self) -> AskResult {
+    pub fn to_ask_result(&self) -> AskResult {
         // 需要词条详情（音标、例句等），由上层从 DB 补齐；这里只给基础字段
         AskResult {
             target_type: self.target_type.clone(),

@@ -1,23 +1,26 @@
 //! 词库与业务查询（store 层）
 
-use sqlx::SqlitePool;
 use sqlx::Row;
+use sqlx::SqlitePool;
 
 use crate::error::AppResult;
 use crate::models::{AskResult, Sentence, Word};
 
 pub async fn load_words(pool: &SqlitePool) -> AppResult<Vec<Word>> {
-    let rows = sqlx::query("SELECT * FROM word WHERE review_status='published' ORDER BY category, level, id")
-        .fetch_all(pool)
-        .await?;
-    rows.iter().map(|r| crate::db::word_from_row(r)).collect()
+    let rows = sqlx::query(
+        "SELECT * FROM word WHERE review_status='published' ORDER BY category, level, id",
+    )
+    .fetch_all(pool)
+    .await?;
+    rows.iter().map(crate::db::word_from_row).collect()
 }
 
 pub async fn load_sentences(pool: &SqlitePool) -> AppResult<Vec<Sentence>> {
-    let rows = sqlx::query("SELECT * FROM sentence WHERE review_status='published' ORDER BY scene, id")
-        .fetch_all(pool)
-        .await?;
-    rows.iter().map(|r| crate::db::sentence_from_row(r)).collect()
+    let rows =
+        sqlx::query("SELECT * FROM sentence WHERE review_status='published' ORDER BY scene, id")
+            .fetch_all(pool)
+            .await?;
+    rows.iter().map(crate::db::sentence_from_row).collect()
 }
 
 pub async fn get_word(pool: &SqlitePool, id: &str) -> AppResult<Option<Word>> {

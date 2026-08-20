@@ -3,12 +3,11 @@
 //! 彻底未命中：相近词推荐 + 文字输入 + 静默写入 unmatched_query（8.8）
 //! ASR/TTS 不可用：分别降级（4.1.3 / 5.4），不整页报错
 
-use axum::extract::{Multipart, Query, State};
+use axum::extract::{Multipart, State};
 use axum::routing::post;
 use axum::{Json, Router};
 use serde::Deserialize;
 use serde_json::json;
-use uuid::Uuid;
 
 use crate::error::{AppError, AppResult};
 use crate::matcher::Match;
@@ -32,12 +31,22 @@ struct AskTextBody {
     asr_confidence: Option<f64>,
 }
 
-async fn ask_text(State(state): State<SharedState>, Json(body): Json<AskTextBody>) -> AppResult<Json<AskResponse>> {
+async fn ask_text(
+    State(state): State<SharedState>,
+    Json(body): Json<AskTextBody>,
+) -> AppResult<Json<AskResponse>> {
     let text = body.text.trim().to_string();
     if text.is_empty() {
         return Err(AppError::BadRequest("文本为空".into()));
     }
-    let resp = run_pipeline(&state, &text, body.asr_confidence, body.family_id.as_deref(), body.child_id.as_deref()).await;
+    let resp = run_pipeline(
+        &state,
+        &text,
+        body.asr_confidence,
+        body.family_id.as_deref(),
+        body.child_id.as_deref(),
+    )
+    .await;
     Ok(Json(resp))
 }
 
@@ -61,13 +70,13 @@ async fn ask_voice(
             "audio" => {
                 ext = field
                     .content_type()
-                    .and_then(|t| {
+                    .map(|t| {
                         if t.contains("mp4") || t.contains("aac") || t.contains("m4a") {
-                            Some("m4a")
+                            "m4a"
                         } else if t.contains("ogg") {
-                            Some("ogg")
+                            "ogg"
                         } else {
-                            Some("webm")
+                            "webm"
                         }
                     })
                     .unwrap_or("webm")
@@ -124,7 +133,14 @@ async fn ask_voice(
         }));
     }
 
-    let resp = run_pipeline(&state, &text, outcome.confidence, family_id.as_deref(), child_id.as_deref()).await;
+    let resp = run_pipeline(
+        &state,
+        &text,
+        outcome.confidence,
+        family_id.as_deref(),
+        child_id.as_deref(),
+    )
+    .await;
     Ok(Json(resp))
 }
 
@@ -136,7 +152,10 @@ struct ConfirmBody {
     child_id: Option<String>,
 }
 
-async fn ask_confirm(State(state): State<SharedState>, Json(body): Json<ConfirmBody>) -> AppResult<Json<serde_json::Value>> {
+async fn ask_confirm(
+    State(state): State<SharedState>,
+    Json(body): Json<ConfirmBody>,
+) -> AppResult<Json<serde_json::Value>> {
     let pool = &state.pool;
     let result = match body.target_type.as_str() {
         "word" => {
@@ -192,8 +211,16 @@ async fn ask_confirm(State(state): State<SharedState>, Json(body): Json<ConfirmB
 
     // 计一次 ask
     if let Some(cid) = &body.child_id {
-        crate::logic::record_learning(pool, cid, &result.target_type, &result.target_id, "ask", None, None)
-            .await?;
+        crate::logic::record_learning(
+            pool,
+            cid,
+            &result.target_type,
+            &result.target_id,
+            "ask",
+            None,
+            None,
+        )
+        .await?;
     }
 
     Ok(Json(json!({ "ok": true, "result": result })))
@@ -218,7 +245,7 @@ async fn run_pipeline(
 
     match outcome {
         Match::Hit(target, level) => {
-            let mut result = target.into_ask_result();
+            let mut result = target.to_ask_result();
             result.match_level = level.to_string();
             match store::enrich_ask_result(pool, result).await {
                 Ok(r) => {
@@ -226,14 +253,26 @@ async fn run_pipeline(
                     // TTS 音频 URL（发音是否可用取决于 TTS 服务）
                     result.tts_available = tts_ready;
                     if tts_ready {
-                        result.tts_url = Some(format!("/api/tts/audio?text={}&voice=en_US-lessig-medium&rate=0.8",
-                            percent_encoding::utf8_percent_encode(&result.en, percent_encoding::NON_ALPHANUMERIC)));
+                        result.tts_url = Some(format!(
+                            "/api/tts/audio?text={}&voice=en_US-lessig-medium&rate=0.8",
+                            percent_encoding::utf8_percent_encode(
+                                &result.en,
+                                percent_encoding::NON_ALPHANUMERIC
+                            )
+                        ));
                     }
                     // 记录 ask 学习动作
                     if let Some(cid) = child_id {
                         let _ = crate::logic::record_learning(
-                            pool, cid, &result.target_type, &result.target_id, "ask", None, None,
-                        ).await;
+                            pool,
+                            cid,
+                            &result.target_type,
+                            &result.target_id,
+                            "ask",
+                            None,
+                            None,
+                        )
+                        .await;
                     }
                     AskResponse {
                         status: if tts_ready { "hit" } else { "tts_only_down" }.into(),
@@ -259,7 +298,7 @@ async fn run_pipeline(
         Match::Ambiguous(cands) => {
             let mut candidates = Vec::new();
             for c in cands {
-                let mut r = c.into_ask_result();
+                let mut r = c.to_ask_result();
                 r.match_level = "L2-ambiguous".into();
                 if let Ok(enriched) = store::enrich_ask_result(pool, r).await {
                     let mut enriched = enriched;
@@ -281,14 +320,12 @@ async fn run_pipeline(
             // 彻底未命中：相近词推荐 + 文字输入 + 静默写入未命中表（8.8）
             let fam_id = match family_id {
                 Some(f) => f.to_string(),
-                None => {
-                    sqlx::query_scalar::<_, String>("SELECT family_id FROM family LIMIT 1")
-                        .fetch_optional(pool)
-                        .await
-                        .ok()
-                        .flatten()
-                        .unwrap_or_default()
-                }
+                None => sqlx::query_scalar::<_, String>("SELECT family_id FROM family LIMIT 1")
+                    .fetch_optional(pool)
+                    .await
+                    .ok()
+                    .flatten()
+                    .unwrap_or_default(),
             };
 
             let unmatched_id = if fam_id.is_empty() {
@@ -305,7 +342,7 @@ async fn run_pipeline(
             drop(m);
             let mut candidates = Vec::new();
             for s in suggested {
-                let mut r = s.into_ask_result();
+                let r = s.to_ask_result();
                 if let Ok(enriched) = store::enrich_ask_result(pool, r).await {
                     candidates.push(enriched);
                 }

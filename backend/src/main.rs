@@ -16,7 +16,6 @@ mod store;
 use std::time::Duration;
 
 use axum::Router;
-use tower_http::cors::{Any, CorsLayer};
 use tower_http::trace::TraceLayer;
 use tracing::info;
 
@@ -50,11 +49,6 @@ async fn main() {
         });
     }
 
-    let cors = CorsLayer::new()
-        .allow_origin(Any)
-        .allow_methods(Any)
-        .allow_headers(Any);
-
     // api_router 内部已 with_state，返回 Router<()>；
     // 静态资源用 fallback_service（axum 0.8 根路径嵌套改为 fallback），
     // 未命中静态文件时回退 index.html（SPA 路由，PWA 可直接刷新子路径）。
@@ -64,7 +58,6 @@ async fn main() {
         .fallback(tower_http::services::ServeFile::new(&index_file));
     let app = Router::new()
         .merge(routes::api_router(state.clone()))
-        .layer(cors)
         .layer(TraceLayer::new_for_http())
         .fallback_service(fallback);
 

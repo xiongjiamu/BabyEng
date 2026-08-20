@@ -3,14 +3,13 @@
 use axum::extract::{Path, State};
 use axum::routing::{get, post, put};
 use axum::{Json, Router};
-use chrono::{Datelike, Local};
-use serde::{Deserialize, Serialize};
+use chrono::Datelike;
+use serde::Deserialize;
 use serde_json::json;
-use sqlx::Row;
 use uuid::Uuid;
 
 use crate::error::{AppError, AppResult};
-use crate::models::{AgeBand, Child, Family};
+use crate::models::{AgeBand, Child};
 use crate::state::SharedState;
 
 pub fn router() -> Router<SharedState> {
@@ -30,21 +29,14 @@ struct FamilyInit {
     child_birthdate: Option<String>, // YYYY-MM-DD
 }
 
-#[derive(Serialize)]
-struct FamilyView {
-    family: Family,
-    child: Option<Child>,
-    age_band: Option<String>,
-    age_months: Option<i64>,
-    settings: serde_json::Value,
-}
-
 async fn family_me(State(state): State<SharedState>) -> AppResult<Json<serde_json::Value>> {
     let pool = &state.pool;
     // 单家庭：取第一条
-    let fam = sqlx::query_as::<_, (String, String, String)>("SELECT family_id, mother_name, settings FROM family LIMIT 1")
-        .fetch_optional(pool)
-        .await?;
+    let fam = sqlx::query_as::<_, (String, String, String)>(
+        "SELECT family_id, mother_name, settings FROM family LIMIT 1",
+    )
+    .fetch_optional(pool)
+    .await?;
     let Some((family_id, mother_name, settings_json)) = fam else {
         // 未初始化 → 前端进引导页
         return Ok(Json(json!({ "initialized": false })));
@@ -67,22 +59,22 @@ async fn family_me(State(state): State<SharedState>) -> AppResult<Json<serde_jso
 
     let (age_band, age_months) = match &child {
         Some(c) => {
-            let band = c
-                .age_band_override
-                .clone()
-                .or_else(|| {
-                    AgeBand::from_birthdate(c.child_birthdate.as_deref(), &chrono::Utc::now())
-                        .map(|b| b.label().to_string())
-                });
+            let band = c.age_band_override.clone().or_else(|| {
+                AgeBand::from_birthdate(c.child_birthdate.as_deref(), &chrono::Utc::now())
+                    .map(|b| b.label().to_string())
+            });
             let months = c
                 .child_birthdate
                 .as_deref()
                 .and_then(|bd| {
-                    chrono::NaiveDate::parse_from_str(bd, "%Y-%m-%d").ok().map(|d| {
-                        let today = chrono::Local::now().date_naive();
-                        (today.year() - d.year()) * 12 + (today.month() as i32 - d.month() as i32)
-                            + if today.day() >= d.day() { 0 } else { -1 }
-                    })
+                    chrono::NaiveDate::parse_from_str(bd, "%Y-%m-%d")
+                        .ok()
+                        .map(|d| {
+                            let today = chrono::Local::now().date_naive();
+                            (today.year() - d.year()) * 12
+                                + (today.month() as i32 - d.month() as i32)
+                                + if today.day() >= d.day() { 0 } else { -1 }
+                        })
                 })
                 .map(|m| m as i64);
             (band, months)
@@ -101,26 +93,34 @@ async fn family_me(State(state): State<SharedState>) -> AppResult<Json<serde_jso
 }
 
 /// 首次启动引导提交（PRD 6.7：孩子生日 → 自动分段）
-async fn family_init(State(state): State<SharedState>, Json(body): Json<FamilyInit>) -> AppResult<Json<serde_json::Value>> {
+async fn family_init(
+    State(state): State<SharedState>,
+    Json(body): Json<FamilyInit>,
+) -> AppResult<Json<serde_json::Value>> {
     let pool = &state.pool;
     let family_id = Uuid::new_v4().to_string();
     let child_id = Uuid::new_v4().to_string();
     let now = chrono::Utc::now().to_rfc3339();
 
     let mut tx = pool.begin().await?;
-    sqlx::query("INSERT INTO family (family_id, mother_name, settings, created_at) VALUES (?,?,?,?)")
-        .bind(&family_id)
-        .bind(body.mother_name.clone().unwrap_or_default())
-        .bind(json!({
+    sqlx::query(
+        "INSERT INTO family (family_id, mother_name, settings, created_at) VALUES (?,?,?,?)",
+    )
+    .bind(&family_id)
+    .bind(body.mother_name.clone().unwrap_or_default())
+    .bind(
+        json!({
             "tts_rate": 0.8,
             "audio_only": true,          // A 段默认开启，B 段默认关闭（6.6）
             "screen_limit_min": 5,       // A 段手动关闭纯音频后上限 5 分钟/天（11.3）
             "session_limit_min": 3,
             "bedtime_hour": 21,
-        }).to_string())
-        .bind(&now)
-        .execute(&mut *tx)
-        .await?;
+        })
+        .to_string(),
+    )
+    .bind(&now)
+    .execute(&mut *tx)
+    .await?;
 
     // 推导分段：默认 A 段纯音频；跳过生日默认 B 段（6.7）
     let birthdate = body.child_birthdate.clone();
@@ -142,13 +142,16 @@ async fn family_init(State(state): State<SharedState>, Json(body): Json<FamilyIn
     // 按分段修正音频默认值
     if !default_audio_only {
         sqlx::query("UPDATE family SET settings=? WHERE family_id=?")
-            .bind(json!({
-                "tts_rate": 0.8,
-                "audio_only": false,
-                "screen_limit_min": 15,  // B 段默认 15 分钟/天（11.3）
-                "session_limit_min": 5,
-                "bedtime_hour": 21,
-            }).to_string())
+            .bind(
+                json!({
+                    "tts_rate": 0.8,
+                    "audio_only": false,
+                    "screen_limit_min": 15,  // B 段默认 15 分钟/天（11.3）
+                    "session_limit_min": 5,
+                    "bedtime_hour": 21,
+                })
+                .to_string(),
+            )
             .bind(&family_id)
             .execute(&mut *tx)
             .await?;
@@ -169,7 +172,10 @@ struct SettingsBody {
     settings: serde_json::Value,
 }
 
-async fn family_settings(State(state): State<SharedState>, Json(body): Json<SettingsBody>) -> AppResult<Json<serde_json::Value>> {
+async fn family_settings(
+    State(state): State<SharedState>,
+    Json(body): Json<SettingsBody>,
+) -> AppResult<Json<serde_json::Value>> {
     let pool = &state.pool;
     let fam: Option<(String,)> = sqlx::query_as("SELECT family_id FROM family LIMIT 1")
         .fetch_optional(pool)
@@ -191,7 +197,10 @@ struct ChildCreate {
     child_birthdate: Option<String>,
 }
 
-async fn child_create(State(state): State<SharedState>, Json(body): Json<ChildCreate>) -> AppResult<Json<serde_json::Value>> {
+async fn child_create(
+    State(state): State<SharedState>,
+    Json(body): Json<ChildCreate>,
+) -> AppResult<Json<serde_json::Value>> {
     let pool = &state.pool;
     let fam: Option<(String,)> = sqlx::query_as("SELECT family_id FROM family LIMIT 1")
         .fetch_optional(pool)
@@ -241,7 +250,11 @@ async fn child_update(
             .await?;
     }
     if let Some(band) = &body.age_band_override {
-        let band = if band.is_empty() { None } else { Some(band.clone()) };
+        let band = if band.is_empty() {
+            None
+        } else {
+            Some(band.clone())
+        };
         sqlx::query("UPDATE child SET age_band_override=? WHERE child_id=?")
             .bind(band)
             .bind(&child_id)
@@ -258,7 +271,10 @@ async fn child_update(
     Ok(Json(json!({ "ok": true })))
 }
 
-async fn child_get(State(state): State<SharedState>, Path(child_id): Path<String>) -> AppResult<Json<serde_json::Value>> {
+async fn child_get(
+    State(state): State<SharedState>,
+    Path(child_id): Path<String>,
+) -> AppResult<Json<serde_json::Value>> {
     let pool = &state.pool;
     let child = sqlx::query_as::<_, (String, String, String, Option<String>, Option<String>, i64)>(
         "SELECT child_id, family_id, child_name, child_birthdate, age_band_override, level FROM child WHERE child_id=?",
@@ -277,13 +293,10 @@ async fn child_get(State(state): State<SharedState>, Path(child_id): Path<String
     let Some(child) = child else {
         return Err(AppError::NotFound("孩子不存在".into()));
     };
-    let band = child
-        .age_band_override
-        .clone()
-        .or_else(|| {
-            AgeBand::from_birthdate(child.child_birthdate.as_deref(), &chrono::Utc::now())
-                .map(|b| b.label().to_string())
-        });
+    let band = child.age_band_override.clone().or_else(|| {
+        AgeBand::from_birthdate(child.child_birthdate.as_deref(), &chrono::Utc::now())
+            .map(|b| b.label().to_string())
+    });
     Ok(Json(json!({
         "child": child,
         "age_band": band,
