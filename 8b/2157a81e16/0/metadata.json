@@ -1,0 +1,95 @@
+{
+  "cli_version": "0.10.1",
+  "checkpoint_id": "8b2157a81e16",
+  "session_id": "01a01d20-9a0a-7a21-8769-cef9f42034af",
+  "strategy": "manual-commit",
+  "created_at": "2026-08-20T03:50:43.168522Z",
+  "branch": "main",
+  "checkpoints_count": 3,
+  "save_step_count": 2,
+  "files_touched": [
+    "AGENTS.md",
+    "README.md",
+    "ROADMAP.md",
+    "backend/Cargo.toml",
+    "backend/src/config.rs",
+    "backend/src/db.rs",
+    "backend/src/error.rs",
+    "backend/src/inference.rs",
+    "backend/src/logic.rs",
+    "backend/src/main.rs",
+    "backend/src/matcher.rs",
+    "backend/src/models.rs",
+    "backend/src/normalize.rs",
+    "backend/src/routes/ask.rs",
+    "backend/src/routes/data.rs",
+    "backend/src/routes/family.rs",
+    "backend/src/routes/mod.rs",
+    "backend/src/routes/recordings.rs",
+    "backend/src/state.rs",
+    "backend/src/store.rs",
+    "deploy/README.md",
+    "deploy/docker-compose.yml",
+    "deploy/nginx.conf",
+    "deploy/package-lock.json",
+    "deploy/package.json",
+    "deploy/release-check.js",
+    "frontend/src/api.js",
+    "frontend/src/views/Settings.vue"
+  ],
+  "agent": "Codex",
+  "model": "gpt-5.6-sol",
+  "turn_id": "c39ffaa74833",
+  "compact_transcript_start": 0,
+  "token_usage": {
+    "input_tokens": 327526,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 8327936,
+    "output_tokens": 32934,
+    "api_call_count": 86
+  },
+  "session_metrics": {
+    "turn_count": 3
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-08-20T03:50:43.093782Z",
+    "agent_lines": 807,
+    "agent_removed": 355,
+    "human_added": 0,
+    "human_modified": 2,
+    "human_removed": 0,
+    "total_committed": 808,
+    "total_lines_changed": 1164,
+    "agent_percentage": 99.82817869415808,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 2,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 917,
+      "agent_lines_removed": 406
+    },
+    {
+      "checkpoint_number": 3,
+      "user_lines_added": 1,
+      "user_lines_removed": 1,
+      "agent_lines_added": 809,
+      "agent_lines_removed": 356,
+      "user_added_per_file": {
+        "backend/src/routes/data.rs": 1
+      },
+      "user_removed_per_file": {
+        "backend/src/routes/data.rs": 1
+      }
+    }
+  ]
+}
