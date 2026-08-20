@@ -6,6 +6,7 @@ use sqlx::SqlitePool;
 use tokio::sync::RwLock;
 
 use crate::config::Config;
+use crate::auth::AuthService;
 use crate::inference::InferenceClients;
 use crate::matcher::Matcher;
 
@@ -14,6 +15,7 @@ pub struct AppState {
     pub pool: SqlitePool,
     pub matcher: RwLock<Matcher>,
     pub inference: InferenceClients,
+    pub auth: AuthService,
 }
 
 pub type SharedState = Arc<AppState>;
@@ -36,6 +38,7 @@ impl AppState {
             pool,
             matcher: RwLock::new(matcher),
             inference,
+            auth: AuthService::default(),
         }))
     }
 }

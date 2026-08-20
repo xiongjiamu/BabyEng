@@ -33,9 +33,11 @@ services:
       ASR_URL: "http://asr:8102"
       LLM_URL: "http://llm:8103"
       SVC_TIMEOUT_SECS: "15"
+      AUTH_FILE: "/app/auth.json"
     volumes:
       - data:/data
       - audio:/data/audio
+      - "${AUTH_FILE:-./auth.json}:/app/auth.json:ro"
     depends_on:
       tts:
         condition: service_healthy

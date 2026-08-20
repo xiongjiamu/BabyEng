@@ -116,6 +116,8 @@
       <div class="group">
         <div class="t-label">关于</div>
         <div class="list">
+          <div class="list-item"><span class="grow">当前账号</span><span class="val">{{ username }}</span></div>
+          <button class="list-item danger" @click="logout"><span class="grow">退出登录</span><span class="val">›</span></button>
           <div class="list-item"><span class="grow">版本</span><span class="val">MVP 0.4</span></div>
           <div class="list-item"><span class="grow">对应文档</span><span class="val">PRD v0.4</span></div>
         </div>
@@ -160,12 +162,22 @@
 
 <script setup>
 import { ref } from 'vue'
+import { useRouter } from 'vue-router'
 import TabBar from '../components/TabBar.vue'
 import { useAppStore } from '../stores/app'
 import { api } from '../api'
 
 const store = useAppStore()
+const router = useRouter()
 const cloudSheet = ref(false)
+const username = localStorage.getItem('babyeng_username') || ''
+
+async function logout() {
+  await api.logout()
+  store.resetUserData()
+  localStorage.removeItem('babyeng_username')
+  router.replace('/login')
+}
 
 function setBand(band) {
   store.setBand(band)

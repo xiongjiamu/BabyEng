@@ -1,7 +1,9 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { authToken } from './api'
 
 // 12 个页面，与原型一一对应（PRD 5.2 页面清单）
 const routes = [
+  { path: '/login', name: 'login', component: () => import('./views/Login.vue'), meta: { title: '登录', public: true } },
   { path: '/', redirect: '/home' },
   { path: '/onboarding', name: 'onboarding', component: () => import('./views/Onboarding.vue'), meta: { title: '首次引导' } },
   { path: '/home', name: 'home', component: () => import('./views/Home.vue'), meta: { title: '首页' } },
@@ -20,6 +22,12 @@ const routes = [
 const router = createRouter({
   history: createWebHistory(),
   routes,
+})
+
+router.beforeEach((to) => {
+  if (!to.meta.public && !authToken()) return { name: 'login', query: { redirect: to.fullPath } }
+  if (to.name === 'login' && authToken()) return { name: 'home' }
+  document.title = `${to.meta.title || 'BabyEng'} · BabyEng`
 })
 
 export default router

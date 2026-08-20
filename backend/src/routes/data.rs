@@ -1,6 +1,6 @@
 //! 家庭数据导出与清空（PRD 11.4）。
 
-use axum::extract::State;
+use axum::extract::{Extension, State};
 use axum::routing::{get, post};
 use axum::{Json, Router};
 use serde::Deserialize;
@@ -8,6 +8,7 @@ use serde_json::{json, Value};
 use sqlx::{Row, SqlitePool};
 
 use crate::error::{AppError, AppResult};
+use crate::auth::{self, AuthUser};
 use crate::state::SharedState;
 
 pub fn router() -> Router<SharedState> {
@@ -16,25 +17,27 @@ pub fn router() -> Router<SharedState> {
         .route("/api/data/clear", post(clear_all))
 }
 
-async fn json_rows(pool: &SqlitePool, sql: &str) -> AppResult<Value> {
-    let raw: String = sqlx::query_scalar(sql).fetch_one(pool).await?;
+async fn json_rows(pool: &SqlitePool, sql: &str, family_id: &str) -> AppResult<Value> {
+    let raw: String = sqlx::query_scalar(sql).bind(family_id).fetch_one(pool).await?;
     Ok(serde_json::from_str(&raw)?)
 }
 
-async fn export_all(State(state): State<SharedState>) -> AppResult<Json<Value>> {
+async fn export_all(State(state): State<SharedState>, Extension(user): Extension<AuthUser>) -> AppResult<Json<Value>> {
     let pool = &state.pool;
-    let families = json_rows(pool, "SELECT COALESCE(json_group_array(json_object('family_id',family_id,'mother_name',mother_name,'settings',json(settings),'created_at',created_at)),'[]') FROM family").await?;
-    let children = json_rows(pool, "SELECT COALESCE(json_group_array(json_object('child_id',child_id,'family_id',family_id,'child_name',child_name,'child_birthdate',child_birthdate,'age_band_override',age_band_override,'level',level,'created_at',created_at)),'[]') FROM child").await?;
-    let learning_records = json_rows(pool, "SELECT COALESCE(json_group_array(json_object('id',id,'child_id',child_id,'target_type',target_type,'target_id',target_id,'action',action,'mother_mark',mother_mark,'quiz_result',quiz_result,'recorded_at',recorded_at)),'[]') FROM learning_record").await?;
-    let progress = json_rows(pool, "SELECT COALESCE(json_group_array(json_object('child_id',child_id,'target_type',target_type,'target_id',target_id,'learn_count',learn_count,'review_count',review_count,'last_mother_marks',json(last_mother_marks),'last_quiz_results',json(last_quiz_results),'last_touched_at',last_touched_at,'next_review_at',next_review_at,'mastery',mastery)),'[]') FROM progress").await?;
-    let achievements = json_rows(pool, "SELECT COALESCE(json_group_array(json_object('id',id,'child_id',child_id,'type',type,'key',key,'unlocked_at',unlocked_at)),'[]') FROM achievement").await?;
-    let daily = json_rows(pool, "SELECT COALESCE(json_group_array(json_object('child_id',child_id,'day',day,'learn_count',learn_count,'rec_count',rec_count,'rec_ms',rec_ms,'screen_sec',screen_sec,'frozen',frozen)),'[]') FROM child_daily").await?;
-    let unmatched = json_rows(pool, "SELECT COALESCE(json_group_array(json_object('id',id,'family_id',family_id,'raw_text',raw_text,'normalized_text',normalized_text,'asr_confidence',asr_confidence,'llm_result',llm_result,'hit_count',hit_count,'status',status,'last_seen_at',last_seen_at)),'[]') FROM unmatched_query").await?;
-    let model_configs = json_rows(pool, "SELECT COALESCE(json_group_array(json_object('config_id',config_id,'family_id',family_id,'type',type,'provider',provider,'model_name',model_name,'endpoint',endpoint,'params',json(params),'created_at',created_at)),'[]') FROM model_config").await?;
+    let family_id = auth::require_family_id(pool, &user).await?;
+    let families = json_rows(pool, "SELECT COALESCE(json_group_array(json_object('family_id',family_id,'mother_name',mother_name,'settings',json(settings),'created_at',created_at)),'[]') FROM family WHERE family_id=?", &family_id).await?;
+    let children = json_rows(pool, "SELECT COALESCE(json_group_array(json_object('child_id',child_id,'family_id',family_id,'child_name',child_name,'child_birthdate',child_birthdate,'age_band_override',age_band_override,'level',level,'created_at',created_at)),'[]') FROM child WHERE family_id=?", &family_id).await?;
+    let learning_records = json_rows(pool, "SELECT COALESCE(json_group_array(json_object('id',lr.id,'child_id',lr.child_id,'target_type',lr.target_type,'target_id',lr.target_id,'action',lr.action,'mother_mark',lr.mother_mark,'quiz_result',lr.quiz_result,'recorded_at',lr.recorded_at)),'[]') FROM learning_record lr JOIN child c ON c.child_id=lr.child_id WHERE c.family_id=?", &family_id).await?;
+    let progress = json_rows(pool, "SELECT COALESCE(json_group_array(json_object('child_id',p.child_id,'target_type',p.target_type,'target_id',p.target_id,'learn_count',p.learn_count,'review_count',p.review_count,'last_mother_marks',json(p.last_mother_marks),'last_quiz_results',json(p.last_quiz_results),'last_touched_at',p.last_touched_at,'next_review_at',p.next_review_at,'mastery',p.mastery)),'[]') FROM progress p JOIN child c ON c.child_id=p.child_id WHERE c.family_id=?", &family_id).await?;
+    let achievements = json_rows(pool, "SELECT COALESCE(json_group_array(json_object('id',a.id,'child_id',a.child_id,'type',a.type,'key',a.key,'unlocked_at',a.unlocked_at)),'[]') FROM achievement a JOIN child c ON c.child_id=a.child_id WHERE c.family_id=?", &family_id).await?;
+    let daily = json_rows(pool, "SELECT COALESCE(json_group_array(json_object('child_id',d.child_id,'day',d.day,'learn_count',d.learn_count,'rec_count',d.rec_count,'rec_ms',d.rec_ms,'screen_sec',d.screen_sec,'frozen',d.frozen)),'[]') FROM child_daily d JOIN child c ON c.child_id=d.child_id WHERE c.family_id=?", &family_id).await?;
+    let unmatched = json_rows(pool, "SELECT COALESCE(json_group_array(json_object('id',id,'family_id',family_id,'raw_text',raw_text,'normalized_text',normalized_text,'asr_confidence',asr_confidence,'llm_result',llm_result,'hit_count',hit_count,'status',status,'last_seen_at',last_seen_at)),'[]') FROM unmatched_query WHERE family_id=?", &family_id).await?;
+    let model_configs = json_rows(pool, "SELECT COALESCE(json_group_array(json_object('config_id',config_id,'family_id',family_id,'type',type,'provider',provider,'model_name',model_name,'endpoint',endpoint,'params',json(params),'created_at',created_at)),'[]') FROM model_config WHERE family_id=?", &family_id).await?;
 
     let rows = sqlx::query(
-        "SELECT id, child_id, target_type, target_id, audio_path, duration_ms, favorited, created_at, expires_at FROM recording ORDER BY created_at",
+        "SELECT r.id, r.child_id, r.target_type, r.target_id, r.audio_path, r.duration_ms, r.favorited, r.created_at, r.expires_at FROM recording r JOIN child c ON c.child_id=r.child_id WHERE c.family_id=? ORDER BY r.created_at",
     )
+    .bind(&family_id)
     .fetch_all(pool)
     .await?;
     let mut recordings = Vec::with_capacity(rows.len());
@@ -77,30 +80,34 @@ struct ClearBody {
 
 async fn clear_all(
     State(state): State<SharedState>,
+    Extension(user): Extension<AuthUser>,
     Json(body): Json<ClearBody>,
 ) -> AppResult<Json<Value>> {
     if body.confirmation != "DELETE_ALL_LEARNING_DATA" {
         return Err(AppError::BadRequest("清空确认文本不匹配".into()));
     }
 
-    let recording_rows = sqlx::query("SELECT audio_path FROM recording")
+    let family_id = auth::require_family_id(&state.pool, &user).await?;
+    let recording_rows = sqlx::query("SELECT r.audio_path FROM recording r JOIN child c ON c.child_id=r.child_id WHERE c.family_id=?")
+        .bind(&family_id)
         .fetch_all(&state.pool)
         .await?;
     let recording_count = recording_rows.len();
-    let learning_count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM learning_record")
+    let learning_count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM learning_record lr JOIN child c ON c.child_id=lr.child_id WHERE c.family_id=?")
+        .bind(&family_id)
         .fetch_one(&state.pool)
         .await?;
 
     let mut tx = state.pool.begin().await?;
     for statement in [
-        "DELETE FROM recording",
-        "DELETE FROM learning_record",
-        "DELETE FROM progress",
-        "DELETE FROM achievement",
-        "DELETE FROM child_daily",
-        "DELETE FROM unmatched_query",
+        "DELETE FROM recording WHERE child_id IN (SELECT child_id FROM child WHERE family_id=?)",
+        "DELETE FROM learning_record WHERE child_id IN (SELECT child_id FROM child WHERE family_id=?)",
+        "DELETE FROM progress WHERE child_id IN (SELECT child_id FROM child WHERE family_id=?)",
+        "DELETE FROM achievement WHERE child_id IN (SELECT child_id FROM child WHERE family_id=?)",
+        "DELETE FROM child_daily WHERE child_id IN (SELECT child_id FROM child WHERE family_id=?)",
+        "DELETE FROM unmatched_query WHERE family_id=?",
     ] {
-        sqlx::query(statement).execute(&mut *tx).await?;
+        sqlx::query(statement).bind(&family_id).execute(&mut *tx).await?;
     }
     tx.commit().await?;
 

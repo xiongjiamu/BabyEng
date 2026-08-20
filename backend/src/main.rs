@@ -1,7 +1,10 @@
 //! BabyEng 业务后端入口（PRD 9.1 / 9.3）
 //! Rust(axum) + SQLite(sqlx) + 推理服务分离（HTTP 调用 TTS/ASR/LLM）
 
+#![allow(clippy::uninlined_format_args)]
+
 mod config;
+mod auth;
 mod db;
 mod error;
 mod inference;

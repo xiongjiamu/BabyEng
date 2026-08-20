@@ -1,6 +1,6 @@
 //! M8 学习日报（7.3）、打卡日历与勋章（7.1）：我的页数据
 
-use axum::extract::{Query, State};
+use axum::extract::{Extension, Query, State};
 use axum::routing::get;
 use axum::{Json, Router};
 use serde::Deserialize;
@@ -8,6 +8,7 @@ use serde_json::json;
 use sqlx::Row;
 
 use crate::error::AppResult;
+use crate::auth::{self, AuthUser};
 use crate::logic;
 use crate::state::SharedState;
 
@@ -24,24 +25,10 @@ struct CQuery {
     child_id: Option<String>,
 }
 
-async fn resolve_child(pool: &sqlx::SqlitePool, q: &CQuery) -> AppResult<String> {
-    match &q.child_id {
-        Some(c) if !c.is_empty() => Ok(c.clone()),
-        _ => {
-            let Some(c) = sqlx::query_scalar::<_, String>("SELECT child_id FROM child LIMIT 1")
-                .fetch_optional(pool)
-                .await? else {
-                return Err(crate::error::AppError::NotFound("未创建孩子档案".into()));
-            };
-            Ok(c)
-        }
-    }
-}
-
 /// 当日日报（PRD 7.3：轻量复盘，一屏读完，不堆数据）
-async fn report_today(State(state): State<SharedState>, Query(q): Query<CQuery>) -> AppResult<Json<serde_json::Value>> {
+async fn report_today(State(state): State<SharedState>, Extension(user): Extension<AuthUser>, Query(q): Query<CQuery>) -> AppResult<Json<serde_json::Value>> {
     let pool = &state.pool;
-    let child_id = resolve_child(pool, &q).await?;
+    let child_id = auth::resolve_child(pool, &user, q.child_id.as_deref()).await?;
     let s = logic::today_summary(pool, &child_id).await?;
 
     // 今日新学词
@@ -106,9 +93,9 @@ async fn report_today(State(state): State<SharedState>, Query(q): Query<CQuery>)
 }
 
 /// 打卡日历（成就 Tab）
-async fn calendar(State(state): State<SharedState>, Query(q): Query<CQuery>) -> AppResult<Json<serde_json::Value>> {
+async fn calendar(State(state): State<SharedState>, Extension(user): Extension<AuthUser>, Query(q): Query<CQuery>) -> AppResult<Json<serde_json::Value>> {
     let pool = &state.pool;
-    let child_id = resolve_child(pool, &q).await?;
+    let child_id = auth::resolve_child(pool, &user, q.child_id.as_deref()).await?;
     let cal = logic::month_calendar(pool, &child_id).await?;
     let s = logic::today_summary(pool, &child_id).await?;
     Ok(Json(json!({
@@ -120,9 +107,9 @@ async fn calendar(State(state): State<SharedState>, Query(q): Query<CQuery>) -> 
 }
 
 /// 勋章墙（7.1：场景学完 / 连续 7 天 / 跟读 50 次 / 100 词）
-async fn achievements(State(state): State<SharedState>, Query(q): Query<CQuery>) -> AppResult<Json<serde_json::Value>> {
+async fn achievements(State(state): State<SharedState>, Extension(user): Extension<AuthUser>, Query(q): Query<CQuery>) -> AppResult<Json<serde_json::Value>> {
     let pool = &state.pool;
-    let child_id = resolve_child(pool, &q).await?;
+    let child_id = auth::resolve_child(pool, &user, q.child_id.as_deref()).await?;
     let unlocked = sqlx::query("SELECT type, key, unlocked_at FROM achievement WHERE child_id=? ORDER BY unlocked_at")
         .bind(&child_id)
         .fetch_all(pool)
@@ -154,9 +141,9 @@ async fn achievements(State(state): State<SharedState>, Query(q): Query<CQuery>)
 }
 
 /// 今日录音（我的页录音 Tab 按日分组）
-async fn recordings_today(State(state): State<SharedState>, Query(q): Query<CQuery>) -> AppResult<Json<serde_json::Value>> {
+async fn recordings_today(State(state): State<SharedState>, Extension(user): Extension<AuthUser>, Query(q): Query<CQuery>) -> AppResult<Json<serde_json::Value>> {
     let pool = &state.pool;
-    let child_id = resolve_child(pool, &q).await?;
+    let child_id = auth::resolve_child(pool, &user, q.child_id.as_deref()).await?;
     let rows = sqlx::query(
         "SELECT r.id, r.target_type, r.target_id, r.duration_ms, r.favorited, r.created_at, w.en, s.en AS sent_en \
          FROM recording r LEFT JOIN word w ON w.id = r.target_id AND r.target_type='word' \

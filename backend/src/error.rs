@@ -19,6 +19,9 @@ pub enum AppError {
     #[error("资源不存在: {0}")]
     NotFound(String),
 
+    #[error("未授权: {0}")]
+    Unauthorized(String),
+
     #[error("TTS 服务不可用")]
     TtsUnavailable,
 
@@ -42,6 +45,7 @@ impl AppError {
             AppError::Json(_) => "json_error",
             AppError::BadRequest(_) => "bad_request",
             AppError::NotFound(_) => "not_found",
+            AppError::Unauthorized(_) => "unauthorized",
             AppError::TtsUnavailable => "tts_unavailable",
             AppError::AsrUnavailable => "asr_unavailable",
             AppError::Inference(_) => "inference_error",
@@ -54,6 +58,7 @@ impl AppError {
         match self {
             AppError::BadRequest(_) => StatusCode::BAD_REQUEST,
             AppError::NotFound(_) => StatusCode::NOT_FOUND,
+            AppError::Unauthorized(_) => StatusCode::UNAUTHORIZED,
             AppError::TtsUnavailable | AppError::AsrUnavailable => StatusCode::SERVICE_UNAVAILABLE,
             _ => StatusCode::INTERNAL_SERVER_ERROR,
         }

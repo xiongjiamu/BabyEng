@@ -1,6 +1,6 @@
 //! 未命中查询（8.8）：词库扩充的输入源，按 hit_count 排序进入待补清单
 
-use axum::extract::{Query, State};
+use axum::extract::{Extension, Query, State};
 use axum::routing::get;
 use axum::{Json, Router};
 use serde::Deserialize;
@@ -8,6 +8,7 @@ use serde_json::json;
 use sqlx::Row;
 
 use crate::error::AppResult;
+use crate::auth::{self, AuthUser};
 use crate::state::SharedState;
 
 pub fn router() -> Router<SharedState> {
@@ -16,22 +17,13 @@ pub fn router() -> Router<SharedState> {
 
 #[derive(Deserialize)]
 struct UQuery {
-    family_id: Option<String>,
     limit: Option<i64>,
 }
 
-async fn list(State(state): State<SharedState>, Query(q): Query<UQuery>) -> AppResult<Json<serde_json::Value>> {
+async fn list(State(state): State<SharedState>, Extension(user): Extension<AuthUser>, Query(q): Query<UQuery>) -> AppResult<Json<serde_json::Value>> {
     let pool = &state.pool;
-    let family_id = match q.family_id {
-        Some(f) if !f.is_empty() => f,
-        _ => {
-            let Some(f) = sqlx::query_scalar::<_, String>("SELECT family_id FROM family LIMIT 1")
-                .fetch_optional(pool)
-                .await? else {
-                return Ok(Json(json!({ "unmatched": [] })));
-            };
-            f
-        }
+    let Some(family_id) = auth::family_id(pool, &user).await? else {
+        return Ok(Json(json!({ "unmatched": [] })));
     };
     let limit = q.limit.unwrap_or(50);
     let rows = sqlx::query(

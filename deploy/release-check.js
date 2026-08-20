@@ -2,10 +2,13 @@
 const words = require('../data/seed/words.json')
 
 const BASE = process.argv[2] || 'http://127.0.0.1:8080'
+const USERNAME = process.env.AUTH_USERNAME
+const PASSWORD = process.env.AUTH_PASSWORD
+let token = ''
 
 async function api(path, options = {}) {
   const response = await fetch(BASE + path, {
-    headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
+    headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}), ...(options.headers || {}) },
     ...options,
   })
   const body = await response.json()
@@ -22,6 +25,12 @@ function assert(condition, message) {
 }
 
 async function main() {
+  assert(USERNAME && PASSWORD, '请通过 AUTH_USERNAME 和 AUTH_PASSWORD 提供验收账号')
+  const login = await api('/api/auth/login', {
+    method: 'POST',
+    body: JSON.stringify({ username: USERNAME, password: PASSWORD }),
+  })
+  token = login.token
   const me = await api('/api/family/me')
   if (!me.initialized) {
     await api('/api/family/init', {

@@ -1,0 +1,11 @@
+.git
+.env
+.env.*
+auth.json
+**/auth.json
+**/node_modules
+**/target
+**/dist
+data/audio
+data/babyeng.db*
+deploy/verify-shots

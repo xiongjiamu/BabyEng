@@ -4,6 +4,8 @@ const { chromium } = require('playwright-core')
 
 const BASE = process.argv[2] || 'http://127.0.0.1:8080'
 const OUT = process.argv[3] || '/tmp/babyeng-shots'
+const USERNAME = process.env.AUTH_USERNAME
+const PASSWORD = process.env.AUTH_PASSWORD
 
 const pages = [
   { path: '/onboarding', name: '01-onboarding' },
@@ -21,6 +23,7 @@ const pages = [
 ]
 
 async function main() {
+  if (!USERNAME || !PASSWORD) throw new Error('请通过 AUTH_USERNAME 和 AUTH_PASSWORD 提供验收账号')
   const fs = require('fs')
   fs.mkdirSync(OUT, { recursive: true })
   const browser = await chromium.launch({
@@ -35,6 +38,18 @@ async function main() {
   })
   const results = []
 
+  // 先走真实登录页，后续页面复用 localStorage 中的会话。
+  {
+    const page = await ctx.newPage()
+    await page.goto(BASE + '/login', { waitUntil: 'networkidle', timeout: 15000 })
+    await page.locator('input[autocomplete="username"]').fill(USERNAME)
+    await page.locator('input[autocomplete="current-password"]').fill(PASSWORD)
+    await page.getByRole('button', { name: '登录' }).click()
+    await page.waitForURL(/\/(home|onboarding)$/, { timeout: 15000 })
+    results.push({ page: 'login', ok: true })
+    await page.close()
+  }
+
   // 前置：通过 API 初始化一个家庭（否则页面会跳引导页）
   {
     const page = await ctx.newPage()
@@ -43,7 +58,7 @@ async function main() {
       const init = await page.evaluate(async () => {
         const r = await fetch('/api/family/init', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('babyeng_auth_token')}` },
           body: JSON.stringify({ child_name: '糖糖', child_birthdate: '2024-10-01' }),
         })
         return r.json()

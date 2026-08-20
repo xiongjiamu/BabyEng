@@ -1,6 +1,6 @@
 //! 学习记录提交 + 进度汇总 + 复习队列（PRD 8.3 / 8.6 / 4.2）
 
-use axum::extract::{Query, State};
+use axum::extract::{Extension, Query, State};
 use axum::routing::{get, post};
 use axum::{Json, Router};
 use serde::Deserialize;
@@ -8,6 +8,7 @@ use serde_json::json;
 use sqlx::Row;
 
 use crate::error::AppResult;
+use crate::auth::{self, AuthUser};
 use crate::logic;
 use crate::models::next_review_days;
 use crate::state::SharedState;
@@ -30,8 +31,9 @@ struct RecordBody {
     quiz_result: Option<String>,
 }
 
-async fn record(State(state): State<SharedState>, Json(body): Json<RecordBody>) -> AppResult<Json<serde_json::Value>> {
+async fn record(State(state): State<SharedState>, Extension(user): Extension<AuthUser>, Json(body): Json<RecordBody>) -> AppResult<Json<serde_json::Value>> {
     let pool = &state.pool;
+    auth::require_child(pool, &user, &body.child_id).await?;
     if !["word", "sentence"].contains(&body.target_type.as_str()) {
         return Err(crate::error::AppError::BadRequest("target_type 非法".into()));
     }
@@ -81,19 +83,9 @@ struct SummaryQuery {
     child_id: Option<String>,
 }
 
-async fn summary(State(state): State<SharedState>, Query(q): Query<SummaryQuery>) -> AppResult<Json<serde_json::Value>> {
+async fn summary(State(state): State<SharedState>, Extension(user): Extension<AuthUser>, Query(q): Query<SummaryQuery>) -> AppResult<Json<serde_json::Value>> {
     let pool = &state.pool;
-    let child_id = match q.child_id {
-        Some(c) => c,
-        None => {
-            let Some(c) = sqlx::query_scalar::<_, String>("SELECT child_id FROM child LIMIT 1")
-                .fetch_optional(pool)
-                .await? else {
-                return Err(crate::error::AppError::NotFound("未创建孩子档案".into()));
-            };
-            c
-        }
-    };
+    let child_id = auth::resolve_child(pool, &user, q.child_id.as_deref()).await?;
     let s = logic::today_summary(pool, &child_id).await?;
     let total_words: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM word WHERE review_status='published'")
         .fetch_one(pool)
@@ -121,19 +113,9 @@ async fn summary(State(state): State<SharedState>, Query(q): Query<SummaryQuery>
 }
 
 /// 复习队列：仅推送昨日及之前学过、掌握度低的词（4.2 / 8.6），按 next_review_at 排序
-async fn review_queue(State(state): State<SharedState>, Query(q): Query<SummaryQuery>) -> AppResult<Json<serde_json::Value>> {
+async fn review_queue(State(state): State<SharedState>, Extension(user): Extension<AuthUser>, Query(q): Query<SummaryQuery>) -> AppResult<Json<serde_json::Value>> {
     let pool = &state.pool;
-    let child_id = match q.child_id {
-        Some(c) => c,
-        None => {
-            let Some(c) = sqlx::query_scalar::<_, String>("SELECT child_id FROM child LIMIT 1")
-                .fetch_optional(pool)
-                .await? else {
-                return Err(crate::error::AppError::NotFound("未创建孩子档案".into()));
-            };
-            c
-        }
-    };
+    let child_id = auth::resolve_child(pool, &user, q.child_id.as_deref()).await?;
     let now = chrono::Utc::now().to_rfc3339();
 
     // 已学但掌握度 < 0.85，且 next_review_at <= now（到期）
@@ -172,9 +154,11 @@ async fn review_queue(State(state): State<SharedState>, Query(q): Query<SummaryQ
 /// 单个词的学习进度（学习流里展示掌握度文案）
 async fn word_progress(
     State(state): State<SharedState>,
+    Extension(user): Extension<AuthUser>,
     Query(q): Query<ProgressQuery>,
 ) -> AppResult<Json<serde_json::Value>> {
     let pool = &state.pool;
+    auth::require_child(pool, &user, &q.child_id).await?;
     let row = sqlx::query_as::<_, (i64, i64, f64, Option<String>)>(
         "SELECT learn_count, review_count, mastery, next_review_at FROM progress WHERE child_id=? AND target_type='word' AND target_id=?",
     )
