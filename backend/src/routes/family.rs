@@ -242,6 +242,12 @@ async fn child_update(
     let pool = &state.pool;
     auth::require_child(pool, &user, &child_id).await?;
     if let Some(name) = &body.child_name {
+        let name = name.trim();
+        if name.is_empty() || name.chars().count() > 20 {
+            return Err(crate::error::AppError::BadRequest(
+                "宝宝姓名需为 1～20 个字符".into(),
+            ));
+        }
         sqlx::query("UPDATE child SET child_name=? WHERE child_id=?")
             .bind(name)
             .bind(&child_id)

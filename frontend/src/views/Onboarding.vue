@@ -157,7 +157,7 @@ async function requestMic(allow) {
 }
 
 function playDemo() {
-  playUrl(api.ttsUrl('cup'), { rate: 0.8 })
+  playUrl(api.ttsUrl('cup', 0.8, store.settings.ttsVoice), { rate: 0.8 })
   demo.value = 3
 }
 

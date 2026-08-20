@@ -177,7 +177,7 @@ function fmt(ms) {
 }
 
 async function playStd(rate) {
-  const played = await playUrl(api.ttsUrl(en.value, rate), { rate })
+  const played = await playUrl(api.ttsUrl(en.value, rate, store.settings.ttsVoice), { rate })
   if (played === false) alert('标准发音暂时不可用，请稍后重试')
 }
 

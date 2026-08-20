@@ -28,6 +28,12 @@ async fn audio(State(state): State<SharedState>, Query(q): Query<TtsQuery>) -> A
         return Err(crate::error::AppError::BadRequest("text 为空".into()));
     }
     let voice = q.voice.unwrap_or_else(|| "en_US-lessac-medium".into());
+    if !matches!(
+        voice.as_str(),
+        "en_US-lessac-medium" | "en_US-amy-medium" | "en_US-ryan-medium"
+    ) {
+        return Err(crate::error::AppError::BadRequest("不支持的英语音色".into()));
+    }
     let rate = q.rate.unwrap_or(0.8).clamp(0.5, 1.5);
 
     let (bytes, ext, _cached) = state.inference.tts_audio(&text, &voice, rate).await?;

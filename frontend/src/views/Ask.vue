@@ -228,13 +228,7 @@ const playing = ref(false)
 
 const isSecure = computed(() => window.isSecureContext)
 
-let askStream = null
-let askRecorder = null
-let askChunks = []
-let askTimer = null
-let askStartTs = 0
-let askPressed = false
-let askCancelled = false
+let activeAsk = null
 
 onMounted(async () => {
   window.addEventListener('pointerup', handleAskRelease)
@@ -255,8 +249,13 @@ onMounted(async () => {
 })
 
 onBeforeUnmount(() => {
-  if (askTimer) clearInterval(askTimer)
-  askStream?.getTracks().forEach((t) => t.stop())
+  if (activeAsk) {
+    activeAsk.cancelled = true
+    activeAsk.pressed = false
+    if (activeAsk.timer) clearInterval(activeAsk.timer)
+    activeAsk.stream?.getTracks().forEach((t) => t.stop())
+    activeAsk = null
+  }
   window.removeEventListener('pointerup', handleAskRelease)
   window.removeEventListener('pointercancel', handleAskCancel)
 })
@@ -268,67 +267,90 @@ function formatTime(ms) {
 
 // ---------- 母亲按住式录音（6.1） ----------
 async function startAsk() {
-  if (recording.value) return
+  if (activeAsk) return
   if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia) {
     store.setMicPermission('denied')
     return
   }
-  askPressed = true
-  askCancelled = false
+  const session = {
+    pressed: true,
+    cancelled: false,
+    finishing: false,
+    stream: null,
+    recorder: null,
+    chunks: [],
+    timer: null,
+    startTs: 0,
+  }
+  activeAsk = session
   // 解锁音频上下文（iOS：首次播放必须手势触发，PRD 9.2）
   unlock()
   try {
-    askStream = await navigator.mediaDevices.getUserMedia({
+    session.stream = await navigator.mediaDevices.getUserMedia({
       audio: { echoCancellation: true, noiseSuppression: true },
     })
+    if (activeAsk !== session) {
+      session.stream.getTracks().forEach((t) => t.stop())
+      return
+    }
     const mime = pickMime()
-    askRecorder = new MediaRecorder(askStream, mime ? { mimeType: mime } : undefined)
-    askChunks = []
-    askRecorder.ondataavailable = (e) => { if (e.data.size) askChunks.push(e.data) }
-    askRecorder.start(100)
+    session.recorder = new MediaRecorder(session.stream, mime ? { mimeType: mime } : undefined)
+    session.recorder.ondataavailable = (e) => { if (e.data.size) session.chunks.push(e.data) }
+    session.recorder.start(100)
     recording.value = true
     state.value = 'recording'
-    askStartTs = Date.now()
+    session.startTs = Date.now()
     askDuration.value = 0
-    askTimer = setInterval(() => { askDuration.value = Date.now() - askStartTs }, 100)
-    if (!askPressed) await stopAsk()
+    session.timer = setInterval(() => {
+      if (activeAsk === session) askDuration.value = Date.now() - session.startTs
+    }, 100)
+    if (!session.pressed) finishAsk(session)
   } catch {
+    session.stream?.getTracks().forEach((t) => t.stop())
+    if (activeAsk === session) activeAsk = null
+    recording.value = false
+    state.value = 'idle'
     store.setMicPermission('denied')
   }
 }
 
 function handleAskRelease() {
-  askPressed = false
-  stopAsk()
+  if (!activeAsk) return
+  activeAsk.pressed = false
+  finishAsk(activeAsk)
 }
 
 function handleAskCancel() {
-  askPressed = false
   cancelAsk()
 }
 
-async function stopAsk() {
-  if (!recording.value) return
+function finishAsk(session) {
+  if (!session || session.finishing || !session.recorder || session.recorder.state === 'inactive') return
+  session.finishing = true
   recording.value = false
-  if (askTimer) clearInterval(askTimer)
-  const duration = Date.now() - askStartTs
-  askRecorder.onstop = async () => {
-    askStream?.getTracks().forEach((t) => t.stop())
-    askStream = null
-    const blob = new Blob(askChunks, { type: askRecorder.mimeType || 'audio/webm' })
-    askChunks = []
-    if (askCancelled) reset()
+  if (session.timer) clearInterval(session.timer)
+  const duration = Date.now() - session.startTs
+  if (duration < 400) session.cancelled = true
+  session.recorder.onstop = async () => {
+    session.stream?.getTracks().forEach((t) => t.stop())
+    const blob = new Blob(session.chunks, { type: session.recorder.mimeType || 'audio/webm' })
+    session.chunks = []
+    if (activeAsk === session) activeAsk = null
+    if (session.cancelled) reset()
     else await recognizeAudio(blob)
   }
-  if (duration < 400) askCancelled = true
-  askRecorder.stop()
+  session.recorder.stop()
 }
 
 function cancelAsk() {
-  askCancelled = true
-  askPressed = false
-  if (recording.value) stopAsk()
-  else reset()
+  const session = activeAsk
+  if (!session) {
+    reset()
+    return
+  }
+  session.cancelled = true
+  session.pressed = false
+  finishAsk(session)
 }
 
 function pickMime() {
@@ -420,7 +442,7 @@ async function confirm(c) {
 async function playResult(rate) {
   if (!result.value) return
   playing.value = true
-  const played = await playUrl(api.ttsUrl(result.value.en, rate), { rate })
+  const played = await playUrl(api.ttsUrl(result.value.en, rate, store.settings.ttsVoice), { rate })
   playing.value = false
   if (played === false) state.value = 'ttsdown'
 }
@@ -431,7 +453,6 @@ function reset() {
   candidates.value = []
   recognizedText.value = ''
   recognizedHint.value = ''
-  askChunks = []
 }
 
 function sceneLabel(s) {

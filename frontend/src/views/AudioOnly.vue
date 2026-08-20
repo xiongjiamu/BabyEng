@@ -107,7 +107,7 @@ onMounted(async () => {
 })
 
 function playCurrent() {
-  playUrl(api.ttsUrl(current.value.en, store.settings.ttsRate), { rate: store.settings.ttsRate })
+  playUrl(api.ttsUrl(current.value.en, store.settings.ttsRate, store.settings.ttsVoice), { rate: store.settings.ttsRate })
 }
 function next() {
   idx.value = (idx.value + 1) % list.value.length
