@@ -89,10 +89,17 @@ async def recognize(request: Request):
     # 分块喂入（模拟流式）
     chunk = 1600  # 0.1s
     for i in range(0, len(samples), chunk):
-        stream.accept_waveform(16000, samples[i : i + chunk].tolist())
-    _recognizer.decode_stream(stream)
+        stream.accept_waveform(16000, samples[i : i + chunk])
+        while _recognizer.is_ready(stream):
+            _recognizer.decode_stream(stream)
+    # 追加尾部静音并结束输入，让最后一个词有足够右上下文完成解码。
+    stream.accept_waveform(16000, np.zeros(6400, dtype=np.float32))
+    stream.input_finished()
+    while _recognizer.is_ready(stream):
+        _recognizer.decode_stream(stream)
 
-    text = stream.result.text.strip()
+    result = _recognizer.get_result(stream)
+    text = (result.text if hasattr(result, "text") else str(result)).strip()
     # 置信度：本实现给出启发式（非空文本 0.8，空文本 0.0）
     confidence = 0.8 if text else 0.0
     return JSONResponse({"text": text, "confidence": confidence})

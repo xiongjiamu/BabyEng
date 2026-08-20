@@ -55,8 +55,12 @@ impl InferenceClients {
     fn check(&self, base: &str, path: &str) -> bool {
         let url = format!("{}{}", base.trim_end_matches('/'), path);
         match ureq::agent().get(&url).timeout(self.timeout).call() {
-            Ok(resp) => resp.status() == 200,
-            Err(_) => false,
+            Ok(resp) if resp.status() == 200 => resp
+                .into_json::<serde_json::Value>()
+                .ok()
+                .and_then(|body| body.get("ok").and_then(|ok| ok.as_bool()))
+                .unwrap_or(false),
+            Ok(_) | Err(_) => false,
         }
     }
 

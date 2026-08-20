@@ -76,7 +76,7 @@ export const api = {
 
   // ---------- TTS ----------
   ttsUrl: (text, rate = 0.8) =>
-    `${BASE}/tts/audio?text=${encodeURIComponent(text)}&voice=en_US-lessig-medium&rate=${rate}&access_token=${encodeURIComponent(authToken())}`,
+    `${BASE}/tts/audio?text=${encodeURIComponent(text)}&voice=en_US-lessac-medium&rate=${rate}&access_token=${encodeURIComponent(authToken())}`,
 
   // ---------- 词库 / 场景（M5 / M2） ----------
   words: (params = '') => request(`/words${params}`),

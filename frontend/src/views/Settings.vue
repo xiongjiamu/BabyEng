@@ -80,7 +80,7 @@
           <div class="list-item">
             <span class="grow">
               英语音色
-              <div class="sub">美式 · Piper en_US-lessig-medium</div>
+              <div class="sub">美式 · Piper en_US-lessac-medium</div>
             </span>
             <span class="val">›</span>
           </div>

@@ -13,7 +13,7 @@ from fastapi.responses import Response
 app = FastAPI(title="BabyEng TTS", version="0.4.0")
 
 MODEL_DIR = Path(os.environ.get("MODEL_DIR", "/models/piper"))
-DEFAULT_VOICE = os.environ.get("PIPER_VOICE", "en_US-lessig-medium")
+DEFAULT_VOICE = os.environ.get("PIPER_VOICE", "en_US-lessac-medium")
 
 # 音色缓存：voice -> PiperVoice 实例
 _voices = {}
@@ -45,8 +45,10 @@ def _any_model_available() -> bool:
     return (MODEL_DIR / f"{DEFAULT_VOICE}.onnx").exists()
 
 
-_load_voice(DEFAULT_VOICE)
-_ready = _any_model_available()
+_default_voice = _load_voice(DEFAULT_VOICE)
+if _default_voice is not None:
+    _voices[DEFAULT_VOICE] = _default_voice
+_ready = _default_voice is not None
 
 
 @app.get("/healthz")
@@ -66,7 +68,7 @@ def synthesize(
     length_scale: float = Query(0.8, ge=0.5, le=1.5),
 ):
     """合成文本 → 16k 单声道 wav。模型缺失 → 503（后端降级提示）"""
-    if not _any_model_available():
+    if not _ready:
         raise HTTPException(status_code=503, detail="tts model not ready")
 
     if voice not in _voices:
@@ -78,8 +80,14 @@ def synthesize(
 
     wav_bytes = io.BytesIO()
     try:
+        from piper.config import SynthesisConfig
+
         with wave.open(wav_bytes, "wb") as f:
-            v.synthesize(text, f, length_scale=length_scale)
+            v.synthesize_wav(
+                text,
+                f,
+                syn_config=SynthesisConfig(length_scale=length_scale),
+            )
     except Exception as e:  # noqa: BLE001
         raise HTTPException(status_code=500, detail=f"synthesize error: {e}")
     return Response(

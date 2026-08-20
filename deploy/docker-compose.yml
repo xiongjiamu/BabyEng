@@ -3,7 +3,7 @@
 # 用法：
 #   MVP（无 LLM）：        docker compose --profile mvp up -d --build
 #   Full（含本地 LLM）：   docker compose --profile full up -d --build
-# 模型文件放 ./models/ 目录（tts/piper/en_US-lessig-medium.onnx 等），见 deploy/README.md
+# 模型文件放 models volume（tts/piper/en_US-lessac-medium.onnx 等），见 deploy/README.md
 
 name: babyeng
 
@@ -55,7 +55,7 @@ services:
       context: ../services/tts
     environment:
       MODEL_DIR: "/models/piper"
-      PIPER_VOICE: "en_US-lessig-medium"
+      PIPER_VOICE: "en_US-lessac-medium"
       PORT: "8101"
     volumes:
       - models:/models

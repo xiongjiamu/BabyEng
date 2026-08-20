@@ -32,8 +32,7 @@
         <button
           class="record record-mom"
           :class="{ 'is-recording': recording }"
-          @pointerdown="startAsk"
-          @pointerup="stopAsk"
+          @pointerdown.prevent="startAsk"
           aria-label="按住说话"
         >
           <span v-if="!recording" class="ico">🎙</span>
@@ -57,6 +56,7 @@
         </button>
         <span class="chip mom">{{ formatTime(askDuration) }} · 松开结束</span>
       </div>
+      <button class="btn-quiet" @click="cancelAsk">取消这次录音</button>
       <p class="t-mom center-text">母亲侧用按住式（press-to-talk，PRD 6.1）</p>
     </section>
 
@@ -233,8 +233,12 @@ let askRecorder = null
 let askChunks = []
 let askTimer = null
 let askStartTs = 0
+let askPressed = false
+let askCancelled = false
 
 onMounted(async () => {
+  window.addEventListener('pointerup', handleAskRelease)
+  window.addEventListener('pointercancel', handleAskCancel)
   await store.bootstrap()
   if (!store.initialized) {
     location.href = '/onboarding'
@@ -253,16 +257,24 @@ onMounted(async () => {
 onBeforeUnmount(() => {
   if (askTimer) clearInterval(askTimer)
   askStream?.getTracks().forEach((t) => t.stop())
+  window.removeEventListener('pointerup', handleAskRelease)
+  window.removeEventListener('pointercancel', handleAskCancel)
 })
 
 function formatTime(ms) {
-  const s = Math.floor(ms / 1000)
+  const s = Math.floor((Number(ms) || 0) / 1000)
   return `0:${String(s).padStart(2, '0')}`
 }
 
 // ---------- 母亲按住式录音（6.1） ----------
 async function startAsk() {
   if (recording.value) return
+  if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia) {
+    store.setMicPermission('denied')
+    return
+  }
+  askPressed = true
+  askCancelled = false
   // 解锁音频上下文（iOS：首次播放必须手势触发，PRD 9.2）
   unlock()
   try {
@@ -279,9 +291,20 @@ async function startAsk() {
     askStartTs = Date.now()
     askDuration.value = 0
     askTimer = setInterval(() => { askDuration.value = Date.now() - askStartTs }, 100)
+    if (!askPressed) await stopAsk()
   } catch {
     store.setMicPermission('denied')
   }
+}
+
+function handleAskRelease() {
+  askPressed = false
+  stopAsk()
+}
+
+function handleAskCancel() {
+  askPressed = false
+  cancelAsk()
 }
 
 async function stopAsk() {
@@ -289,19 +312,23 @@ async function stopAsk() {
   recording.value = false
   if (askTimer) clearInterval(askTimer)
   const duration = Date.now() - askStartTs
-  if (duration < 400) {
-    // 误触
-    reset()
-    return
-  }
   askRecorder.onstop = async () => {
     askStream?.getTracks().forEach((t) => t.stop())
     askStream = null
     const blob = new Blob(askChunks, { type: askRecorder.mimeType || 'audio/webm' })
     askChunks = []
-    await recognizeAudio(blob)
+    if (askCancelled) reset()
+    else await recognizeAudio(blob)
   }
+  if (duration < 400) askCancelled = true
   askRecorder.stop()
+}
+
+function cancelAsk() {
+  askCancelled = true
+  askPressed = false
+  if (recording.value) stopAsk()
+  else reset()
 }
 
 function pickMime() {
@@ -390,12 +417,12 @@ async function confirm(c) {
   }
 }
 
-function playResult(rate) {
+async function playResult(rate) {
   if (!result.value) return
   playing.value = true
-  playUrl(api.ttsUrl(result.value.en, rate), { rate }).finally(() => {
-    playing.value = false
-  })
+  const played = await playUrl(api.ttsUrl(result.value.en, rate), { rate })
+  playing.value = false
+  if (played === false) state.value = 'ttsdown'
 }
 
 function reset() {

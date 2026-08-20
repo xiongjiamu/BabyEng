@@ -24,6 +24,8 @@ export function useRecorder() {
   let timer = null
   let silenceTimer = null
   let silenceStart = 0
+  let stopPromise = null
+  let resolveStop = null
 
   function pickMimeType() {
     const candidates = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg;codecs=opus']
@@ -61,11 +63,28 @@ export function useRecorder() {
       const mime = pickMimeType()
       mediaRecorder = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined)
       chunks = []
+      stopPromise = new Promise((resolve) => { resolveStop = resolve })
       mediaRecorder.ondataavailable = (e) => {
         if (e.data && e.data.size > 0) chunks.push(e.data)
       }
       mediaRecorder.onstop = () => {
         cleanupStream()
+        const elapsed = Date.now() - startTs
+        if (elapsed < 500 || chunks.length === 0) {
+          chunks = []
+          resolveStop?.(null)
+          resolveStop = null
+          return
+        }
+        const recordedMime = mediaRecorder.mimeType || 'audio/webm'
+        const blob = new Blob(chunks, { type: recordedMime })
+        chunks = []
+        resolveStop?.({
+          blob,
+          durationMs: Math.min(elapsed, MAX_MS),
+          ext: extFromMime(recordedMime),
+        })
+        resolveStop = null
       }
       mediaRecorder.start(100)
       state.value = 'recording'
@@ -121,23 +140,10 @@ export function useRecorder() {
 
   /** 结束后的回调：返回 (blob, durationMs, ext)；过短时返回 null */
   function onStop() {
-    return new Promise((resolve) => {
-      if (!mediaRecorder) return resolve(null)
-      mediaRecorder.onstop = () => {
-        cleanupStream()
-        const elapsed = Date.now() - startTs
-        // < 0.5s 不入库（5.4 / 6.2）
-        if (elapsed < 500 || chunks.length === 0) {
-          chunks = []
-          return resolve(null)
-        }
-        const mime = mediaRecorder.mimeType || 'audio/webm'
-        const blob = new Blob(chunks, { type: mime })
-        chunks = []
-        resolve({ blob, durationMs: Math.min(elapsed, MAX_MS), ext: extFromMime(mime) })
-      }
-      stop()
-    })
+    if (!mediaRecorder || !stopPromise) return Promise.resolve(null)
+    const completion = stopPromise
+    stop()
+    return completion
   }
 
   function cleanupStream() {

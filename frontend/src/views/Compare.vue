@@ -20,8 +20,8 @@
       <p class="t-mom center-text">先让宝宝听一遍标准音，<br>你自己也跟着念一次，再让他跟读。</p>
 
       <div class="rec-zone" :class="{ 'band-a': isBandA }">
-        <button class="record" :class="{ 'is-recording': rec.state === 'recording' }" @click="toggleRecord" aria-label="点一下开始录音">
-          <span v-if="rec.state !== 'recording'" class="ico">🎤</span>
+        <button class="record" :class="{ 'is-recording': recState === 'recording' }" @click="toggleRecord" aria-label="点一下开始录音">
+          <span v-if="recState !== 'recording'" class="ico">🎤</span>
           <span v-else class="wave"><i></i><i></i><i></i><i></i><i></i></span>
         </button>
         <div class="rec-caption">{{ recCaption }}</div>
@@ -44,7 +44,7 @@
         <button class="record is-recording" @click="toggleRecord" aria-label="再点一次结束">
           <span class="wave"><i></i><i></i><i></i><i></i><i></i></span>
         </button>
-        <div class="timer">{{ fmt(rec.durationMs) }}</div>
+        <div class="timer">{{ fmt(recDurationMs) }}</div>
         <div class="rec-caption" style="color:var(--c-ink-3);font-size:var(--fs-mom)">安静 1.5 秒会自动停</div>
       </div>
     </section>
@@ -122,7 +122,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAppStore } from '../stores/app'
 import { api } from '../api'
@@ -133,12 +133,20 @@ const route = useRoute()
 const router = useRouter()
 const store = useAppStore()
 const { playUrl, playBlob, unlock } = useAudio()
-const rec = useRecorder()
+const {
+  state: recState,
+  durationMs: recDurationMs,
+  isAvailable: recorderAvailable,
+  start: startRecording,
+  onStop: finishRecording,
+} = useRecorder()
 
 const view = ref('ready')
 const kidBlob = ref(null)
 const kidDuration = ref(0)
 const kidPlaying = ref(false)
+const kidExt = ref('webm')
+let finishingRecording = false
 const praise = ref({ show: false, face: '🎉', en: 'Great job!', zh: '真棒！' })
 
 const targetType = computed(() => route.query.target_type || 'word')
@@ -168,30 +176,48 @@ function fmt(ms) {
   return `0:${String(Math.floor((ms || 0) / 1000)).padStart(2, '0')}`
 }
 
-function playStd(rate) {
-  playUrl(api.ttsUrl(en.value, rate), { rate })
+async function playStd(rate) {
+  const played = await playUrl(api.ttsUrl(en.value, rate), { rate })
+  if (played === false) alert('标准发音暂时不可用，请稍后重试')
 }
 
 async function toggleRecord() {
-  if (rec.state === 'recording') {
-    const r = await rec.onStop()
-    if (!r) {
-      // 录音过短：不入库（5.4）
-      view.value = 'tooshort'
-      return
-    }
-    kidBlob.value = r.blob
-    kidDuration.value = r.durationMs
-    view.value = 'playback'
+  if (recState.value === 'recording') {
+    await completeRecording()
+    return
+  }
+  if (!window.isSecureContext || !recorderAvailable.value) {
+    alert('当前地址不支持录音，请使用浏览器信任的 HTTPS 地址打开')
     return
   }
   try {
-    await rec.start()
+    await startRecording()
     view.value = 'recording'
   } catch {
     store.setMicPermission('denied')
   }
 }
+
+async function completeRecording() {
+  if (finishingRecording) return
+  finishingRecording = true
+  const r = await finishRecording()
+  finishingRecording = false
+  if (!r) {
+    view.value = 'tooshort'
+    return
+  }
+  kidBlob.value = r.blob
+  kidDuration.value = r.durationMs
+  kidExt.value = r.ext
+  view.value = 'playback'
+}
+
+watch(recState, (next, previous) => {
+  if (previous === 'recording' && next === 'idle' && view.value === 'recording') {
+    completeRecording()
+  }
+})
 
 async function playKid() {
   if (!kidBlob.value) return
@@ -204,7 +230,7 @@ async function mark(motherMark) {
   // 上传录音（落盘即传，PRD 9.2：不在前端长期堆积）
   try {
     if (kidBlob.value) {
-      await api.uploadRecording(kidBlob.value, `rec.${rec.ext || 'webm'}`, {
+      await api.uploadRecording(kidBlob.value, `rec.${kidExt.value}`, {
         childId: store.childId,
         targetType: targetType.value,
         targetId: targetId.value,
