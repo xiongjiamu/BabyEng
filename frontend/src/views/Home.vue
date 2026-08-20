@@ -151,14 +151,14 @@ onMounted(async () => {
   }
   try {
     const cid = store.childId
-    const [s, q] = await Promise.all([
+    const [s, q, cal] = await Promise.all([
       api.progressSummary(cid),
       api.reviewQueue(cid),
+      api.reportCalendar(cid),
     ])
     summary.value = s
     reviewCount.value = q.count
     // 打卡日历（本周高亮）
-    const cal = await api.reportCalendar(cid)
     const map = {}
     ;(cal.calendar?.days || []).forEach((d) => {
       map[d.day] = true

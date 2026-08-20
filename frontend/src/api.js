@@ -3,6 +3,7 @@
 
 const BASE = '/api'
 const TOKEN_KEY = 'babyeng_auth_token'
+const responseCache = new Map()
 
 export const authToken = () => localStorage.getItem(TOKEN_KEY) || ''
 
@@ -31,6 +32,26 @@ async function request(path, options = {}) {
   return res
 }
 
+function cachedRequest(path, ttlMs) {
+  const key = `${authToken()}|${path}`
+  const now = Date.now()
+  const cached = responseCache.get(key)
+  if (cached && cached.expiresAt > now) return cached.promise
+  const promise = request(path).catch((error) => {
+    responseCache.delete(key)
+    throw error
+  })
+  responseCache.set(key, { expiresAt: now + ttlMs, promise })
+  return promise
+}
+
+function invalidateCache(pathPrefix = '') {
+  for (const key of responseCache.keys()) {
+    const path = key.slice(key.indexOf('|') + 1)
+    if (!pathPrefix || path.startsWith(pathPrefix)) responseCache.delete(key)
+  }
+}
+
 export class ApiError extends Error {
   constructor(code, message, cause, status) {
     super(message)
@@ -49,17 +70,29 @@ export const api = {
   login: async (username, password) => {
     const result = await request('/auth/login', { method: 'POST', body: JSON.stringify({ username, password }) })
     localStorage.setItem(TOKEN_KEY, result.token)
+    invalidateCache()
     return result
   },
   authMe: () => request('/auth/me'),
   logout: async () => {
-    try { await request('/auth/logout', { method: 'POST' }) } finally { localStorage.removeItem(TOKEN_KEY) }
+    try { await request('/auth/logout', { method: 'POST' }) } finally {
+      localStorage.removeItem(TOKEN_KEY)
+      invalidateCache()
+    }
   },
   // ---------- 家庭 / 引导 ----------
   familyMe: () => request('/family/me'),
   familyInit: (data) => request('/family/init', { method: 'POST', body: JSON.stringify(data) }),
-  familySettings: (settings) => request('/family/settings', { method: 'PUT', body: JSON.stringify({ settings }) }),
-  childUpdate: (childId, data) => request(`/family/child/${childId}`, { method: 'PUT', body: JSON.stringify(data) }),
+  familySettings: async (settings) => {
+    const result = await request('/family/settings', { method: 'PUT', body: JSON.stringify({ settings }) })
+    invalidateCache('/family/me')
+    return result
+  },
+  childUpdate: async (childId, data) => {
+    const result = await request(`/family/child/${childId}`, { method: 'PUT', body: JSON.stringify(data) })
+    invalidateCache('/family/me')
+    return result
+  },
 
   // ---------- 问答（M1） ----------
   askText: (text, opts = {}) =>
@@ -79,10 +112,10 @@ export const api = {
     `${BASE}/tts/audio?text=${encodeURIComponent(text)}&voice=${encodeURIComponent(voice)}&rate=${rate}&access_token=${encodeURIComponent(authToken())}`,
 
   // ---------- 词库 / 场景（M5 / M2） ----------
-  words: (params = '') => request(`/words${params}`),
-  wordDetail: (id) => request(`/words/${id}`),
-  sentences: (params = '') => request(`/sentences${params}`),
-  scenes: (childId = '') => request(`/scenes${childId ? `?child_id=${childId}` : ''}`),
+  words: (params = '') => cachedRequest(`/words${params}`, 5 * 60 * 1000),
+  wordDetail: (id) => cachedRequest(`/words/${id}`, 30 * 60 * 1000),
+  sentences: (params = '') => cachedRequest(`/sentences${params}`, 30 * 60 * 1000),
+  scenes: (childId = '') => cachedRequest(`/scenes${childId ? `?child_id=${childId}` : ''}`, 60 * 1000),
 
   // ---------- 录音（M3） ----------
   uploadRecording: (blob, fileName, { childId, targetType, targetId, durationMs }) => {
@@ -108,7 +141,12 @@ export const api = {
   }),
 
   // ---------- 学习记录 / 进度 / 复习（M2 / 8.6） ----------
-  recordLearning: (data) => request('/learning-records', { method: 'POST', body: JSON.stringify(data) }),
+  recordLearning: async (data) => {
+    const result = await request('/learning-records', { method: 'POST', body: JSON.stringify(data) })
+    invalidateCache('/words')
+    invalidateCache('/scenes')
+    return result
+  },
   progressSummary: (childId) => request(`/progress/summary?child_id=${childId}`),
   reviewQueue: (childId) => request(`/review/queue?child_id=${childId}`),
   wordProgress: (childId, targetId) => request(`/progress/word?child_id=${childId}&target_id=${targetId}`),
