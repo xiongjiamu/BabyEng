@@ -96,6 +96,6 @@ onMounted(async () => {
 })
 
 function playSentence(s) {
-  playUrl(api.ttsUrl(s.en, store.settings.ttsRate), { rate: store.settings.ttsRate })
+  playUrl(api.ttsUrl(s.en, store.settings.ttsRate, store.settings.ttsVoice), { rate: store.settings.ttsRate })
 }
 </script>

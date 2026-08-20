@@ -139,7 +139,7 @@ function buildQuiz() {
 }
 
 function playWord() {
-  if (current.value) playUrl(api.ttsUrl(current.value.en, store.settings.ttsRate), { rate: store.settings.ttsRate })
+  if (current.value) playUrl(api.ttsUrl(current.value.en, store.settings.ttsRate, store.settings.ttsVoice), { rate: store.settings.ttsRate })
 }
 
 async function answerQuiz(correct) {

@@ -12,6 +12,7 @@ export const useAppStore = defineStore('app', {
     ageMonths: null,
     settings: {
       ttsRate: 0.8,
+      ttsVoice: 'en_US-lessac-medium',
       audioOnly: true, // A 段默认开启（6.6）
       screenLimitMin: 5, // 分钟/天
       sessionLimitMin: 3,
@@ -53,6 +54,7 @@ export const useAppStore = defineStore('app', {
           const s = me.settings || {}
           this.settings = {
             ttsRate: s.tts_rate ?? 0.8,
+            ttsVoice: s.tts_voice ?? 'en_US-lessac-medium',
             audioOnly: s.audio_only ?? this.ageBand === 'A',
             screenLimitMin: s.screen_limit_min ?? (this.ageBand === 'B' ? 15 : 5),
             sessionLimitMin: s.session_limit_min ?? (this.ageBand === 'B' ? 5 : 3),
@@ -113,6 +115,7 @@ export const useAppStore = defineStore('app', {
       try {
         await api.familySettings({
           tts_rate: this.settings.ttsRate,
+          tts_voice: this.settings.ttsVoice,
           audio_only: this.settings.audioOnly,
           screen_limit_min: this.settings.screenLimitMin,
           session_limit_min: this.settings.sessionLimitMin,

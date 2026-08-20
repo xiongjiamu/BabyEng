@@ -11,7 +11,7 @@
       <div class="group">
         <div class="t-label">宝宝</div>
         <div class="list">
-          <div class="list-item"><span class="grow">名字</span><span class="val">{{ store.child?.child_name || '未填' }} ›</span></div>
+          <button class="list-item" @click="openNameEditor"><span class="grow">名字</span><span class="val">{{ store.child?.child_name || '未填' }} ›</span></button>
           <div class="list-item"><span class="grow">出生年月</span><span class="val">{{ store.child?.child_birthdate || '待补' }} ›</span></div>
           <div class="list-item">
             <span class="grow">
@@ -77,13 +77,13 @@
       <div class="group">
         <div class="t-label">发音与模型</div>
         <div class="list">
-          <div class="list-item">
+          <button class="list-item" @click="voiceSheet = true">
             <span class="grow">
               英语音色
-              <div class="sub">美式 · Piper en_US-lessac-medium</div>
+              <div class="sub">美式 · Piper {{ currentVoiceLabel }}</div>
             </span>
             <span class="val">›</span>
-          </div>
+          </button>
           <div class="list-item">
             <span class="grow">
               使用云端模型
@@ -126,6 +126,32 @@
 
     <TabBar current="settings" />
 
+    <div v-if="nameSheet" class="overlay">
+      <div class="sheet stack-5">
+        <h2 class="t-zh-lg">修改宝宝姓名</h2>
+        <div class="textinput">
+          <input v-model="childNameDraft" maxlength="20" type="text" placeholder="请输入宝宝姓名" @keyup.enter="saveChildName" />
+        </div>
+        <p v-if="nameError" class="note" style="color:var(--c-danger)">{{ nameError }}</p>
+        <button class="btn btn-primary btn-block btn-lg" :disabled="nameSaving" @click="saveChildName">{{ nameSaving ? '保存中…' : '保存' }}</button>
+        <button class="btn btn-ghost btn-block" :disabled="nameSaving" @click="nameSheet = false">取消</button>
+      </div>
+    </div>
+
+    <div v-if="voiceSheet" class="overlay">
+      <div class="sheet stack-5">
+        <h2 class="t-zh-lg">选择英语音色</h2>
+        <div class="list">
+          <button v-for="voice in voices" :key="voice.id" class="list-item" @click="selectVoice(voice.id)">
+            <span class="grow"><b>{{ voice.label }}</b><span class="sub">{{ voice.description }}</span></span>
+            <span class="val">{{ store.settings.ttsVoice === voice.id ? '✓' : '›' }}</span>
+          </button>
+        </div>
+        <button class="btn btn-mom btn-block" @click="previewVoice">试听当前音色</button>
+        <button class="btn btn-ghost btn-block" @click="voiceSheet = false">完成</button>
+      </div>
+    </div>
+
     <!-- 云端模型知情同意（11.4 强制要求） -->
     <div v-if="cloudSheet" class="overlay">
       <div class="sheet stack-5">
@@ -161,16 +187,63 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import TabBar from '../components/TabBar.vue'
 import { useAppStore } from '../stores/app'
 import { api } from '../api'
+import { useAudio } from '../composables/useAudio'
 
 const store = useAppStore()
 const router = useRouter()
 const cloudSheet = ref(false)
+const nameSheet = ref(false)
+const voiceSheet = ref(false)
+const childNameDraft = ref('')
+const nameError = ref('')
+const nameSaving = ref(false)
 const username = localStorage.getItem('babyeng_username') || ''
+const { unlock, playUrl } = useAudio()
+const voices = [
+  { id: 'en_US-lessac-medium', label: 'Lessac', description: '清晰、自然的美式英语' },
+  { id: 'en_US-amy-medium', label: 'Amy', description: '温和的美式英语' },
+  { id: 'en_US-ryan-medium', label: 'Ryan', description: '沉稳的美式英语' },
+]
+const currentVoiceLabel = computed(() => voices.find((v) => v.id === store.settings.ttsVoice)?.label || 'Lessac')
+
+function openNameEditor() {
+  childNameDraft.value = store.child?.child_name || ''
+  nameError.value = ''
+  nameSheet.value = true
+}
+
+async function saveChildName() {
+  const childName = childNameDraft.value.trim()
+  if (!childName || [...childName].length > 20) {
+    nameError.value = '宝宝姓名需为 1～20 个字符'
+    return
+  }
+  nameSaving.value = true
+  nameError.value = ''
+  try {
+    await api.childUpdate(store.child.child_id, { child_name: childName })
+    store.child.child_name = childName
+    nameSheet.value = false
+  } catch (e) {
+    nameError.value = e.message || '保存失败，请稍后重试'
+  } finally {
+    nameSaving.value = false
+  }
+}
+
+function selectVoice(voice) {
+  store.saveSettings({ ttsVoice: voice })
+}
+
+function previewVoice() {
+  unlock()
+  playUrl(api.ttsUrl('Hello, let us learn English together.', store.settings.ttsRate, store.settings.ttsVoice), { rate: store.settings.ttsRate })
+}
 
 async function logout() {
   await api.logout()

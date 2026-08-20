@@ -138,7 +138,7 @@ onMounted(async () => {
 function playCurrent() {
   if (!currentWord.value) return
   flowStep.value = 2
-  playUrl(api.ttsUrl(currentWord.value.en, store.settings.ttsRate), { rate: store.settings.ttsRate })
+  playUrl(api.ttsUrl(currentWord.value.en, store.settings.ttsRate, store.settings.ttsVoice), { rate: store.settings.ttsRate })
 }
 
 async function nextWord() {
@@ -180,7 +180,7 @@ function startQuiz() {
 }
 
 function playQuiz() {
-  playUrl(api.ttsUrl(quizWord.value.en, store.settings.ttsRate), { rate: store.settings.ttsRate })
+  playUrl(api.ttsUrl(quizWord.value.en, store.settings.ttsRate, store.settings.ttsVoice), { rate: store.settings.ttsRate })
 }
 
 async function answerQuiz(correct) {

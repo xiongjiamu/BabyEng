@@ -14,6 +14,11 @@ app = FastAPI(title="BabyEng TTS", version="0.4.0")
 
 MODEL_DIR = Path(os.environ.get("MODEL_DIR", "/models/piper"))
 DEFAULT_VOICE = os.environ.get("PIPER_VOICE", "en_US-lessac-medium")
+ALLOWED_VOICES = {
+    "en_US-lessac-medium",
+    "en_US-amy-medium",
+    "en_US-ryan-medium",
+}
 
 # 音色缓存：voice -> PiperVoice 实例
 _voices = {}
@@ -22,6 +27,8 @@ _ready = False
 
 def _load_voice(voice: str):
     """加载指定音色；成功返回实例，失败返回 None"""
+    if voice not in ALLOWED_VOICES:
+        return None
     try:
         from piper import PiperVoice
     except ImportError:
