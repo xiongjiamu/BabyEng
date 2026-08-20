@@ -56,6 +56,7 @@ ASR（sherpa-onnx 流式中文，约 300MB）：
 | 变量 | 默认 | 说明 |
 |---|---|---|
 | `WEB_BIND_ADDR` | 127.0.0.1 | Web 监听地址；家庭局域网使用时填写服务器内网 IP |
+| `WEB_PORT` | 80 | Web 宿主机端口；端口冲突时可改为 8080 等空闲端口 |
 | `LLM_BASE_URL` | http://host.docker.internal:11434/v1 | 本地 ollama 或云端 OpenAI 兼容地址（full profile） |
 | `LLM_API_KEY` | 空 | 云端 API Key（full profile） |
 | `LLM_MODEL` | qwen2.5:7b-instruct | 模型名（full profile） |
