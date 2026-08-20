@@ -264,7 +264,7 @@ async fn run_pipeline(
                     result.tts_available = tts_ready;
                     if tts_ready {
                         result.tts_url = Some(format!(
-                            "/api/tts/audio?text={}&voice=en_US-lessig-medium&rate=0.8",
+                            "/api/tts/audio?text={}&voice=en_US-lessac-medium&rate=0.8",
                             percent_encoding::utf8_percent_encode(
                                 &result.en,
                                 percent_encoding::NON_ALPHANUMERIC

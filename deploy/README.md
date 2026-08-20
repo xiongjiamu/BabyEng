@@ -44,15 +44,18 @@ BabyEng 使用 `auth.json` 中的本地账号登录。Compose 默认只把 Web �
 
 TTS（Piper，约 100~200MB）：
 ```bash
-# en_US-lessig-medium：发音清晰、语速可调，PRD 4.4 首选
-wget https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/lessig/medium/en_US-lessig-medium.onnx -O models/piper/en_US-lessig-medium.onnx
-wget https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/lessig/medium/en_US-lessig-medium.onnx.json -O models/piper/en_US-lessig-medium.onnx.json
+# en_US-lessac-medium：发音清晰、语速可调，PRD 4.4 首选
+wget https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/lessac/medium/en_US-lessac-medium.onnx -O models/piper/en_US-lessac-medium.onnx
+wget https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/lessac/medium/en_US-lessac-medium.onnx.json -O models/piper/en_US-lessac-medium.onnx.json
 ```
 
 ASR（sherpa-onnx 流式中文，约 300MB）：
 ```bash
 # k2 双语中文-英文流式模型（PRD 9.5 首选）
-# 从 k2-fsa/sherpa-onnx 仓库下载 sherpa-onnx-streaming-zipformer-bilingual-zh-en-2023-02-20 解压到 models/asr/
+cd models/asr
+wget https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-streaming-zipformer-bilingual-zh-en-2023-02-20.tar.bz2
+tar xjf sherpa-onnx-streaming-zipformer-bilingual-zh-en-2023-02-20.tar.bz2
+rm sherpa-onnx-streaming-zipformer-bilingual-zh-en-2023-02-20.tar.bz2
 ```
 
 **模型缺失时应用仍可用**：TTS/ASR 返回 503，前端自动降级——
