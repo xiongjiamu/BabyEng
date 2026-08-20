@@ -43,7 +43,7 @@
       <button class="btn btn-ghost btn-block" @click="toggleAudioOnly">切回看图模式</button>
 
       <p class="note">
-        PRD 6.6：A 段（12~24 月）默认开启此模式，把幼儿屏幕时间压到零，同时不损失任何教学闭环。
+        A 段（12~24 月）默认开启此模式，在不影响教学流程的同时减少幼儿屏幕时间。
         副作用是没有画面可以掩饰，逼着发音质量必须做扎实。
       </p>
     </section>
@@ -64,7 +64,7 @@
       </div>
       <div class="banner warn">
         <span class="ico">⚠️</span>
-        <span><b>此项需真机实测。</b>iOS 上添加到主屏幕的 PWA，后台音频行为不稳定（PRD 9.2）。若不可用，降级为黑屏播放页，而不是推翻 PWA 方案。</span>
+        <span>iOS 上添加到主屏幕后，后台音频可能不稳定；遇到这种情况时请保持播放页打开。</span>
       </div>
       <button class="btn btn-ghost btn-block" @click="toggleLock">返回</button>
     </section>

@@ -55,7 +55,7 @@
         </button>
       </div>
       <p class="note">
-        PRD 4.2：<b>小测只在 B 段（24~36 月）出现</b>，且只做二选一。A 段幼儿无法稳定完成选择题，强行加测只会制造挫败。
+        <b>小测只在 B 段（24~36 月）出现</b>，且只做二选一。A 段幼儿无法稳定完成选择题，强行加测只会制造挫败。
       </p>
     </section>
 
@@ -70,7 +70,7 @@
         <button class="btn btn-primary btn-block btn-lg" @click="nextGroup">再来一组</button>
         <router-link class="btn-quiet btn-block" to="/home">今天先到这儿</router-link>
       </div>
-      <p class="note">A 段跳过小测，直接进入组末鼓励（PRD 4.2）。这一屏没有任何分数、等级或对错。</p>
+      <p class="note">A 段跳过小测，直接进入组末鼓励。这一屏没有任何分数、等级或对错。</p>
     </section>
 
     <!-- ============ B 段小测后总结 ============ -->

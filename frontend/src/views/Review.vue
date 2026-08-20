@@ -28,7 +28,7 @@
         </button>
       </div>
       <button class="btn-quiet btn-block" @click="skipQuiz">跳过这题 ›</button>
-      <p class="note">听音选图只在 B 段启用，且只做二选一（PRD 4.2 / 12.2）。拖图配对同理，对 24 月以下不可行。</p>
+      <p class="note">听音选图只在 B 段启用，且只做二选一。拖图配对同理，不适合 24 月以下幼儿。</p>
     </section>
 
     <!-- ============ A 段：只跟读，不测 ============ -->
@@ -89,7 +89,7 @@
       <router-link class="btn btn-primary btn-block btn-lg" to="/home">回首页</router-link>
 
       <p class="note">
-        PRD 8.6：排期按掌握度分档——低于 0.3 次日再推，0.3~0.6 隔 3 天，0.6~0.85 隔 7 天，0.85 以上隔 21 天且不再主动推送。
+        复习时间会根据掌握情况自动安排，无需手动设置。
         <b>掌握度数值和进度条只给母亲看，永不向幼儿侧暴露</b>。这里刻意用「明天 / 3 天后」这种说法，而不是「掌握度 0.24」。
       </p>
     </section>
