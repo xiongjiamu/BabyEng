@@ -204,11 +204,14 @@ const nameSaving = ref(false)
 const username = localStorage.getItem('babyeng_username') || ''
 const { unlock, playUrl } = useAudio()
 const voices = [
-  { id: 'en_US-lessac-medium', label: 'Lessac', description: '清晰、自然的美式英语' },
-  { id: 'en_US-amy-medium', label: 'Amy', description: '温和的美式英语' },
-  { id: 'en_US-ryan-medium', label: 'Ryan', description: '沉稳的美式英语' },
+  { id: 'en_US-mike-medium', label: 'Mike', description: '英语（美国）' },
+  { id: 'en_US-amy-medium', label: 'Amy', description: '英语（美国）' },
+  { id: 'en_US-ryan-medium', label: 'Ryan', description: '英语（美国）' },
+  { id: 'en_US-kristin-medium', label: 'Kristin', description: '英语（美国）' },
+  { id: 'en_US-hfc_female-medium', label: 'HFC Female', description: '英语（美国）' },
+  { id: 'en_US-hfc_male-medium', label: 'HFC Male', description: '英语（美国）' },
 ]
-const currentVoiceLabel = computed(() => voices.find((v) => v.id === store.settings.ttsVoice)?.label || 'Lessac')
+const currentVoiceLabel = computed(() => voices.find((v) => v.id === store.settings.ttsVoice)?.label || 'Mike')
 
 function openNameEditor() {
   childNameDraft.value = store.child?.child_name || ''

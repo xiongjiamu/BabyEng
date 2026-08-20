@@ -27,10 +27,15 @@ async fn audio(State(state): State<SharedState>, Query(q): Query<TtsQuery>) -> A
     if text.is_empty() {
         return Err(crate::error::AppError::BadRequest("text 为空".into()));
     }
-    let voice = q.voice.unwrap_or_else(|| "en_US-lessac-medium".into());
+    let voice = q.voice.unwrap_or_else(|| "en_US-mike-medium".into());
     if !matches!(
         voice.as_str(),
-        "en_US-lessac-medium" | "en_US-amy-medium" | "en_US-ryan-medium"
+        "en_US-mike-medium"
+            | "en_US-amy-medium"
+            | "en_US-ryan-medium"
+            | "en_US-kristin-medium"
+            | "en_US-hfc_female-medium"
+            | "en_US-hfc_male-medium"
     ) {
         return Err(crate::error::AppError::BadRequest("不支持的英语音色".into()));
     }

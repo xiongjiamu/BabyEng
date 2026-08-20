@@ -25,11 +25,13 @@
 .app-screen {
   width: 100%;
   max-width: 480px;
+  height: 100dvh;
   min-height: 100dvh;
   background: var(--c-bg);
   position: relative;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
   box-shadow: 0 0 40px rgba(38, 23, 11, 0.08);
 }
 @media (min-width: 520px) {

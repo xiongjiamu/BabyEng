@@ -42,11 +42,14 @@ BabyEng 使用 `auth.json` 中的本地账号登录。Compose 默认只把 Web �
 
 ## 模型下载
 
-TTS（Piper，约 100~200MB）：
+TTS（Piper，每个音色约 60MB）：
 ```bash
-# en_US-lessac-medium：发音清晰、语速可调，PRD 4.4 首选
-wget https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/lessac/medium/en_US-lessac-medium.onnx -O models/piper/en_US-lessac-medium.onnx
-wget https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/lessac/medium/en_US-lessac-medium.onnx.json -O models/piper/en_US-lessac-medium.onnx.json
+# 下载应用可选的 6 个美式英语音色；Mike 为默认音色
+mkdir -p models/piper
+for voice in mike amy ryan kristin hfc_female hfc_male; do
+  wget "https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/${voice}/medium/en_US-${voice}-medium.onnx" -O "models/piper/en_US-${voice}-medium.onnx"
+  wget "https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/${voice}/medium/en_US-${voice}-medium.onnx.json" -O "models/piper/en_US-${voice}-medium.onnx.json"
+done
 ```
 
 ASR（sherpa-onnx 流式中文，约 300MB）：
