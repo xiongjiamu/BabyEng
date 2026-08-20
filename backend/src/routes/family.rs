@@ -1,6 +1,6 @@
 //! 家庭与孩子：首次引导（6.7）、设置（6.5/11.3/11.4）、模型配置（9.8）
 
-use axum::extract::{Path, State};
+use axum::extract::{Extension, Path, State};
 use axum::routing::{get, post, put};
 use axum::{Json, Router};
 use chrono::Datelike;
@@ -9,6 +9,7 @@ use serde_json::json;
 use uuid::Uuid;
 
 use crate::error::{AppError, AppResult};
+use crate::auth::{self, AuthUser};
 use crate::models::{AgeBand, Child};
 use crate::state::SharedState;
 
@@ -29,12 +30,13 @@ struct FamilyInit {
     child_birthdate: Option<String>, // YYYY-MM-DD
 }
 
-async fn family_me(State(state): State<SharedState>) -> AppResult<Json<serde_json::Value>> {
+async fn family_me(State(state): State<SharedState>, Extension(user): Extension<AuthUser>) -> AppResult<Json<serde_json::Value>> {
     let pool = &state.pool;
     // 单家庭：取第一条
     let fam = sqlx::query_as::<_, (String, String, String)>(
-        "SELECT family_id, mother_name, settings FROM family LIMIT 1",
+        "SELECT f.family_id, f.mother_name, f.settings FROM family f JOIN account_family a ON a.family_id=f.family_id WHERE a.username=?",
     )
+    .bind(&user.username)
     .fetch_optional(pool)
     .await?;
     let Some((family_id, mother_name, settings_json)) = fam else {
@@ -95,12 +97,17 @@ async fn family_me(State(state): State<SharedState>) -> AppResult<Json<serde_jso
 /// 首次启动引导提交（PRD 6.7：孩子生日 → 自动分段）
 async fn family_init(
     State(state): State<SharedState>,
+    Extension(user): Extension<AuthUser>,
     Json(body): Json<FamilyInit>,
 ) -> AppResult<Json<serde_json::Value>> {
     let pool = &state.pool;
     let family_id = Uuid::new_v4().to_string();
     let child_id = Uuid::new_v4().to_string();
     let now = chrono::Utc::now().to_rfc3339();
+
+    if auth::family_id(pool, &user).await?.is_some() {
+        return Err(AppError::BadRequest("家庭已经初始化".into()));
+    }
 
     let mut tx = pool.begin().await?;
     sqlx::query(
@@ -121,6 +128,11 @@ async fn family_init(
     .bind(&now)
     .execute(&mut *tx)
     .await?;
+    sqlx::query("UPDATE account_family SET family_id=? WHERE username=? AND family_id IS NULL")
+        .bind(&family_id)
+        .bind(&user.username)
+        .execute(&mut *tx)
+        .await?;
 
     // 推导分段：默认 A 段纯音频；跳过生日默认 B 段（6.7）
     let birthdate = body.child_birthdate.clone();
@@ -174,15 +186,11 @@ struct SettingsBody {
 
 async fn family_settings(
     State(state): State<SharedState>,
+    Extension(user): Extension<AuthUser>,
     Json(body): Json<SettingsBody>,
 ) -> AppResult<Json<serde_json::Value>> {
     let pool = &state.pool;
-    let fam: Option<(String,)> = sqlx::query_as("SELECT family_id FROM family LIMIT 1")
-        .fetch_optional(pool)
-        .await?;
-    let Some((family_id,)) = fam else {
-        return Err(AppError::NotFound("家庭未初始化".into()));
-    };
+    let family_id = auth::require_family_id(pool, &user).await?;
     sqlx::query("UPDATE family SET settings=? WHERE family_id=?")
         .bind(body.settings.to_string())
         .bind(&family_id)
@@ -199,15 +207,11 @@ struct ChildCreate {
 
 async fn child_create(
     State(state): State<SharedState>,
+    Extension(user): Extension<AuthUser>,
     Json(body): Json<ChildCreate>,
 ) -> AppResult<Json<serde_json::Value>> {
     let pool = &state.pool;
-    let fam: Option<(String,)> = sqlx::query_as("SELECT family_id FROM family LIMIT 1")
-        .fetch_optional(pool)
-        .await?;
-    let Some((family_id,)) = fam else {
-        return Err(AppError::NotFound("家庭未初始化".into()));
-    };
+    let family_id = auth::require_family_id(pool, &user).await?;
     let child_id = Uuid::new_v4().to_string();
     sqlx::query(
         "INSERT INTO child (child_id, family_id, child_name, child_birthdate, level) VALUES (?,?,?,?,1)",
@@ -231,10 +235,12 @@ struct ChildUpdate {
 
 async fn child_update(
     State(state): State<SharedState>,
+    Extension(user): Extension<AuthUser>,
     Path(child_id): Path<String>,
     Json(body): Json<ChildUpdate>,
 ) -> AppResult<Json<serde_json::Value>> {
     let pool = &state.pool;
+    auth::require_child(pool, &user, &child_id).await?;
     if let Some(name) = &body.child_name {
         sqlx::query("UPDATE child SET child_name=? WHERE child_id=?")
             .bind(name)
@@ -273,9 +279,11 @@ async fn child_update(
 
 async fn child_get(
     State(state): State<SharedState>,
+    Extension(user): Extension<AuthUser>,
     Path(child_id): Path<String>,
 ) -> AppResult<Json<serde_json::Value>> {
     let pool = &state.pool;
+    auth::require_child(pool, &user, &child_id).await?;
     let child = sqlx::query_as::<_, (String, String, String, Option<String>, Option<String>, i64)>(
         "SELECT child_id, family_id, child_name, child_birthdate, age_band_override, level FROM child WHERE child_id=?",
     )

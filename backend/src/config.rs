@@ -22,6 +22,8 @@ pub struct Config {
     pub static_dir: String,
     /// 推理服务调用超时（秒）
     pub svc_timeout_secs: u64,
+    /// 本地账号配置文件（仅在登录时读取，支持不重启更新）
+    pub auth_file: String,
 }
 
 impl Config {
@@ -41,6 +43,7 @@ impl Config {
                 .ok()
                 .and_then(|v| v.parse().ok())
                 .unwrap_or(10),
+            auth_file: env::var("AUTH_FILE").unwrap_or_else(|_| "auth.json".into()),
         }
     }
 }

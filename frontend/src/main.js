@@ -5,6 +5,11 @@ import router from './router'
 import './styles/tokens.css'
 import './styles/app.css'
 
+window.addEventListener('babyeng:unauthorized', () => {
+  localStorage.removeItem('babyeng_auth_token')
+  if (router.currentRoute.value.name !== 'login') router.replace('/login')
+})
+
 // PWA Service Worker（PRD 9.2：离线缓存静态资源，弱网可用）
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {

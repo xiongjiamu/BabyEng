@@ -1,0 +1,6 @@
+{
+  "accounts": [
+    { "username": "family-a", "password": "replace-with-a-long-random-password" },
+    { "username": "family-b", "password": "replace-with-another-long-random-password" }
+  ]
+}

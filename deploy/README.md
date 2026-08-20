@@ -19,6 +19,8 @@ mkdir -p models/piper models/asr
 
 # 2. 启动 MVP（无 LLM，个人服务器最低配置可跑）
 cd deploy
+cp auth.example.json auth.json
+# 编辑 auth.json，为每个家庭配置不同的账号和高强度密码
 docker compose --profile mvp up -d --build
 
 # 3. 浏览器访问
@@ -29,7 +31,9 @@ docker compose --profile mvp up -d --build
 
 ## 访问边界
 
-BabyEng MVP 是单家庭应用，不包含公网账号鉴权。Compose 默认只把 Web 端口绑定到 `127.0.0.1`，后端 8080 不暴露给宿主机。家庭局域网使用时，将 `WEB_BIND_ADDR` 显式设为服务器内网 IP；不要设为 `0.0.0.0` 后直接映射公网。
+BabyEng 使用 `auth.json` 中的本地账号登录。Compose 默认只把 Web 端口绑定到 `127.0.0.1`，后端 8080 不暴露给宿主机。家庭局域网使用时，将 `WEB_BIND_ADDR` 显式设为服务器内网 IP；不要设为 `0.0.0.0` 后直接映射公网。
+
+`auth.json` 支持多组账号，格式见 `auth.example.json`。文件在每次登录时重新读取，修改账号密码无需重启；已有会话会持续到退出或后端重启。每个账号首次登录后拥有独立家庭、孩子、学习记录、录音、设置、导出和清理范围。账号名用于稳定关联数据，修改账号名会创建新的空数据空间，因此只应修改密码。该文件含明文密码，权限建议设为 `chmod 600 auth.json`，且已被 Git 忽略。
 
 远程访问必须同时具备 HTTPS 和独立访问控制层，例如家庭 VPN 或反向代理身份验证。仅配置 TLS 不能替代访问控制。录音、孩子资料和学习记录都属于未成年人敏感数据。
 
@@ -57,6 +61,7 @@ ASR（sherpa-onnx 流式中文，约 300MB）：
 |---|---|---|
 | `WEB_BIND_ADDR` | 127.0.0.1 | Web 监听地址；家庭局域网使用时填写服务器内网 IP |
 | `WEB_PORT` | 80 | Web 宿主机端口；端口冲突时可改为 8080 等空闲端口 |
+| `AUTH_FILE` | ./auth.json | 宿主机账号配置文件路径，只读挂载到后端 |
 | `LLM_BASE_URL` | http://host.docker.internal:11434/v1 | 本地 ollama 或云端 OpenAI 兼容地址（full profile） |
 | `LLM_API_KEY` | 空 | 云端 API Key（full profile） |
 | `LLM_MODEL` | qwen2.5:7b-instruct | 模型名（full profile） |
@@ -90,8 +95,8 @@ HTTPS 配置不会自动增加账号鉴权；远程访问仍需使用家庭 VPN 
 
 ```bash
 npm install
-npm run verify -- http://127.0.0.1:8080 /tmp/babyeng-shots
-npm run release-check -- http://127.0.0.1:8080
+AUTH_USERNAME=family-a AUTH_PASSWORD='你的密码' npm run verify -- http://127.0.0.1:8080 /tmp/babyeng-shots
+AUTH_USERNAME=family-a AUTH_PASSWORD='你的密码' npm run release-check -- http://127.0.0.1:8080
 ```
 
 `verify` 检查 12 个页面、主要交互和 API；`release-check` 自动覆盖 A2 全量别名、A3 十例同音容错与 A4 十例未命中。它输出的 A1 数值只是本机文字 API 基线，不能替代局域网中端安卓语音链路的 P95 验收。

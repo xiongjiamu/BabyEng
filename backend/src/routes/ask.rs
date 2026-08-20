@@ -3,13 +3,14 @@
 //! 彻底未命中：相近词推荐 + 文字输入 + 静默写入 unmatched_query（8.8）
 //! ASR/TTS 不可用：分别降级（4.1.3 / 5.4），不整页报错
 
-use axum::extract::{Multipart, State};
+use axum::extract::{Extension, Multipart, State};
 use axum::routing::post;
 use axum::{Json, Router};
 use serde::Deserialize;
 use serde_json::json;
 
 use crate::error::{AppError, AppResult};
+use crate::auth::{self, AuthUser};
 use crate::matcher::Match;
 use crate::models::{AskResponse, AskResult};
 use crate::state::SharedState;
@@ -26,24 +27,28 @@ pub fn router() -> Router<SharedState> {
 struct AskTextBody {
     text: String,
     child_id: Option<String>,
-    family_id: Option<String>,
     /// ASR 置信度（语音链路透传，用于未命中表归组，8.8）
     asr_confidence: Option<f64>,
 }
 
 async fn ask_text(
     State(state): State<SharedState>,
+    Extension(user): Extension<AuthUser>,
     Json(body): Json<AskTextBody>,
 ) -> AppResult<Json<AskResponse>> {
     let text = body.text.trim().to_string();
     if text.is_empty() {
         return Err(AppError::BadRequest("文本为空".into()));
     }
+    if let Some(child_id) = body.child_id.as_deref() {
+        auth::require_child(&state.pool, &user, child_id).await?;
+    }
+    let family_id = auth::family_id(&state.pool, &user).await?;
     let resp = run_pipeline(
         &state,
         &text,
         body.asr_confidence,
-        body.family_id.as_deref(),
+        family_id.as_deref(),
         body.child_id.as_deref(),
     )
     .await;
@@ -53,12 +58,12 @@ async fn ask_text(
 /// 语音提问：multipart 上传音频 → ffmpeg 转 16k wav → ASR → 匹配
 async fn ask_voice(
     State(state): State<SharedState>,
+    Extension(user): Extension<AuthUser>,
     mut multipart: Multipart,
 ) -> AppResult<Json<AskResponse>> {
     let mut audio_bytes: Option<Vec<u8>> = None;
     let mut ext = "webm".to_string();
     let mut child_id: Option<String> = None;
-    let mut family_id: Option<String> = None;
 
     while let Some(field) = multipart
         .next_field()
@@ -90,9 +95,6 @@ async fn ask_voice(
             "child_id" => {
                 child_id = field.text().await.ok();
             }
-            "family_id" => {
-                family_id = field.text().await.ok();
-            }
             _ => {}
         }
     }
@@ -100,6 +102,10 @@ async fn ask_voice(
     let Some(audio) = audio_bytes else {
         return Err(AppError::BadRequest("缺少 audio 字段".into()));
     };
+    if let Some(id) = child_id.as_deref() {
+        auth::require_child(&state.pool, &user, id).await?;
+    }
+    let family_id = auth::family_id(&state.pool, &user).await?;
 
     // 1. 转码 16k 单声道 wav（9.10：Android webm/opus、iOS mp4/aac 都转）
     let wav = state.inference.to_wav_16k(audio, ext).await?;
@@ -154,9 +160,13 @@ struct ConfirmBody {
 
 async fn ask_confirm(
     State(state): State<SharedState>,
+    Extension(user): Extension<AuthUser>,
     Json(body): Json<ConfirmBody>,
 ) -> AppResult<Json<serde_json::Value>> {
     let pool = &state.pool;
+    if let Some(id) = body.child_id.as_deref() {
+        auth::require_child(pool, &user, id).await?;
+    }
     let result = match body.target_type.as_str() {
         "word" => {
             let w = store::get_word(pool, &body.target_id).await?;
@@ -318,15 +328,7 @@ async fn run_pipeline(
         }
         Match::Miss => {
             // 彻底未命中：相近词推荐 + 文字输入 + 静默写入未命中表（8.8）
-            let fam_id = match family_id {
-                Some(f) => f.to_string(),
-                None => sqlx::query_scalar::<_, String>("SELECT family_id FROM family LIMIT 1")
-                    .fetch_optional(pool)
-                    .await
-                    .ok()
-                    .flatten()
-                    .unwrap_or_default(),
-            };
+            let fam_id = family_id.unwrap_or_default().to_string();
 
             let unmatched_id = if fam_id.is_empty() {
                 None

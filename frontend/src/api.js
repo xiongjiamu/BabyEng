@@ -2,12 +2,19 @@
 // 统一错误处理：后端返回 { ok, code, message }，前端按 code 分支降级（5.4 / 9.10）
 
 const BASE = '/api'
+const TOKEN_KEY = 'babyeng_auth_token'
+
+export const authToken = () => localStorage.getItem(TOKEN_KEY) || ''
 
 async function request(path, options = {}) {
   let res
   try {
     res = await fetch(BASE + path, {
-      headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
+      headers: {
+        'Content-Type': 'application/json',
+        ...(authToken() ? { Authorization: `Bearer ${authToken()}` } : {}),
+        ...(options.headers || {}),
+      },
       ...options,
     })
   } catch (e) {
@@ -16,6 +23,7 @@ async function request(path, options = {}) {
   if (!res.ok) {
     let body = null
     try { body = await res.json() } catch { /* ignore */ }
+    if (res.status === 401) window.dispatchEvent(new Event('babyeng:unauthorized'))
     throw new ApiError(body?.code || 'http_' + res.status, body?.message || `请求失败(${res.status})`, null, res.status)
   }
   const ct = res.headers.get('content-type') || ''
@@ -37,6 +45,16 @@ export class ApiError extends Error {
 }
 
 export const api = {
+  // ---------- 账号 ----------
+  login: async (username, password) => {
+    const result = await request('/auth/login', { method: 'POST', body: JSON.stringify({ username, password }) })
+    localStorage.setItem(TOKEN_KEY, result.token)
+    return result
+  },
+  authMe: () => request('/auth/me'),
+  logout: async () => {
+    try { await request('/auth/logout', { method: 'POST' }) } finally { localStorage.removeItem(TOKEN_KEY) }
+  },
   // ---------- 家庭 / 引导 ----------
   familyMe: () => request('/family/me'),
   familyInit: (data) => request('/family/init', { method: 'POST', body: JSON.stringify(data) }),
@@ -51,14 +69,14 @@ export const api = {
     form.append('audio', blob, fileName)
     if (childId) form.append('child_id', childId)
     if (familyId) form.append('family_id', familyId)
-    return fetch(BASE + '/ask/voice', { method: 'POST', body: form }).then(handleJson)
+    return authFetch(BASE + '/ask/voice', { method: 'POST', body: form }).then(handleJson)
   },
   askConfirm: (targetType, targetId, childId) =>
     request('/ask/confirm', { method: 'POST', body: JSON.stringify({ target_type: targetType, target_id: targetId, child_id: childId }) }),
 
   // ---------- TTS ----------
   ttsUrl: (text, rate = 0.8) =>
-    `${BASE}/tts/audio?text=${encodeURIComponent(text)}&voice=en_US-lessig-medium&rate=${rate}`,
+    `${BASE}/tts/audio?text=${encodeURIComponent(text)}&voice=en_US-lessig-medium&rate=${rate}&access_token=${encodeURIComponent(authToken())}`,
 
   // ---------- 词库 / 场景（M5 / M2） ----------
   words: (params = '') => request(`/words${params}`),
@@ -74,10 +92,10 @@ export const api = {
     form.append('target_type', targetType)
     form.append('target_id', targetId)
     form.append('duration_ms', String(durationMs))
-    return fetch(BASE + '/recordings', { method: 'POST', body: form }).then(handleJson)
+    return authFetch(BASE + '/recordings', { method: 'POST', body: form }).then(handleJson)
   },
   recordings: (childId) => request(`/recordings?child_id=${childId}`),
-  recordingUrl: (id) => `${BASE}/recordings/${id}/audio`,
+  recordingUrl: (id) => `${BASE}/recordings/${id}/audio?access_token=${encodeURIComponent(authToken())}`,
   favoriteRecording: (id, favorited) => request(`/recordings/${id}/favorite?favorited=${favorited}`, { method: 'POST' }),
   deleteRecording: (id) => request(`/recordings/${id}`, { method: 'DELETE' }),
   cleanupExpired: () => request('/recordings/cleanup-expired', { method: 'POST' }),
@@ -112,4 +130,14 @@ async function handleJson(res) {
     throw new ApiError(body?.code || 'http_' + res.status, body?.message || `请求失败(${res.status})`)
   }
   return res.json()
+}
+
+function authFetch(url, options = {}) {
+  return fetch(url, {
+    ...options,
+    headers: {
+      ...(authToken() ? { Authorization: `Bearer ${authToken()}` } : {}),
+      ...(options.headers || {}),
+    },
+  })
 }

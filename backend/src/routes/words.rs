@@ -1,6 +1,6 @@
 //! 词条/句子/场景查询（M2 学习模式、M5 场景库数据来源）
 
-use axum::extract::{Path, Query, State};
+use axum::extract::{Extension, Path, Query, State};
 use axum::routing::get;
 use axum::{Json, Router};
 use serde::Deserialize;
@@ -8,6 +8,7 @@ use serde_json::json;
 use sqlx::Row;
 
 use crate::error::AppResult;
+use crate::auth::{self, AuthUser};
 use crate::models::{Sentence, Word};
 use crate::state::SharedState;
 use crate::store;
@@ -30,7 +31,7 @@ struct WordQuery {
     limit: Option<i64>,
 }
 
-async fn words(State(state): State<SharedState>, Query(q): Query<WordQuery>) -> AppResult<Json<serde_json::Value>> {
+async fn words(State(state): State<SharedState>, Extension(user): Extension<AuthUser>, Query(q): Query<WordQuery>) -> AppResult<Json<serde_json::Value>> {
     let pool = &state.pool;
     let mut sql = String::from("SELECT * FROM word WHERE review_status='published'");
 
@@ -60,6 +61,7 @@ async fn words(State(state): State<SharedState>, Query(q): Query<WordQuery>) -> 
     // 进度信息（已学标记）
     let mut learned = std::collections::HashSet::new();
     if let Some(cid) = &q.child_id {
+        auth::require_child(pool, &user, cid).await?;
         let rows = sqlx::query("SELECT target_id FROM progress WHERE child_id=? AND target_type='word'")
             .bind(cid)
             .fetch_all(pool)
@@ -116,9 +118,9 @@ async fn sentence_detail(State(state): State<SharedState>, Path(id): Path<String
 }
 
 /// 场景分类汇总（首页场景快捷区 / 学习模式入口统计）
-async fn scenes(State(state): State<SharedState>, Query(q): Query<WordQuery>) -> AppResult<Json<serde_json::Value>> {
+async fn scenes(State(state): State<SharedState>, Extension(user): Extension<AuthUser>, Query(q): Query<WordQuery>) -> AppResult<Json<serde_json::Value>> {
     let pool = &state.pool;
-    let child_id = q.child_id.unwrap_or_default();
+    let child_id = auth::resolve_child(pool, &user, q.child_id.as_deref()).await?;
     let stats = store::scene_stats(pool, &child_id).await?;
     Ok(Json(stats))
 }

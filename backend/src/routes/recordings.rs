@@ -1,6 +1,6 @@
 //! M3 录音（PRD 4.3 / 8.4）：上传、回放、收藏、过期清理、30 天保留
 
-use axum::extract::{Multipart, Path, Query, State};
+use axum::extract::{Extension, Multipart, Path, Query, State};
 use axum::http::header;
 use axum::routing::{delete, get, post};
 use axum::{Json, Router};
@@ -12,6 +12,7 @@ use sqlx::Row;
 use uuid::Uuid;
 
 use crate::error::{AppError, AppResult};
+use crate::auth::{self, AuthUser};
 use crate::state::SharedState;
 
 pub fn router() -> Router<SharedState> {
@@ -31,10 +32,12 @@ struct ListQuery {
 
 async fn list(
     State(state): State<SharedState>,
+    Extension(user): Extension<AuthUser>,
     Query(q): Query<ListQuery>,
 ) -> AppResult<Json<serde_json::Value>> {
     let pool = &state.pool;
-    let rows = fetch_recording_rows(pool, q.child_id.as_deref()).await?;
+    let child_id = auth::resolve_child(pool, &user, q.child_id.as_deref()).await?;
+    let rows = fetch_recording_rows(pool, Some(&child_id)).await?;
 
     let mut out = Vec::new();
     for r in &rows {
@@ -77,6 +80,7 @@ async fn fetch_recording_rows(
 /// 上传录音（webm/opus 或 mp4/aac，落盘即存，PRD 9.2：不在前端长期堆积）
 async fn upload(
     State(state): State<SharedState>,
+    Extension(user): Extension<AuthUser>,
     mut multipart: Multipart,
 ) -> AppResult<Json<serde_json::Value>> {
     let mut audio: Option<Vec<u8>> = None;
@@ -135,6 +139,7 @@ async fn upload(
     let Some(child_id) = child_id else {
         return Err(AppError::BadRequest("缺少 child_id".into()));
     };
+    auth::require_child(&state.pool, &user, &child_id).await?;
     if target_id.is_empty() {
         return Err(AppError::BadRequest("缺少 target_id".into()));
     }
@@ -181,13 +186,15 @@ async fn upload(
 
 async fn favorite(
     State(state): State<SharedState>,
+    Extension(user): Extension<AuthUser>,
     Path(id): Path<String>,
     Query(q): Query<serde_json::Value>,
 ) -> AppResult<Json<serde_json::Value>> {
     let fav = q.get("favorited").and_then(|v| v.as_bool()).unwrap_or(true);
-    let rows = sqlx::query("UPDATE recording SET favorited=? WHERE id=?")
+    let rows = sqlx::query("UPDATE recording SET favorited=? WHERE id=? AND child_id IN (SELECT c.child_id FROM child c JOIN account_family a ON a.family_id=c.family_id WHERE a.username=?)")
         .bind(fav as i64)
         .bind(&id)
+        .bind(&user.username)
         .execute(&state.pool)
         .await?;
     if rows.rows_affected() == 0 {
@@ -198,11 +205,13 @@ async fn favorite(
 
 async fn remove(
     State(state): State<SharedState>,
+    Extension(user): Extension<AuthUser>,
     Path(id): Path<String>,
 ) -> AppResult<Json<serde_json::Value>> {
     let pool = &state.pool;
-    let row = sqlx::query_as::<_, (String,)>("SELECT audio_path FROM recording WHERE id=?")
+    let row = sqlx::query_as::<_, (String,)>("SELECT r.audio_path FROM recording r JOIN child c ON c.child_id=r.child_id JOIN account_family a ON a.family_id=c.family_id WHERE r.id=? AND a.username=?")
         .bind(&id)
+        .bind(&user.username)
         .fetch_optional(pool)
         .await?;
     let Some((path,)) = row else {
@@ -219,10 +228,12 @@ async fn remove(
 /// 回放音频（文件流式返回）
 async fn audio(
     State(state): State<SharedState>,
+    Extension(user): Extension<AuthUser>,
     Path(id): Path<String>,
 ) -> AppResult<axum::response::Response> {
-    let row = sqlx::query_as::<_, (String,)>("SELECT audio_path FROM recording WHERE id=?")
+    let row = sqlx::query_as::<_, (String,)>("SELECT r.audio_path FROM recording r JOIN child c ON c.child_id=r.child_id JOIN account_family a ON a.family_id=c.family_id WHERE r.id=? AND a.username=?")
         .bind(&id)
+        .bind(&user.username)
         .fetch_optional(&state.pool)
         .await?;
     let Some((path,)) = row else {
@@ -243,17 +254,19 @@ async fn audio(
 }
 
 /// 过期清理（30 天前非收藏，PRD 5.4 / 8.4）：设置页一键清理入口
-async fn cleanup_expired(State(state): State<SharedState>) -> AppResult<Json<serde_json::Value>> {
+async fn cleanup_expired(State(state): State<SharedState>, Extension(user): Extension<AuthUser>) -> AppResult<Json<serde_json::Value>> {
     let pool = &state.pool;
     let cutoff = (Local::now() - Duration::days(30))
         .format("%Y-%m-%dT%H:%M:%SZ")
         .to_string();
     let rows = sqlx::query_as::<_, (String, String)>(
-        "SELECT id, audio_path FROM recording WHERE expires_at < ? AND favorited = 0",
+        "SELECT r.id, r.audio_path FROM recording r JOIN child c ON c.child_id=r.child_id JOIN account_family a ON a.family_id=c.family_id WHERE r.expires_at < ? AND r.favorited = 0 AND a.username=?",
     )
     .bind(&cutoff)
+    .bind(&user.username)
     .fetch_all(pool)
     .await?;
+    let rows_count = rows.len();
     let mut freed = 0usize;
     for (id, path) in rows {
         if let Ok(md) = std::fs::metadata(&path) {
@@ -265,9 +278,7 @@ async fn cleanup_expired(State(state): State<SharedState>) -> AppResult<Json<ser
             .execute(pool)
             .await?;
     }
-    Ok(Json(
-        json!({ "ok": true, "cleaned": freed, "freed_bytes": freed }),
-    ))
+    Ok(Json(json!({ "ok": true, "cleaned": rows_count, "freed_bytes": freed })))
 }
 
 #[cfg(test)]

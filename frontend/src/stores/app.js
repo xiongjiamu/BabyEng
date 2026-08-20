@@ -64,11 +64,26 @@ export const useAppStore = defineStore('app', {
           if (me.family?.family_id) localStorage.setItem('babyeng_family_id', me.family.family_id)
         }
       } catch (e) {
+        if (e?.status === 401) {
+          this.resetUserData()
+          return
+        }
         // 网络失败：本地兜底，保证离线可打开（9.2）
         console.warn('bootstrap 失败，走本地模式', e)
         this.initialized = !!localStorage.getItem('babyeng_initialized')
       } finally {
         this.loading = false
+      }
+    },
+
+    resetUserData() {
+      this.initialized = false
+      this.family = null
+      this.child = null
+      this.ageBand = null
+      this.ageMonths = null
+      for (const key of ['babyeng_initialized', 'babyeng_family_id', 'babyeng_child_id']) {
+        localStorage.removeItem(key)
       }
     },
 
