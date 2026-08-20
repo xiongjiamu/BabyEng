@@ -32,7 +32,9 @@
         <button
           class="record record-mom"
           :class="{ 'is-recording': recording }"
-          @pointerdown.prevent="startAsk"
+          @touchstart.prevent="startAskFromTouch"
+          @mousedown.prevent="startAskFromMouse"
+          @contextmenu.prevent
           aria-label="按住说话"
         >
           <span v-if="!recording" class="ico">🎙</span>
@@ -229,23 +231,24 @@ const playing = ref(false)
 const isSecure = computed(() => window.isSecureContext)
 
 let activeAsk = null
+let lastTouchStart = 0
 
 onMounted(async () => {
-  window.addEventListener('pointerup', handleAskRelease)
-  window.addEventListener('pointercancel', handleAskCancel)
+  window.addEventListener('touchend', handleAskRelease, { passive: false })
+  window.addEventListener('touchcancel', handleAskCancel, { passive: false })
+  window.addEventListener('mouseup', handleAskRelease)
+  window.addEventListener('blur', handleAskCancel)
   await store.bootstrap()
   if (!store.initialized) {
     location.href = '/onboarding'
     return
   }
-  // 录音权限状态
-  try {
-    const s = await navigator.mediaDevices.getUserMedia({ audio: true })
-    s.getTracks().forEach((t) => t.stop())
-    store.setMicPermission('granted')
-  } catch {
-    store.setMicPermission('denied')
-  }
+  // 微信 WebView 要求麦克风申请由明确的用户手势触发，这里只读取已有权限状态。
+  navigator.permissions?.query?.({ name: 'microphone' }).then((permission) => {
+    if (permission.state === 'granted' || permission.state === 'denied') {
+      store.setMicPermission(permission.state)
+    }
+  }).catch(() => { /* 微信和部分 Safari 不支持 microphone 权限查询 */ })
 })
 
 onBeforeUnmount(() => {
@@ -256,8 +259,10 @@ onBeforeUnmount(() => {
     activeAsk.stream?.getTracks().forEach((t) => t.stop())
     activeAsk = null
   }
-  window.removeEventListener('pointerup', handleAskRelease)
-  window.removeEventListener('pointercancel', handleAskCancel)
+  window.removeEventListener('touchend', handleAskRelease)
+  window.removeEventListener('touchcancel', handleAskCancel)
+  window.removeEventListener('mouseup', handleAskRelease)
+  window.removeEventListener('blur', handleAskCancel)
 })
 
 function formatTime(ms) {
@@ -266,9 +271,20 @@ function formatTime(ms) {
 }
 
 // ---------- 母亲按住式录音（6.1） ----------
+function startAskFromTouch() {
+  lastTouchStart = Date.now()
+  startAsk()
+}
+
+function startAskFromMouse() {
+  // touchstart 后部分 WebView 还会补发 mousedown，避免同一次长按启动两轮。
+  if (Date.now() - lastTouchStart < 800) return
+  startAsk()
+}
+
 async function startAsk() {
   if (activeAsk) return
-  if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia) {
+  if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') {
     store.setMicPermission('denied')
     return
   }
@@ -331,15 +347,34 @@ function finishAsk(session) {
   if (session.timer) clearInterval(session.timer)
   const duration = Date.now() - session.startTs
   if (duration < 400) session.cancelled = true
-  session.recorder.onstop = async () => {
+  let completed = false
+  const complete = async () => {
+    if (completed) return
+    completed = true
     session.stream?.getTracks().forEach((t) => t.stop())
     const blob = new Blob(session.chunks, { type: session.recorder.mimeType || 'audio/webm' })
     session.chunks = []
     if (activeAsk === session) activeAsk = null
     if (session.cancelled) reset()
-    else await recognizeAudio(blob)
+    else if (blob.size > 0) await recognizeAudio(blob)
+    else {
+      state.value = 'asrfail'
+      recognizedText.value = ''
+    }
   }
-  session.recorder.stop()
+  session.recorder.onstop = complete
+  session.recorder.onerror = () => {
+    session.cancelled = true
+    complete()
+  }
+  try {
+    session.recorder.stop()
+    // 少数微信 WebView 不派发 stop；兜底释放本轮会话，避免第二次录音被锁死。
+    setTimeout(complete, 1500)
+  } catch {
+    session.cancelled = true
+    complete()
+  }
 }
 
 function cancelAsk() {

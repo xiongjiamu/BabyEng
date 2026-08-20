@@ -95,13 +95,16 @@
 .target .t-word-en-s { line-height: 1; }
 .target .t-phonetic { font-size: 20px; margin-top: 4px; }
 .play-std {
-  width: 56px; height: 56px; flex: none; border-radius: var(--r-full);
-  display: grid; place-items: center; font-size: 22px;
+  min-width: 72px; min-height: 56px; padding: 6px 10px; flex: none; border-radius: var(--r-lg);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; font-size: 20px;
   background: var(--c-primary); color: var(--c-on-primary);
   transition: transform var(--t-press) var(--ease); cursor: pointer; border: 0;
 }
+.play-std-label { font-size: 13px; font-weight: 800; white-space: nowrap; }
 .play-std:active { transform: scale(.94); }
 .rec-zone { display: flex; flex-direction: column; align-items: center; gap: var(--sp-4); }
+.compare-ready { min-height: 0; }
+.compare-rec-zone { flex: none; position: relative; z-index: 0; }
 .rec-zone.band-a { align-items: flex-end; }
 .rec-zone.band-a .rec-caption { text-align: right; }
 .rec-caption { font-size: var(--fs-zh); font-weight: 700; color: var(--c-ink-2); text-align: center; }
@@ -120,6 +123,16 @@
 .mark:active { transform: scale(.97); }
 .mark.got:active, .mark.got[aria-pressed="true"] { border-color: var(--c-ok); background: var(--c-ok-soft); color: #0E5C2C; }
 .mark.keep:active, .mark.keep[aria-pressed="true"] { border-color: var(--c-warn); background: var(--c-warn-soft); color: #8A4108; }
+
+@media (max-height: 700px) {
+  .compare-ready { gap: var(--sp-4); padding-top: var(--sp-3); padding-bottom: var(--sp-4); }
+  .compare-ready .target { padding: var(--sp-3); }
+  .compare-ready > .t-mom { margin: 0; line-height: 1.45; }
+  .compare-rec-zone { gap: var(--sp-2); }
+  .compare-rec-zone .record { width: 88px; height: 88px; }
+  .compare-rec-zone .rec-caption { font-size: 22px; }
+  .compare-note { margin: 0; }
+}
 
 /* ---------- Home 页 ---------- */
 .greet { display: flex; align-items: center; gap: var(--sp-3); padding: 0 var(--sp-5) var(--sp-4); }
@@ -346,3 +359,4 @@
 
 /* 防误触：audio-only 页大按钮 */
 .bigkey, .record, .play-big { user-select: none; -webkit-user-select: none; }
+.record { touch-action: none; -webkit-touch-callout: none; }

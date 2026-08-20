@@ -7,19 +7,21 @@
     </header>
 
     <!-- ============ 1. 准备录音 ============ -->
-    <section v-show="view === 'ready'" class="page-body pad stack-8">
+    <section v-show="view === 'ready'" class="page-body pad stack-6 compare-ready">
       <div class="card target">
         <span class="photo sm"><span class="emoji">{{ emoji }}</span></span>
         <div class="grow">
           <div class="t-word-en-s">{{ en }}</div>
           <div class="t-phonetic">{{ phonetic || '' }}</div>
         </div>
-        <button class="play-std" aria-label="播放标准音" @click="playStd(store.settings.ttsRate)">▶</button>
+        <button class="play-std" aria-label="听标准发音" @click="playStd(store.settings.ttsRate)">
+          <span>▶</span><span class="play-std-label">听发音</span>
+        </button>
       </div>
 
       <p class="t-mom center-text">先让宝宝听一遍标准音，<br>你自己也跟着念一次，再让他跟读。</p>
 
-      <div class="rec-zone" :class="{ 'band-a': isBandA }">
+      <div class="rec-zone compare-rec-zone" :class="{ 'band-a': isBandA }">
         <button class="record" :class="{ 'is-recording': recState === 'recording' }" @click="toggleRecord" aria-label="点一下开始录音">
           <span v-if="recState !== 'recording'" class="ico">🎤</span>
           <span v-else class="wave"><i></i><i></i><i></i><i></i><i></i></span>
@@ -27,7 +29,7 @@
         <div class="rec-caption">{{ recCaption }}</div>
       </div>
 
-      <p class="note">
+      <p class="note compare-note">
         <b>{{ isBandA ? 'A 段（12~24 月）' : 'B 段（24~36 月）' }}</b>：
         {{ isBandA ? '按钮靠向母亲惯用手侧，由母亲代为点按，宝宝只管开口。' : '按钮居中，宝宝可自行点按。' }}
         宝宝只需点一下开始录音，安静后会自动停止，无需持续按住按钮。

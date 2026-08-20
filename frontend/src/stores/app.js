@@ -10,11 +10,14 @@ const TTS_VOICES = new Set([
   'en_US-hfc_female-medium',
   'en_US-hfc_male-medium',
 ])
+const BOOTSTRAP_TTL_MS = 5 * 60 * 1000
+let bootstrapPromise = null
 
 // 全局状态：家庭/孩子/年龄分段/设置/屏幕时间（PRD 6.5 / 11.3）
 export const useAppStore = defineStore('app', {
   state: () => ({
     loading: false,
+    lastBootstrapAt: 0,
     initialized: false, // 是否完成首次引导（6.7）
     family: null,
     child: null,
@@ -50,42 +53,49 @@ export const useAppStore = defineStore('app', {
   },
 
   actions: {
-    async bootstrap() {
+    async bootstrap({ force = false } = {}) {
+      if (!force && this.lastBootstrapAt && Date.now() - this.lastBootstrapAt < BOOTSTRAP_TTL_MS) return
+      if (bootstrapPromise) return bootstrapPromise
       // 启动时拉取家庭信息；未初始化 → 引导页
       this.loading = true
-      try {
-        const me = await api.familyMe()
-        if (me.initialized) {
-          this.initialized = true
-          this.family = me.family
-          this.child = me.child
-          this.ageBand = me.age_band
-          this.ageMonths = me.age_months
-          const s = me.settings || {}
-          this.settings = {
-            ttsRate: s.tts_rate ?? 0.8,
-            ttsVoice: TTS_VOICES.has(s.tts_voice) ? s.tts_voice : DEFAULT_TTS_VOICE,
-            audioOnly: s.audio_only ?? this.ageBand === 'A',
-            screenLimitMin: s.screen_limit_min ?? (this.ageBand === 'B' ? 15 : 5),
-            sessionLimitMin: s.session_limit_min ?? (this.ageBand === 'B' ? 5 : 3),
-            bedtimeHour: s.bedtime_hour ?? 21,
-            cloudModel: !!s.cloud_model,
-            cloudConsentedAt: s.cloud_consented_at || null,
+      bootstrapPromise = (async () => {
+        try {
+          const me = await api.familyMe()
+          this.lastBootstrapAt = Date.now()
+          if (me.initialized) {
+            this.initialized = true
+            this.family = me.family
+            this.child = me.child
+            this.ageBand = me.age_band
+            this.ageMonths = me.age_months
+            const s = me.settings || {}
+            this.settings = {
+              ttsRate: s.tts_rate ?? 0.8,
+              ttsVoice: TTS_VOICES.has(s.tts_voice) ? s.tts_voice : DEFAULT_TTS_VOICE,
+              audioOnly: s.audio_only ?? this.ageBand === 'A',
+              screenLimitMin: s.screen_limit_min ?? (this.ageBand === 'B' ? 15 : 5),
+              sessionLimitMin: s.session_limit_min ?? (this.ageBand === 'B' ? 5 : 3),
+              bedtimeHour: s.bedtime_hour ?? 21,
+              cloudModel: !!s.cloud_model,
+              cloudConsentedAt: s.cloud_consented_at || null,
+            }
+            if (me.child?.child_id) localStorage.setItem('babyeng_child_id', me.child.child_id)
+            if (me.family?.family_id) localStorage.setItem('babyeng_family_id', me.family.family_id)
           }
-          if (me.child?.child_id) localStorage.setItem('babyeng_child_id', me.child.child_id)
-          if (me.family?.family_id) localStorage.setItem('babyeng_family_id', me.family.family_id)
+        } catch (e) {
+          if (e?.status === 401) {
+            this.resetUserData()
+            return
+          }
+          // 网络失败：本地兜底，保证离线可打开（9.2）
+          console.warn('bootstrap 失败，走本地模式', e)
+          this.initialized = !!localStorage.getItem('babyeng_initialized')
+        } finally {
+          this.loading = false
+          bootstrapPromise = null
         }
-      } catch (e) {
-        if (e?.status === 401) {
-          this.resetUserData()
-          return
-        }
-        // 网络失败：本地兜底，保证离线可打开（9.2）
-        console.warn('bootstrap 失败，走本地模式', e)
-        this.initialized = !!localStorage.getItem('babyeng_initialized')
-      } finally {
-        this.loading = false
-      }
+      })()
+      return bootstrapPromise
     },
 
     resetUserData() {
@@ -94,6 +104,8 @@ export const useAppStore = defineStore('app', {
       this.child = null
       this.ageBand = null
       this.ageMonths = null
+      this.lastBootstrapAt = 0
+      bootstrapPromise = null
       for (const key of ['babyeng_initialized', 'babyeng_family_id', 'babyeng_child_id']) {
         localStorage.removeItem(key)
       }
@@ -105,7 +117,7 @@ export const useAppStore = defineStore('app', {
       if (res.family_id) localStorage.setItem('babyeng_family_id', res.family_id)
       if (res.child_id) localStorage.setItem('babyeng_child_id', res.child_id)
       this.initialized = true
-      await this.bootstrap()
+      await this.bootstrap({ force: true })
       return res
     },
 
