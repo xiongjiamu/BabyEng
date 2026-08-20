@@ -19,6 +19,7 @@ mkdir -p models/piper models/asr
 
 # 2. 启动 MVP（无 LLM，个人服务器最低配置可跑）
 cd deploy
+cp .env.example .env
 cp auth.example.json auth.json
 # 编辑 auth.json，为每个家庭配置不同的账号和高强度密码
 docker compose --profile mvp up -d --build
@@ -32,6 +33,8 @@ docker compose --profile mvp up -d --build
 ## 访问边界
 
 BabyEng 使用 `auth.json` 中的本地账号登录。Compose 默认只把 Web 端口绑定到 `127.0.0.1`，后端 8080 不暴露给宿主机。家庭局域网使用时，将 `WEB_BIND_ADDR` 显式设为服务器内网 IP；不要设为 `0.0.0.0` 后直接映射公网。
+
+`.env.example` 默认监听全部宿主机网卡的 `18080` 端口，适合由服务器防火墙或云安全组限制来源网段的内网部署。若没有外层网络访问限制，应把 `WEB_BIND_ADDR` 改回服务器内网 IP 或 `127.0.0.1`。
 
 `auth.json` 支持多组账号，格式见 `auth.example.json`。文件在每次登录时重新读取，修改账号密码无需重启；已有会话会持续到退出或后端重启。每个账号首次登录后拥有独立家庭、孩子、学习记录、录音、设置、导出和清理范围。账号名用于稳定关联数据，修改账号名会创建新的空数据空间，因此只应修改密码。该文件含明文密码，权限建议设为 `chmod 600 auth.json`，且已被 Git 忽略。
 
