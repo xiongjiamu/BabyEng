@@ -1,0 +1,26 @@
+{
+  "cli_version": "0.10.1",
+  "checkpoint_id": "8f7f71ef9e62",
+  "strategy": "manual-commit",
+  "branch": "openrouter-api",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "backend/src/routes/tts.rs"
+  ],
+  "sessions": [
+    {
+      "metadata": "/8f/7f71ef9e62/0/metadata.json",
+      "transcript": "/8f/7f71ef9e62/0/full.jsonl",
+      "compact_transcript": "/8f/7f71ef9e62/0/transcript.jsonl",
+      "content_hash": "/8f/7f71ef9e62/0/content_hash.txt",
+      "prompt": "/8f/7f71ef9e62/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 330976,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 8899328,
+    "output_tokens": 33258,
+    "api_call_count": 90
+  }
+}
