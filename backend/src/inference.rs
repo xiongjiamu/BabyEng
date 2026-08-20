@@ -15,6 +15,8 @@ pub struct InferenceClients {
     pub timeout: Duration,
     pub ffmpeg_bin: String,
     pub audio_dir: String,
+    pub openrouter_api_key: String,
+    pub openrouter_tts_url: String,
     /// 服务就绪状态（启动探针缓存）
     pub ready: std::sync::RwLock<ReadyState>,
 }
@@ -36,6 +38,8 @@ impl InferenceClients {
             timeout: Duration::from_secs(cfg.svc_timeout_secs),
             ffmpeg_bin: cfg.ffmpeg_bin.clone(),
             audio_dir: cfg.audio_dir.clone(),
+            openrouter_api_key: cfg.openrouter_api_key.clone(),
+            openrouter_tts_url: cfg.openrouter_tts_url.clone(),
             ready: std::sync::RwLock::new(ReadyState::default()),
         }
     }
@@ -66,27 +70,30 @@ impl InferenceClients {
 
     // ---------- TTS ----------
 
-    /// 合成文本 → wav 字节。若模型缺失/服务不可用 → Err(AppError::TtsUnavailable)
-    pub async fn tts_synthesize(
-        &self,
-        text: String,
-        voice: String,
-        rate: f64,
-    ) -> AppResult<Vec<u8>> {
-        let url = format!(
-            "{}/synthesize?text={}&voice={}&length_scale={:.2}",
-            self.tts_url.trim_end_matches('/'),
-            percent_encoding::utf8_percent_encode(&text, percent_encoding::NON_ALPHANUMERIC),
-            voice,
-            rate
-        );
+    pub fn tts_available(&self) -> bool {
+        !self.openrouter_api_key.is_empty()
+    }
+
+    /// 通过 OpenRouter Flux TTS 合成未收录文本，固定使用 Drew 音色并返回 MP3。
+    async fn flux_tts_synthesize(&self, text: String) -> AppResult<Vec<u8>> {
+        if self.openrouter_api_key.is_empty() {
+            return Err(AppError::TtsUnavailable);
+        }
+        let url = self.openrouter_tts_url.clone();
+        let api_key = self.openrouter_api_key.clone();
         let timeout = self.timeout;
         tokio::task::spawn_blocking(move || {
+            let authorization = format!("Bearer {}", api_key);
+            let body = flux_tts_request(&text);
             let resp = ureq::agent()
-                .get(&url)
+                .post(&url)
+                .set("Authorization", &authorization)
+                .set("Content-Type", "application/json")
+                .set("HTTP-Referer", "eng.xxm.mom")
+                .set("X-Title", "BabyEng")
                 .timeout(timeout)
-                .call()
-                .map_err(classify_tts_err)?;
+                .send_json(body)
+                .map_err(classify_flux_tts_err)?;
             if resp.status() != 200 {
                 return Err(AppError::TtsUnavailable);
             }
@@ -94,13 +101,16 @@ impl InferenceClients {
             resp.into_reader()
                 .read_to_end(&mut buf)
                 .map_err(|_| AppError::TtsUnavailable)?;
+            if buf.is_empty() {
+                return Err(AppError::TtsUnavailable);
+            }
             Ok(buf)
         })
         .await
-        .map_err(|e| AppError::Internal(format!("tts task: {}", e)))?
+        .map_err(|e| AppError::Internal(format!("flux tts task: {}", e)))?
     }
 
-    /// 获取 TTS 音频：缓存优先（按 model+voice+text+rate hash，PRD 9.10）
+    /// 获取 TTS 音频：旧 Piper 缓存优先，未命中时用固定 Flux 模型和音色。
     /// 返回 (字节, 扩展名, 是否缓存命中)
     pub async fn tts_audio(
         &self,
@@ -108,33 +118,36 @@ impl InferenceClients {
         voice: &str,
         rate: f64,
     ) -> AppResult<(Vec<u8>, String, bool)> {
-        let key = format!("{}|{}|{:.2}", voice, text, rate);
-        let hash = cache_hash(&key);
         let cache_dir = format!("{}/tts_cache", self.audio_dir);
         std::fs::create_dir_all(&cache_dir).ok();
 
-        // 尝试 opus（已压缩）→ wav
-        let opus_path = format!("{}/{}.opus", cache_dir, hash);
-        if Path::new(&opus_path).exists() {
-            let bytes = std::fs::read(&opus_path)?;
-            return Ok((bytes, "opus".into(), true));
-        }
-        let wav_path = format!("{}/{}.wav", cache_dir, hash);
-        if Path::new(&wav_path).exists() {
-            let bytes = std::fs::read(&wav_path)?;
-            return Ok((bytes, "wav".into(), true));
+        // 优先复用旧 Piper 音色已收录的音频，再查固定 Flux 音色缓存。
+        let legacy_key = format!("{}|{}|{:.2}", voice, text, rate);
+        let flux_key = format!("deepgram/flux-tts:free|flux-drew-en|{}", text);
+        for (hash, extensions) in [
+            (cache_hash(&legacy_key), ["opus", "wav"]),
+            (cache_hash(&flux_key), ["opus", "mp3"]),
+        ] {
+            for ext in extensions {
+                let path = format!("{}/{}.{}", cache_dir, hash, ext);
+                if Path::new(&path).exists() {
+                    let bytes = std::fs::read(&path)?;
+                    return Ok((bytes, ext.into(), true));
+                }
+            }
         }
 
-        // 未命中 → 实时合成（Piper 输出 wav）→ 压 Opus 减带宽（9.10），失败则存 wav
-        let wav = self
-            .tts_synthesize(text.to_string(), voice.to_string(), rate)
-            .await?;
-        let converted = self.to_opus(&wav, &wav_path, &opus_path);
+        // 未收录 → OpenRouter Flux TTS 固定 Drew 音色 → 压 Opus，不使用用户 Piper 配置。
+        let hash = cache_hash(&flux_key);
+        let opus_path = format!("{}/{}.opus", cache_dir, hash);
+        let mp3_path = format!("{}/{}.mp3", cache_dir, hash);
+        let mp3 = self.flux_tts_synthesize(text.to_string()).await?;
+        let converted = self.to_opus(&mp3, &mp3_path, &opus_path);
         match converted {
             Some(opus_bytes) => Ok((opus_bytes, "opus".into(), false)),
             None => {
-                std::fs::write(&wav_path, &wav).ok();
-                Ok((wav, "wav".into(), false))
+                std::fs::write(&mp3_path, &mp3).ok();
+                Ok((mp3, "mp3".into(), false))
             }
         }
     }
@@ -224,11 +237,19 @@ pub struct AsrOutcome {
     pub confidence: Option<f64>,
 }
 
-fn classify_tts_err(e: ureq::Error) -> AppError {
+fn classify_flux_tts_err(e: ureq::Error) -> AppError {
     match e {
-        ureq::Error::Status(503, _) | ureq::Error::Status(500, _) => AppError::TtsUnavailable,
-        _ => AppError::Inference(format!("tts error: {}", e)),
+        ureq::Error::Status(_, _) | ureq::Error::Transport(_) => AppError::TtsUnavailable,
     }
+}
+
+fn flux_tts_request(text: &str) -> serde_json::Value {
+    serde_json::json!({
+        "model": "deepgram/flux-tts:free",
+        "input": text,
+        "voice": "flux-drew-en",
+        "response_format": "mp3"
+    })
 }
 
 fn classify_asr_err(e: ureq::Error) -> AppError {
@@ -246,4 +267,101 @@ fn cache_hash(s: &str) -> String {
         h = h.wrapping_mul(0x100000001b3);
     }
     format!("{:016x}", h)
+}
+
+#[cfg(test)]
+mod tests {
+    use std::io::{Read, Write};
+    use std::net::TcpListener;
+    use std::sync::mpsc;
+    use std::time::Duration;
+
+    use super::{flux_tts_request, InferenceClients, ReadyState};
+
+    #[test]
+    fn flux_request_uses_fixed_model_voice_and_mp3() {
+        assert_eq!(
+            flux_tts_request("A red cup."),
+            serde_json::json!({
+                "model": "deepgram/flux-tts:free",
+                "input": "A red cup.",
+                "voice": "flux-drew-en",
+                "response_format": "mp3"
+            })
+        );
+    }
+
+    #[tokio::test]
+    async fn cache_miss_calls_flux_once_and_ignores_later_piper_voice() {
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let address = listener.local_addr().unwrap();
+        let (request_tx, request_rx) = mpsc::channel();
+        std::thread::spawn(move || {
+            let (mut stream, _) = listener.accept().unwrap();
+            let mut request = Vec::new();
+            let mut buf = [0_u8; 2048];
+            loop {
+                let count = stream.read(&mut buf).unwrap();
+                if count == 0 {
+                    break;
+                }
+                request.extend_from_slice(&buf[..count]);
+                let Some(header_end) = request.windows(4).position(|w| w == b"\r\n\r\n") else {
+                    continue;
+                };
+                let headers = String::from_utf8_lossy(&request[..header_end]);
+                let content_length = headers
+                    .lines()
+                    .find_map(|line| {
+                        line.to_ascii_lowercase()
+                            .strip_prefix("content-length:")
+                            .and_then(|value| value.trim().parse::<usize>().ok())
+                    })
+                    .unwrap();
+                if request.len() >= header_end + 4 + content_length {
+                    break;
+                }
+            }
+            request_tx.send(String::from_utf8(request).unwrap()).unwrap();
+            stream
+                .write_all(b"HTTP/1.1 200 OK\r\nContent-Type: audio/mpeg\r\nContent-Length: 11\r\nConnection: close\r\n\r\nID3testdata")
+                .unwrap();
+        });
+
+        let audio_dir = std::env::temp_dir()
+            .join(format!("babyeng-flux-test-{}", uuid::Uuid::new_v4()))
+            .to_string_lossy()
+            .into_owned();
+        let clients = InferenceClients {
+            tts_url: String::new(),
+            asr_url: String::new(),
+            llm_url: String::new(),
+            timeout: Duration::from_secs(2),
+            ffmpeg_bin: "babyeng-test-ffmpeg-not-installed".into(),
+            audio_dir,
+            openrouter_api_key: "test-key".into(),
+            openrouter_tts_url: format!("http://{}/api/v1/audio/speech", address),
+            ready: std::sync::RwLock::new(ReadyState::default()),
+        };
+
+        let first = clients
+            .tts_audio("A red cup.", "en_US-mike-medium", 0.8)
+            .await
+            .unwrap();
+        let second = clients
+            .tts_audio("A red cup.", "en_US-amy-medium", 1.2)
+            .await
+            .unwrap();
+
+        assert_eq!(first, (b"ID3testdata".to_vec(), "mp3".into(), false));
+        assert_eq!(second, (b"ID3testdata".to_vec(), "mp3".into(), true));
+        let request = request_rx.recv_timeout(Duration::from_secs(2)).unwrap();
+        let request_lower = request.to_ascii_lowercase();
+        assert!(request.starts_with("POST /api/v1/audio/speech HTTP/1.1\r\n"));
+        assert!(request_lower.contains("authorization: bearer test-key\r\n"));
+        assert!(request_lower.contains("http-referer: eng.xxm.mom\r\n"));
+        assert!(request_lower.contains("x-title: babyeng\r\n"));
+        assert!(request.contains("\"model\":\"deepgram/flux-tts:free\""));
+        assert!(request.contains("\"voice\":\"flux-drew-en\""));
+    }
 }

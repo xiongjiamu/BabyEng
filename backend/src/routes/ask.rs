@@ -251,7 +251,7 @@ async fn run_pipeline(
     let outcome = matcher.match_query(&normalized, raw);
     drop(matcher);
 
-    let tts_ready = state.inference.ready.read().map(|r| r.tts).unwrap_or(false);
+    let tts_ready = state.inference.tts_available();
 
     match outcome {
         Match::Hit(target, level) => {

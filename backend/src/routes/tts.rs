@@ -1,5 +1,5 @@
 //! M4 TTS 音频接口（PRD 4.4 / 9.4 / 9.10）
-//! GET /api/tts/audio?text=&voice=&rate= → 缓存优先，未命中实时合成并压 Opus
+//! GET /api/tts/audio?text=&voice=&rate= → 缓存优先，未命中用 Flux TTS 合成并压 Opus
 //! TTS 服务不可用 → 503（tts_unavailable），前端降级为「发音暂时不可用」不阻断（4.1.3）
 
 use axum::extract::{Query, State};
@@ -44,6 +44,7 @@ async fn audio(State(state): State<SharedState>, Query(q): Query<TtsQuery>) -> A
     let (bytes, ext, _cached) = state.inference.tts_audio(&text, &voice, rate).await?;
     let mime = match ext.as_str() {
         "opus" => "audio/ogg",
+        "mp3" => "audio/mpeg",
         _ => "audio/wav",
     };
     let mut resp = axum::response::Response::new(axum::body::Body::from(bytes));

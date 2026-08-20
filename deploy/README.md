@@ -6,7 +6,7 @@
 [移动端 PWA] ──HTTPS── [Nginx(web)] ──/api── [backend Rust:8080]
                                     │
                         [SQLite /data/babyeng.db]
-                        [TTS Piper  :8101]
+                        [TTS cache + OpenRouter Flux fallback]
                         [ASR sherpa :8102]
                         [LLM 可选   :8103, profile=full]
 ```
@@ -42,7 +42,7 @@ BabyEng 使用 `auth.json` 中的本地账号登录。Compose 默认只把 Web �
 
 ## 模型下载
 
-TTS（Piper，每个音色约 60MB）：
+Piper 模型只用于复用已有的本地发音缓存（每个音色约 60MB）。新内容不再调用 Piper 实时生成：
 ```bash
 # 下载应用可选的 6 个美式英语音色；Mike 为默认音色
 mkdir -p models/piper
@@ -61,7 +61,7 @@ tar xjf sherpa-onnx-streaming-zipformer-bilingual-zh-en-2023-02-20.tar.bz2
 rm sherpa-onnx-streaming-zipformer-bilingual-zh-en-2023-02-20.tar.bz2
 ```
 
-**模型缺失时应用仍可用**：TTS/ASR 返回 503，前端自动降级——
+**模型缺失时应用仍可用**：配置 `OPENROUTER_API_KEY` 后，未收录发音会由 OpenRouter Flux TTS 生成并缓存；OpenRouter 或 ASR 不可用时，前端自动降级——
 问一问改打字、发音显示「暂时不可用」，不影响文字教学闭环（PRD 4.1.3 / 5.4）。
 
 ## 环境变量
@@ -71,6 +71,7 @@ rm sherpa-onnx-streaming-zipformer-bilingual-zh-en-2023-02-20.tar.bz2
 | `WEB_BIND_ADDR` | 127.0.0.1 | Web 监听地址；家庭局域网使用时填写服务器内网 IP |
 | `WEB_PORT` | 80 | Web 宿主机端口；端口冲突时可改为 8080 等空闲端口 |
 | `AUTH_FILE` | ./auth.json | 宿主机账号配置文件路径，只读挂载到后端 |
+| `OPENROUTER_API_KEY` | 空 | OpenRouter Key；本地音频未收录时固定用 `deepgram/flux-tts:free` 的 `flux-drew-en` 生成 |
 | `LLM_BASE_URL` | http://host.docker.internal:11434/v1 | 本地 ollama 或云端 OpenAI 兼容地址（full profile） |
 | `LLM_API_KEY` | 空 | 云端 API Key（full profile） |
 | `LLM_MODEL` | qwen2.5:7b-instruct | 模型名（full profile） |
