@@ -7,7 +7,8 @@
     "release-check": "node release-check.js",
     "degradation-check": "node degradation-check.js",
     "pronunciation-check": "node pronunciation-check.js",
-    "device-evidence": "node device-evidence.js"
+    "device-evidence": "node device-evidence.js",
+    "custom-voice-readiness": "node custom-voice-readiness.js"
   },
   "devDependencies": {
     "playwright-core": "1.62.1"

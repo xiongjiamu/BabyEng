@@ -197,7 +197,7 @@
     <!-- 底部动作条：结果态才出现 -->
     <div v-if="state === 'result' || state === 'ttsdown'" class="footer-act">
       <div class="stack-3">
-        <router-link class="btn btn-primary btn-block btn-lg" :to="{ path: '/compare', query: { target_type: result?.target_type, target_id: result?.target_id, en: result?.en, zh: result?.zh, phonetic: result?.phonetic, emoji: result?.image_emoji } }">
+        <router-link class="btn btn-primary btn-block btn-lg" :to="{ path: '/compare', query: { target_type: result?.target_type, target_id: result?.target_id, en: result?.en, zh: result?.zh, phonetic: result?.phonetic, emoji: result?.image_emoji, ask_event_id: askEventId || undefined } }">
           🎤 让宝宝跟读
         </router-link>
         <button class="btn-quiet btn-block" @click="reset">再问一个</button>
@@ -228,6 +228,7 @@ const askDuration = ref(0)
 const showTextInput = ref(false)
 const textInput = ref('')
 const playing = ref(false)
+const askEventId = ref('')
 
 const isSecure = computed(() => window.isSecureContext)
 
@@ -439,6 +440,7 @@ async function askByText() {
 }
 
 function applyResponse(res) {
+  askEventId.value = res.event_id || ''
   if (res.status === 'hit' || res.status === 'tts_only_down') {
     result.value = res.result
     recognizedText.value = res.recognized_text || ''
@@ -465,8 +467,9 @@ function applyResponse(res) {
 
 async function confirm(c) {
   try {
-    const res = await api.askConfirm(c.target_type, c.target_id, store.childId)
+    const res = await api.askConfirm(c.target_type, c.target_id, store.childId, askEventId.value || undefined)
     result.value = res.result
+    askEventId.value = res.event_id || ''
     state.value = res.result?.tts_available === false ? 'ttsdown' : 'result'
   } catch {
     // 本地兜底
@@ -489,6 +492,7 @@ function reset() {
   candidates.value = []
   recognizedText.value = ''
   recognizedHint.value = ''
+  askEventId.value = ''
 }
 
 function sceneLabel(s) {

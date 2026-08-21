@@ -112,6 +112,8 @@ AUTH_USERNAME=family-a AUTH_PASSWORD='你的密码' npm run pronunciation-check 
 npm run pronunciation-check -- --verify-manual /tmp/babyeng-a6-pronunciation.json
 npm run device-evidence -- --generate /tmp/babyeng-device-evidence.json
 npm run device-evidence -- --verify /tmp/babyeng-device-evidence.json
+npm run custom-voice-readiness -- --generate /tmp/babyeng-custom-voice-readiness.json
+npm run custom-voice-readiness -- --verify /tmp/babyeng-custom-voice-readiness.json
 ```
 
 `verify` 检查 12 个页面、主要交互和 API；`release-check` 自动覆盖 A2 全量别名、A3 十例同音容错与 A4 十例未命中。它输出的 A1 数值只是本机文字 API 基线，不能替代局域网中端安卓语音链路的 P95 验收。
@@ -122,9 +124,14 @@ npm run device-evidence -- --verify /tmp/babyeng-device-evidence.json
 
 `device-evidence` 生成权限为 `0600` 的 A1/A5/A7/A8 与屏幕计时真机清单。A1 必须填写中端安卓 Chrome 的 20 次语音样本，校验器计算 P95 并执行 1200ms/800ms 阈值；A5、A7、A8 和屏幕计时必须同时有安卓与 iOS 的设备、浏览器、验收人、时间及逐项通过记录，iOS 四项 PWA 限制允许结论为 supported/limited/unavailable，但必须描述实测行为并确认应对路径。空模板不能通过 `--verify`，桌面模拟数据也不能替代真机字段。
 
+`custom-voice-readiness` 只生成和校验自定义音色的人工决策清单，不读取、复制或上传录音，也不会启动训练。清单固定为本家庭成年母亲的本地英语 TTS，明确拒绝幼儿音色；必须填完说话人授权、20～30 分钟试采目标、原始/派生/模型/缓存/备份删除边界、隔离 GPU、训练器与 checkpoint 许可证以及批准人和时间。空白清单、允许幼儿声音、低于 8 GB VRAM、云训练或覆盖已有证据文件都会被拒绝。详细边界见 `docs/自定义音色准备与数据治理.md`；校验通过只代表决策完整，不代表已经采集、训练或获得可用音色。
+
 A6 必须人工逐条试听 58 条 TTS 音频并核对音标；A7 仍需人工查看 TTS/ASR 故障时的界面降级；A8 必须在安卓 Chrome 与 iOS Safari 各完成完整闭环并记录 PRD 9.2 的四项结论。
 
 管理后台可为已保存的单词和亲子活动上传 JPEG、PNG 或 WebP 实物照片，单张不超过 5 MB；替换和删除都需要明确确认。照片保存在 Backend 数据卷的 `/data/content-images`，应随数据库和录音一并备份。课程 JSON 导入导出不嵌入图片文件；迁移课程时需另行复制该目录。未上传照片时前端继续显示课程 emoji。
+课程列表会汇总可配照片内容的覆盖率，并在每个单词/活动旁标记“有照片”或“待照片”；句子不支持照片并明确显示“无照片”。
+
+管理后台的“使用证据”从数据库迁移 `0009_usage_evidence` 生效后开始按 7、28 或 90 天统计 PRD 13 指标。事件只保存输入方式、命中状态、课程目标、后端处理时长及问答—跟读关联，不额外复制提问原文；未命中原文仍只保存在原有待补词表中。未命中率以已经获得文本的提问为分母，`asr_fail` 只进入 ASR 成功率和总问答闭环率，避免把识别故障误判为词库缺口。闭环教学日要求同一问答事件关联到已保存的宝宝跟读录音。跟踪周从首条事件日期起每 7 天分组，无事件周显示为零，当前未满 7 天的周期标为“进行中”；只有首个 28 天完整结束后才显示前四周周均、第 4 周目标与止损结论。统计事件会进入家庭数据导出，也会随“清空学习数据”的明确确认一起删除。历史数据不会推测补齐，页面显示的后端 P95 不能替代 A1 真机端到端时延。
 
 ## 无 GPU 说明（PRD 9.7）
 

@@ -208,6 +208,10 @@ async function completeRecording() {
   finishingRecording = false
   if (!r) {
     view.value = 'tooshort'
+    const attemptedDuration = Math.max(Number(recDurationMs.value) || 0, 0)
+    if (attemptedDuration < 500) {
+      api.recordTooShortAttempt(store.childId, attemptedDuration).catch(() => {})
+    }
     return
   }
   kidBlob.value = r.blob
@@ -238,6 +242,7 @@ async function mark(motherMark) {
         targetType: targetType.value,
         targetId: targetId.value,
         durationMs: kidDuration.value,
+        askEventId: route.query.ask_event_id || '',
       })
     }
   } catch {

@@ -106,8 +106,8 @@ export const api = {
     if (familyId) form.append('family_id', familyId)
     return authFetch(BASE + '/ask/voice', { method: 'POST', body: form }).then(handleJson)
   },
-  askConfirm: (targetType, targetId, childId) =>
-    request('/ask/confirm', { method: 'POST', body: JSON.stringify({ target_type: targetType, target_id: targetId, child_id: childId }) }),
+  askConfirm: (targetType, targetId, childId, eventId) =>
+    request('/ask/confirm', { method: 'POST', body: JSON.stringify({ target_type: targetType, target_id: targetId, child_id: childId, event_id: eventId }) }),
 
   // ---------- TTS ----------
   ttsUrl: (text, rate = 0.8, voice = 'en_US-mike-medium') =>
@@ -124,15 +124,18 @@ export const api = {
   todayActivities: (childId = '') => request(`/activities/today${childId ? `?child_id=${encodeURIComponent(childId)}` : ''}`),
 
   // ---------- 录音（M3） ----------
-  uploadRecording: (blob, fileName, { childId, targetType, targetId, durationMs }) => {
+  uploadRecording: (blob, fileName, { childId, targetType, targetId, durationMs, askEventId }) => {
     const form = new FormData()
     form.append('audio', blob, fileName)
     form.append('child_id', childId)
     form.append('target_type', targetType)
     form.append('target_id', targetId)
     form.append('duration_ms', String(durationMs))
+    if (askEventId) form.append('ask_event_id', askEventId)
     return authFetch(BASE + '/recordings', { method: 'POST', body: form }).then(handleJson)
   },
+  recordTooShortAttempt: (childId, durationMs) =>
+    request('/recording-attempts/too-short', { method: 'POST', body: JSON.stringify({ child_id: childId, duration_ms: durationMs }) }),
   recordings: (childId) => request(`/recordings?child_id=${childId}`),
   recordingUrl: (id) => `${BASE}/recordings/${id}/audio?access_token=${encodeURIComponent(authToken())}`,
   favoriteRecording: (id, favorited) => request(`/recordings/${id}/favorite?favorited=${favorited}`, { method: 'POST' }),
@@ -176,6 +179,7 @@ export const api = {
   adminCreateUser: (data) => request('/admin/users', { method: 'POST', body: JSON.stringify(data) }),
   adminUpdateUser: (username, data) => request(`/admin/users/${encodeURIComponent(username)}`, { method: 'PUT', body: JSON.stringify(data) }),
   adminCourses: (subject) => request(`/admin/courses?subject=${encodeURIComponent(subject)}`),
+  adminUsageMetrics: (days = 28) => request(`/admin/usage-metrics?days=${days}`),
   adminCreateCourse: async (data) => {
     const result = await request('/admin/courses', { method: 'POST', body: JSON.stringify(data) })
     invalidateCourseCaches()

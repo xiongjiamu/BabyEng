@@ -112,6 +112,7 @@ pub struct AskResponse {
     pub recognized_text: Option<String>,
     pub normalized_text: Option<String>,
     pub unmatched_id: Option<String>, // nomatch 时写入的未命中表 id
+    pub event_id: Option<String>,     // 本地使用证据事件；可贯穿到跟读录音
     pub message: Option<String>,
 }
 

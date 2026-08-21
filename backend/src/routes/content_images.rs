@@ -259,6 +259,11 @@ fn find_image(root: &str, kind: &str, id: &str) -> Option<(std::path::PathBuf, I
     None
 }
 
+/// 管理后台课程列表只需要知道是否已有照片，不暴露文件路径。
+pub(crate) fn image_exists(root: &str, kind: &str, id: &str) -> bool {
+    validate_target(kind, id).is_ok() && find_image(root, kind, id).is_some()
+}
+
 fn empty_not_found() -> Response<Body> {
     Response::builder()
         .status(StatusCode::NOT_FOUND)
@@ -293,5 +298,12 @@ mod tests {
             Some(ImageFormat::WebP)
         );
         assert_eq!(detect_image_format(b"<svg onload='alert(1)'>"), None);
+    }
+
+    #[test]
+    fn image_exists_never_resolves_unsafe_paths() {
+        assert!(!image_exists("/tmp", "word", "../auth.json"));
+        assert!(!image_exists("/tmp", "sentence", "sentence_one"));
+        assert!(!image_exists("/tmp", "word", "word_missing"));
     }
 }

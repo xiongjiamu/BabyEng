@@ -70,6 +70,7 @@ export function useRecorder() {
       mediaRecorder.onstop = () => {
         cleanupStream()
         const elapsed = Date.now() - startTs
+        durationMs.value = Math.min(elapsed, MAX_MS)
         if (elapsed < 500 || chunks.length === 0) {
           chunks = []
           resolveStop?.(null)
