@@ -21,6 +21,7 @@ pub fn router() -> Router<SharedState> {
         .route("/api/admin/courses/{id}", put(update_course))
         .route("/api/admin/courses/import", post(import_courses))
         .route("/api/admin/usage-metrics", get(usage_metrics))
+        .route("/api/admin/unmatched", get(unmatched))
 }
 
 fn require_admin(user: &AuthUser) -> AppResult<()> {
@@ -35,6 +36,80 @@ fn require_admin(user: &AuthUser) -> AppResult<()> {
 struct UsageMetricsQuery {
     days: Option<i64>,
     family_id: Option<String>,
+}
+
+#[derive(Deserialize)]
+struct AdminUnmatchedQuery {
+    days: Option<i64>,
+    limit: Option<i64>,
+    status: Option<String>,
+}
+
+/// 管理员补词清单只返回归一化文本和聚合计数，不把家庭原始提问跨家庭暴露。
+async fn unmatched(
+    State(state): State<SharedState>,
+    Extension(user): Extension<AuthUser>,
+    Query(query): Query<AdminUnmatchedQuery>,
+) -> AppResult<Json<serde_json::Value>> {
+    require_admin(&user)?;
+    let days = validate_metrics_days(query.days.unwrap_or(90))?;
+    let limit = query.limit.unwrap_or(100).clamp(1, 500);
+    let status = query.status.unwrap_or_else(|| "pending".into());
+    validate_unmatched_status(&status)?;
+    let window = format!("-{} days", days);
+    let rows = if status == "all" {
+        sqlx::query(
+            "SELECT normalized_text, COUNT(DISTINCT family_id) AS family_count, \
+                    SUM(hit_count) AS hit_count, MAX(last_seen_at) AS last_seen_at \
+             FROM unmatched_query \
+             WHERE datetime(last_seen_at)>=datetime('now', ?) \
+             GROUP BY normalized_text \
+             ORDER BY hit_count DESC, last_seen_at DESC LIMIT ?",
+        )
+        .bind(&window)
+        .bind(limit)
+        .fetch_all(&state.pool)
+        .await?
+    } else {
+        sqlx::query(
+            "SELECT normalized_text, COUNT(DISTINCT family_id) AS family_count, \
+                    SUM(hit_count) AS hit_count, MAX(last_seen_at) AS last_seen_at \
+             FROM unmatched_query \
+             WHERE status=? AND datetime(last_seen_at)>=datetime('now', ?) \
+             GROUP BY normalized_text \
+             ORDER BY hit_count DESC, last_seen_at DESC LIMIT ?",
+        )
+        .bind(&status)
+        .bind(&window)
+        .bind(limit)
+        .fetch_all(&state.pool)
+        .await?
+    };
+    let items = rows
+        .iter()
+        .map(|row| {
+            Ok(json!({
+                "normalized_text": row.try_get::<String, _>("normalized_text")?,
+                "family_count": row.try_get::<i64, _>("family_count")?,
+                "hit_count": row.try_get::<i64, _>("hit_count")?,
+                "last_seen_at": row.try_get::<String, _>("last_seen_at")?,
+            }))
+        })
+        .collect::<AppResult<Vec<_>>>()?;
+    Ok(Json(json!({
+        "items": items,
+        "count": items.len(),
+        "days": days,
+        "status": status,
+    })))
+}
+
+fn validate_unmatched_status(status: &str) -> AppResult<()> {
+    if matches!(status, "pending" | "adopted" | "rejected" | "all") {
+        Ok(())
+    } else {
+        Err(AppError::BadRequest("status 非法".into()))
+    }
 }
 
 async fn usage_metrics(
@@ -771,6 +846,14 @@ mod usage_metrics_tests {
         }
         assert!(validate_metrics_days(0).is_err());
         assert!(validate_metrics_days(365).is_err());
+    }
+
+    #[test]
+    fn unmatched_status_is_explicitly_bounded() {
+        for status in ["pending", "adopted", "rejected", "all"] {
+            assert!(validate_unmatched_status(status).is_ok());
+        }
+        assert!(validate_unmatched_status("anything").is_err());
     }
 
     #[test]

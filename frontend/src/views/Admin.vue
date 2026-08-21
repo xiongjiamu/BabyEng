@@ -47,6 +47,15 @@
             <div v-for="week in family.weeks" :key="week.week_number" class="week-row"><span>第 {{ week.week_number }} 周<br><small>{{ week.week_start }}{{ week.is_complete ? '' : ' · 进行中' }}</small></span><span>{{ week.teaching_days }}</span><span>{{ week.asks }}</span><span>{{ week.completed }}</span><span>{{ week.misses }}</span></div>
           </div>
         </section>
+        <section class="metrics-family stack-4">
+          <div><h3 class="t-zh-lg">待补词清单</h3><div class="t-mom-sm">近 {{ metricsDays }} 天按归一化提问聚合，不显示家庭原始录音或原始文本</div></div>
+          <div v-if="unmatchedLoading" class="card-flat t-mom">正在读取待补词…</div>
+          <div v-else-if="!unmatched.length" class="card-flat t-mom">当前窗口没有待处理的未命中提问。</div>
+          <div v-else class="unmatched-table">
+            <div class="unmatched-row unmatched-head"><span>归一化提问</span><span>出现家庭</span><span>次数</span><span>最近出现</span></div>
+            <div v-for="item in unmatched" :key="item.normalized_text" class="unmatched-row"><span>{{ item.normalized_text }}</span><span>{{ item.family_count }}</span><span>{{ item.hit_count }}</span><span>{{ formatDateTime(item.last_seen_at) }}</span></div>
+          </div>
+        </section>
         <p class="note">统计从本次事件口径上线后开始，历史学习记录不会被推测补齐。闭环教学日要求同一次问答事件关联到已保存的跟读录音；后端 P95 只用于服务端趋势定位。</p>
       </template>
 
@@ -127,7 +136,7 @@ const tab = ref('courses'), subject = ref('english'), users = ref([]), courses =
 const coursePhotoCoverage = ref(null)
 const userSheet = ref(false), courseSheet = ref(false), editingUser = ref(''), editingCourseId = ref(''), aliasesText = ref(''), saving = ref(false)
 const message = ref(''), messageType = ref('ok')
-const metrics = ref([]), metricsDays = ref(28), metricsLoading = ref(false)
+const metrics = ref([]), metricsDays = ref(28), metricsLoading = ref(false), unmatched = ref([]), unmatchedLoading = ref(false)
 const savingImage = ref(false), courseImageExists = ref(false), imageVersion = ref(Date.now())
 const subjects = [{ id:'english',label:'英语' },{ id:'chinese',label:'语文' },{ id:'math',label:'数学' }]
 const materialOptions = [{id:'household_objects',label:'日常物品'},{id:'toys_blocks',label:'玩具积木'},{id:'food_tableware',label:'食物餐具'},{id:'clothing',label:'衣物'},{id:'movement_space',label:'活动空间'}]
@@ -140,7 +149,7 @@ async function loadUsers(){ try { users.value=(await api.adminUsers()).users||[]
 async function loadCourses(){ try { const result=await api.adminCourses(subject.value); courses.value=result.items||[]; coursePhotoCoverage.value=result.photo_coverage||null } catch(e){ show(e.message,'danger') } }
 async function selectSubject(value){ subject.value=value; await loadCourses() }
 async function selectTab(value){ tab.value=value; if(value==='metrics')await loadMetrics() }
-async function loadMetrics(){ metricsLoading.value=true; try{metrics.value=(await api.adminUsageMetrics(metricsDays.value)).families||[]}catch(e){show(e.message,'danger')}finally{metricsLoading.value=false} }
+async function loadMetrics(){ metricsLoading.value=true; unmatchedLoading.value=true; try { const [metricResult, unmatchedResult] = await Promise.all([api.adminUsageMetrics(metricsDays.value), api.adminUnmatched(metricsDays.value)]); metrics.value=metricResult.families||[]; unmatched.value=unmatchedResult.items||[] } catch(e){ show(e.message,'danger') } finally { metricsLoading.value=false; unmatchedLoading.value=false } }
 function formatRate(value){ return value == null ? '—' : `${Math.round(value*100)}%` }
 function formatNumber(value){ return value == null ? '—' : Number(value).toFixed(1) }
 function formatDateTime(value){ const date=new Date(value); return Number.isNaN(date.getTime())?value:date.toLocaleString() }
@@ -193,6 +202,10 @@ function show(text,type='ok'){ message.value=text; messageType.value=type; setTi
 .week-row { display:grid;grid-template-columns:minmax(100px,1.4fr) repeat(4,minmax(58px,1fr));min-width:420px;padding:10px 12px;border-top:1px solid var(--c-line);font-size:13px;text-align:center; }
 .week-row:first-child { border-top:0; }
 .week-head { font-weight:800;background:var(--c-surface-2); }
+.unmatched-table { overflow-x:auto;border:1px solid var(--c-line);border-radius:var(--r-md); }
+.unmatched-row { display:grid;grid-template-columns:minmax(130px,1.6fr) repeat(3,minmax(80px,1fr));min-width:500px;padding:10px 12px;border-top:1px solid var(--c-line);font-size:13px;gap:8px;align-items:center; }
+.unmatched-row:first-child { border-top:0; }
+.unmatched-head { font-weight:800;background:var(--c-surface-2); }
 @media (min-width: 760px) {
   .admin-tabs { width:540px;margin:var(--sp-4) auto 0; }
   .admin-main > .list { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--sp-3);background:transparent; }

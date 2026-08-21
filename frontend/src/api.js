@@ -180,6 +180,7 @@ export const api = {
   adminUpdateUser: (username, data) => request(`/admin/users/${encodeURIComponent(username)}`, { method: 'PUT', body: JSON.stringify(data) }),
   adminCourses: (subject) => request(`/admin/courses?subject=${encodeURIComponent(subject)}`),
   adminUsageMetrics: (days = 28) => request(`/admin/usage-metrics?days=${days}`),
+  adminUnmatched: (days = 90, limit = 100) => request(`/admin/unmatched?days=${days}&limit=${limit}`),
   adminCreateCourse: async (data) => {
     const result = await request('/admin/courses', { method: 'POST', body: JSON.stringify(data) })
     invalidateCourseCaches()
