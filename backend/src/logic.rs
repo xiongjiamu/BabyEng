@@ -123,7 +123,7 @@ pub async fn record_learning(
             .execute(pool)
             .await?;
         }
-        "review" => {
+        "review" | "observe" => {
             // review 也算当日学习动作（计入打卡），但不加 learn_count
             sqlx::query(
                 "INSERT OR IGNORE INTO child_daily (child_id, day, learn_count) VALUES (?,?,0)",
@@ -144,7 +144,11 @@ fn compute_mastery(marks: &[String], quizs: &[String], exposure: f64, recency: f
     let signal_m: Option<f64> = {
         let vals: Vec<f64> = marks
             .iter()
-            .map(|m| if m == "got_it" { 1.0 } else { 0.0 })
+            .map(|m| match m.as_str() {
+                "got_it" | "observed_independent" => 1.0,
+                "observed_with_help" => 0.6,
+                _ => 0.0,
+            })
             .collect();
         if vals.is_empty() {
             None
@@ -186,6 +190,27 @@ pub async fn bump_recording(pool: &SqlitePool, child_id: &str, duration_ms: i64)
     .execute(pool)
     .await?;
     Ok(())
+}
+
+/// 累计幼儿实际看图时长。前端只在可见的幼儿学习页调用，纯音频模式不调用。
+pub async fn bump_screen_time(pool: &SqlitePool, child_id: &str, seconds: i64) -> AppResult<i64> {
+    let local_day = Local::now().date_naive().format("%Y-%m-%d").to_string();
+    sqlx::query(
+        "INSERT INTO child_daily (child_id, day, screen_sec) VALUES (?,?,?) \
+         ON CONFLICT(child_id, day) DO UPDATE SET screen_sec = screen_sec + excluded.screen_sec",
+    )
+    .bind(child_id)
+    .bind(&local_day)
+    .bind(seconds)
+    .execute(pool)
+    .await?;
+
+    let total = sqlx::query_scalar("SELECT screen_sec FROM child_daily WHERE child_id=? AND day=?")
+        .bind(child_id)
+        .bind(&local_day)
+        .fetch_one(pool)
+        .await?;
+    Ok(total)
 }
 
 /// 今日小结（首页进度 + 打卡）
@@ -411,4 +436,28 @@ pub fn review_label(mastery: f64) -> String {
 pub fn _touch(pool: &SqlitePool) -> DateTime<Utc> {
     let _ = pool;
     Utc::now()
+}
+
+#[cfg(test)]
+mod screen_time_tests {
+    use super::*;
+    use sqlx::sqlite::SqlitePoolOptions;
+
+    #[tokio::test]
+    async fn screen_time_increments_existing_daily_row() {
+        let pool = SqlitePoolOptions::new()
+            .max_connections(1)
+            .connect("sqlite::memory:")
+            .await
+            .unwrap();
+        sqlx::query(
+            "CREATE TABLE child_daily (child_id TEXT NOT NULL, day TEXT NOT NULL, learn_count INTEGER NOT NULL DEFAULT 0, rec_count INTEGER NOT NULL DEFAULT 0, rec_ms INTEGER NOT NULL DEFAULT 0, screen_sec INTEGER NOT NULL DEFAULT 0, frozen INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(child_id, day))",
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+
+        assert_eq!(bump_screen_time(&pool, "child-1", 15).await.unwrap(), 15);
+        assert_eq!(bump_screen_time(&pool, "child-1", 12).await.unwrap(), 27);
+    }
 }

@@ -39,7 +39,7 @@ async fn subject_items(
     }
     let child_id = auth::resolve_child(&state.pool, &user, q.child_id.as_deref()).await?;
     let learned_rows = sqlx::query(
-        "SELECT target_id FROM progress WHERE child_id=? AND target_type='subject_item'",
+        "SELECT target_id FROM progress WHERE child_id=? AND target_type='subject_item' AND learn_count>0",
     )
     .bind(&child_id)
     .fetch_all(&state.pool)

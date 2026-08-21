@@ -35,6 +35,7 @@ export const useAppStore = defineStore('app', {
     },
     // 会话内屏幕计时（B 段看图时累计，纯音频不计入）
     screenSecToday: 0,
+    screenSessionSec: 0,
     // 推理服务就绪状态（首页「正在启动」提示条，5.4）
     svcReady: { tts: false, asr: false, llm: false },
     // 麦克风权限状态
@@ -48,6 +49,8 @@ export const useAppStore = defineStore('app', {
     isBandB: (s) => s.ageBand === 'B',
     dailyScreenLimitSec: (s) => (s.settings.screenLimitMin || 0) * 60,
     screenExceeded: (s) => s.dailyScreenLimitSec > 0 && s.screenSecToday >= s.dailyScreenLimitSec,
+    sessionScreenLimitSec: (s) => (s.settings.sessionLimitMin || 0) * 60,
+    sessionExceeded: (s) => s.sessionScreenLimitSec > 0 && s.screenSessionSec >= s.sessionScreenLimitSec,
     childId: (s) => s.child?.child_id || localStorage.getItem('babyeng_child_id') || '',
     familyId: (s) => s.family?.family_id || localStorage.getItem('babyeng_family_id') || '',
   },
@@ -154,6 +157,15 @@ export const useAppStore = defineStore('app', {
     // 屏幕时间累计（看图模式才累计；纯音频不计入，6.6）
     tickScreen(seconds) {
       this.screenSecToday += seconds
+      this.screenSessionSec += seconds
+    },
+
+    setScreenTimeToday(seconds) {
+      this.screenSecToday = Math.max(0, Number(seconds) || 0)
+    },
+
+    resetScreenSession() {
+      this.screenSessionSec = 0
     },
 
     setMicPermission(p) {

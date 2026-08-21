@@ -68,13 +68,13 @@
       <div class="duo">
         <router-link class="tile" to="/subject-learn/chinese">
           <span class="ico">📖</span>
-          <span class="t">语文启蒙</span>
-          <span class="s">常用字、反义词、儿歌</span>
+          <span class="t">语言亲子活动</span>
+          <span class="s">实验 · 比较、儿歌与动作</span>
         </router-link>
         <router-link class="tile" to="/subject-learn/math">
           <span class="ico">🔢</span>
-          <span class="t">数学启蒙</span>
-          <span class="s">数数、多少、形状</span>
+          <span class="t">数学亲子活动</span>
+          <span class="s">实验 · 实物数数、多少、形状</span>
         </router-link>
       </div>
 

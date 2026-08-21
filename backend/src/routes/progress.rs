@@ -7,8 +7,8 @@ use serde::Deserialize;
 use serde_json::json;
 use sqlx::Row;
 
-use crate::error::AppResult;
 use crate::auth::{self, AuthUser};
+use crate::error::AppResult;
 use crate::logic;
 use crate::models::next_review_days;
 use crate::state::SharedState;
@@ -16,9 +16,35 @@ use crate::state::SharedState;
 pub fn router() -> Router<SharedState> {
     Router::new()
         .route("/api/learning-records", post(record))
+        .route("/api/screen-time", post(record_screen_time))
         .route("/api/progress/summary", get(summary))
         .route("/api/review/queue", get(review_queue))
         .route("/api/progress/word", get(word_progress))
+}
+
+#[derive(Deserialize)]
+struct ScreenTimeBody {
+    child_id: String,
+    seconds: i64,
+}
+
+async fn record_screen_time(
+    State(state): State<SharedState>,
+    Extension(user): Extension<AuthUser>,
+    Json(body): Json<ScreenTimeBody>,
+) -> AppResult<Json<serde_json::Value>> {
+    auth::require_child(&state.pool, &user, &body.child_id).await?;
+    // 小批量心跳，限制单次增量，避免错误客户端污染日报。
+    if !(1..=60).contains(&body.seconds) {
+        return Err(crate::error::AppError::BadRequest(
+            "seconds 必须在 1 到 60 之间".into(),
+        ));
+    }
+    let screen_sec_today =
+        logic::bump_screen_time(&state.pool, &body.child_id, body.seconds).await?;
+    Ok(Json(
+        json!({ "ok": true, "screen_sec_today": screen_sec_today }),
+    ))
 }
 
 #[derive(Deserialize)]
@@ -31,18 +57,34 @@ struct RecordBody {
     quiz_result: Option<String>,
 }
 
-async fn record(State(state): State<SharedState>, Extension(user): Extension<AuthUser>, Json(body): Json<RecordBody>) -> AppResult<Json<serde_json::Value>> {
+async fn record(
+    State(state): State<SharedState>,
+    Extension(user): Extension<AuthUser>,
+    Json(body): Json<RecordBody>,
+) -> AppResult<Json<serde_json::Value>> {
     let pool = &state.pool;
     auth::require_child(pool, &user, &body.child_id).await?;
     if !["word", "sentence", "subject_item"].contains(&body.target_type.as_str()) {
-        return Err(crate::error::AppError::BadRequest("target_type 非法".into()));
+        return Err(crate::error::AppError::BadRequest(
+            "target_type 非法".into(),
+        ));
     }
-    if !["learn", "review", "quiz", "ask"].contains(&body.action.as_str()) {
+    if !["learn", "review", "quiz", "ask", "observe"].contains(&body.action.as_str()) {
         return Err(crate::error::AppError::BadRequest("action 非法".into()));
     }
     if let Some(m) = &body.mother_mark {
-        if !["got_it", "keep_trying"].contains(&m.as_str()) {
-            return Err(crate::error::AppError::BadRequest("mother_mark 非法".into()));
+        if ![
+            "got_it",
+            "keep_trying",
+            "observed_with_help",
+            "observed_independent",
+            "not_interested",
+        ]
+        .contains(&m.as_str())
+        {
+            return Err(crate::error::AppError::BadRequest(
+                "mother_mark 非法".into(),
+            ));
         }
     }
 
@@ -83,19 +125,23 @@ struct SummaryQuery {
     child_id: Option<String>,
 }
 
-async fn summary(State(state): State<SharedState>, Extension(user): Extension<AuthUser>, Query(q): Query<SummaryQuery>) -> AppResult<Json<serde_json::Value>> {
+async fn summary(
+    State(state): State<SharedState>,
+    Extension(user): Extension<AuthUser>,
+    Query(q): Query<SummaryQuery>,
+) -> AppResult<Json<serde_json::Value>> {
     let pool = &state.pool;
     let child_id = auth::resolve_child(pool, &user, q.child_id.as_deref()).await?;
     let s = logic::today_summary(pool, &child_id).await?;
-    let total_words: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM word WHERE review_status='published'")
-        .fetch_one(pool)
-        .await?;
-    let total_learned: i64 = sqlx::query_scalar(
-        "SELECT COUNT(*) FROM progress WHERE child_id=? AND target_type='word'",
-    )
-    .bind(&child_id)
-    .fetch_one(pool)
-    .await?;
+    let total_words: i64 =
+        sqlx::query_scalar("SELECT COUNT(*) FROM word WHERE review_status='published'")
+            .fetch_one(pool)
+            .await?;
+    let total_learned: i64 =
+        sqlx::query_scalar("SELECT COUNT(*) FROM progress WHERE child_id=? AND target_type='word'")
+            .bind(&child_id)
+            .fetch_one(pool)
+            .await?;
 
     Ok(Json(json!({
         "child_id": child_id,
@@ -113,7 +159,11 @@ async fn summary(State(state): State<SharedState>, Extension(user): Extension<Au
 }
 
 /// 复习队列：仅推送昨日及之前学过、掌握度低的词（4.2 / 8.6），按 next_review_at 排序
-async fn review_queue(State(state): State<SharedState>, Extension(user): Extension<AuthUser>, Query(q): Query<SummaryQuery>) -> AppResult<Json<serde_json::Value>> {
+async fn review_queue(
+    State(state): State<SharedState>,
+    Extension(user): Extension<AuthUser>,
+    Query(q): Query<SummaryQuery>,
+) -> AppResult<Json<serde_json::Value>> {
     let pool = &state.pool;
     let child_id = auth::resolve_child(pool, &user, q.child_id.as_deref()).await?;
     let now = chrono::Utc::now().to_rfc3339();

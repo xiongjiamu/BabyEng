@@ -151,6 +151,8 @@ export const api = {
     invalidateCache('/subject-items')
     return result
   },
+  recordScreenTime: (childId, seconds) =>
+    request('/screen-time', { method: 'POST', body: JSON.stringify({ child_id: childId, seconds }) }),
   progressSummary: (childId) => request(`/progress/summary?child_id=${childId}`),
   reviewQueue: (childId) => request(`/review/queue?child_id=${childId}`),
   wordProgress: (childId, targetId) => request(`/progress/word?child_id=${childId}&target_id=${targetId}`),
