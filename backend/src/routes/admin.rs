@@ -175,8 +175,8 @@ async fn english_courses(state: &SharedState) -> AppResult<Vec<serde_json::Value
 }
 
 async fn subject_courses(state: &SharedState, subject: &str) -> AppResult<Vec<serde_json::Value>> {
-    let rows = sqlx::query("SELECT id, subject, category, title, prompt, answer, image_emoji, level, review_status FROM subject_item WHERE subject=? ORDER BY category, level, id").bind(subject).fetch_all(&state.pool).await?;
-    rows.iter().map(|r| Ok(json!({"id":r.try_get::<String,_>("id")?, "subject":r.try_get::<String,_>("subject")?, "kind":"activity", "category":r.try_get::<String,_>("category")?, "title":r.try_get::<String,_>("title")?, "prompt":r.try_get::<String,_>("prompt")?, "answer":r.try_get::<String,_>("answer")?, "image_emoji":r.try_get::<String,_>("image_emoji")?, "level":r.try_get::<i64,_>("level")?, "review_status":r.try_get::<String,_>("review_status")?}))).collect()
+    let rows = sqlx::query("SELECT id, subject, category, title, prompt, answer, image_emoji, level, scene, materials, parent_script, child_action_a, child_action_b, observe_for, safety_note, material_tags, interest_tags, review_status FROM subject_item WHERE subject=? ORDER BY category, level, id").bind(subject).fetch_all(&state.pool).await?;
+    rows.iter().map(|r| Ok(json!({"id":r.try_get::<String,_>("id")?, "subject":r.try_get::<String,_>("subject")?, "kind":"activity", "category":r.try_get::<String,_>("category")?, "title":r.try_get::<String,_>("title")?, "prompt":r.try_get::<String,_>("prompt")?, "answer":r.try_get::<String,_>("answer")?, "image_emoji":r.try_get::<String,_>("image_emoji")?, "level":r.try_get::<i64,_>("level")?, "scene":r.try_get::<String,_>("scene")?, "materials":r.try_get::<String,_>("materials")?, "parent_script":r.try_get::<String,_>("parent_script")?, "child_action_a":r.try_get::<String,_>("child_action_a")?, "child_action_b":r.try_get::<String,_>("child_action_b")?, "observe_for":r.try_get::<String,_>("observe_for")?, "safety_note":r.try_get::<String,_>("safety_note")?, "material_tags":serde_json::from_str::<Vec<String>>(&r.try_get::<String,_>("material_tags")?).unwrap_or_default(), "interest_tags":serde_json::from_str::<Vec<String>>(&r.try_get::<String,_>("interest_tags")?).unwrap_or_default(), "review_status":r.try_get::<String,_>("review_status")?}))).collect()
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -210,6 +210,24 @@ struct CourseInput {
     example_zh: Option<String>,
     #[serde(default)]
     mother_tip: Option<String>,
+    #[serde(default)]
+    scene: String,
+    #[serde(default)]
+    materials: String,
+    #[serde(default)]
+    parent_script: String,
+    #[serde(default)]
+    child_action_a: String,
+    #[serde(default)]
+    child_action_b: String,
+    #[serde(default)]
+    observe_for: String,
+    #[serde(default)]
+    safety_note: String,
+    #[serde(default)]
+    material_tags: Vec<String>,
+    #[serde(default)]
+    interest_tags: Vec<String>,
     #[serde(default = "draft")]
     review_status: String,
 }
@@ -321,8 +339,8 @@ async fn upsert_course(
         }
         refresh_matcher(state).await?;
     } else {
-        sqlx::query("INSERT INTO subject_item (id, subject, category, title, prompt, answer, image_emoji, level, review_status, updated_at) VALUES (?,?,?,?,?,?,?,?,?,strftime('%Y-%m-%dT%H:%M:%SZ','now')) ON CONFLICT(id) DO UPDATE SET subject=excluded.subject, category=excluded.category, title=excluded.title, prompt=excluded.prompt, answer=excluded.answer, image_emoji=excluded.image_emoji, level=excluded.level, review_status=excluded.review_status, updated_at=excluded.updated_at")
-            .bind(&input.id).bind(&input.subject).bind(&input.category).bind(&input.title).bind(&input.prompt).bind(&input.answer).bind(&input.image_emoji).bind(input.level).bind(&input.review_status).execute(&state.pool).await?;
+        sqlx::query("INSERT INTO subject_item (id, subject, category, title, prompt, answer, image_emoji, level, scene, materials, parent_script, child_action_a, child_action_b, observe_for, safety_note, material_tags, interest_tags, review_status, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,strftime('%Y-%m-%dT%H:%M:%SZ','now')) ON CONFLICT(id) DO UPDATE SET subject=excluded.subject, category=excluded.category, title=excluded.title, prompt=excluded.prompt, answer=excluded.answer, image_emoji=excluded.image_emoji, level=excluded.level, scene=excluded.scene, materials=excluded.materials, parent_script=excluded.parent_script, child_action_a=excluded.child_action_a, child_action_b=excluded.child_action_b, observe_for=excluded.observe_for, safety_note=excluded.safety_note, material_tags=excluded.material_tags, interest_tags=excluded.interest_tags, review_status=excluded.review_status, updated_at=excluded.updated_at")
+            .bind(&input.id).bind(&input.subject).bind(&input.category).bind(&input.title).bind(&input.prompt).bind(&input.answer).bind(&input.image_emoji).bind(input.level).bind(&input.scene).bind(&input.materials).bind(&input.parent_script).bind(&input.child_action_a).bind(&input.child_action_b).bind(&input.observe_for).bind(&input.safety_note).bind(serde_json::to_string(&input.material_tags)?).bind(serde_json::to_string(&input.interest_tags)?).bind(&input.review_status).execute(&state.pool).await?;
     }
     Ok(())
 }
@@ -371,5 +389,93 @@ fn validate_course(input: &CourseInput) -> AppResult<()> {
             "语文/数学课程必须填写标题、引导语和答案".into(),
         ));
     }
+    if input.subject != "english" && input.review_status == "published" {
+        if !["morning", "meal", "play", "dressing", "outing", "bedtime"]
+            .contains(&input.scene.as_str())
+        {
+            return Err(AppError::BadRequest("已发布亲子活动的生活场景非法".into()));
+        }
+        if [
+            &input.materials,
+            &input.parent_script,
+            &input.child_action_a,
+            &input.child_action_b,
+            &input.observe_for,
+            &input.safety_note,
+        ]
+        .iter()
+        .any(|value| value.trim().is_empty())
+        {
+            return Err(AppError::BadRequest(
+                "发布亲子活动前必须补齐材料、话术、分龄动作、观察点和安全提醒".into(),
+            ));
+        }
+        let valid_materials = [
+            "household_objects",
+            "toys_blocks",
+            "food_tableware",
+            "clothing",
+            "movement_space",
+        ];
+        let valid_interests = [
+            "animals", "music", "vehicles", "building", "food", "outdoors", "movement",
+        ];
+        if input.material_tags.is_empty()
+            || input
+                .material_tags
+                .iter()
+                .any(|tag| !valid_materials.contains(&tag.as_str()))
+            || input
+                .interest_tags
+                .iter()
+                .any(|tag| !valid_interests.contains(&tag.as_str()))
+        {
+            return Err(AppError::BadRequest("亲子活动材料或兴趣标签非法".into()));
+        }
+    }
     Ok(())
+}
+
+#[cfg(test)]
+mod activity_validation_tests {
+    use super::*;
+
+    fn activity(status: &str) -> CourseInput {
+        serde_json::from_value(json!({
+            "id": "math_test",
+            "subject": "math",
+            "kind": "activity",
+            "category": "counting",
+            "title": "两个",
+            "prompt": "数两个物品",
+            "answer": "2",
+            "level": 1,
+            "scene": "play",
+            "materials": "两块大积木",
+            "parent_script": "一个、两个。",
+            "child_action_a": "看妈妈移动积木。",
+            "child_action_b": "把两块积木放进盒子。",
+            "observe_for": "观察是否逐个移动。",
+            "safety_note": "使用不可误吞的大积木。",
+            "material_tags": ["toys_blocks"],
+            "interest_tags": ["building"],
+            "review_status": status
+        }))
+        .unwrap()
+    }
+
+    #[test]
+    fn published_activity_requires_reviewed_guidance() {
+        let mut input = activity("published");
+        assert!(validate_course(&input).is_ok());
+        input.safety_note.clear();
+        assert!(validate_course(&input).is_err());
+    }
+
+    #[test]
+    fn draft_activity_can_be_incomplete() {
+        let mut input = activity("draft");
+        input.materials.clear();
+        assert!(validate_course(&input).is_ok());
+    }
 }

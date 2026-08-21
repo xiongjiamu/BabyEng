@@ -152,7 +152,7 @@ async fn seed_subject_items(pool: &SqlitePool, seed_dir: &str) -> AppResult<()> 
         serde_json::from_str(&std::fs::read_to_string(path)?)?;
     for item in &items {
         sqlx::query(
-            "INSERT OR IGNORE INTO subject_item (id, subject, category, title, prompt, answer, image_emoji, level, review_status) VALUES (?,?,?,?,?,?,?,?,?)",
+            "INSERT OR IGNORE INTO subject_item (id, subject, category, title, prompt, answer, image_emoji, level, scene, materials, parent_script, child_action_a, child_action_b, observe_for, safety_note, material_tags, interest_tags, review_status) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
         )
         .bind(&item.id)
         .bind(&item.subject)
@@ -162,6 +162,15 @@ async fn seed_subject_items(pool: &SqlitePool, seed_dir: &str) -> AppResult<()> 
         .bind(&item.answer)
         .bind(&item.image_emoji)
         .bind(item.level)
+        .bind(&item.scene)
+        .bind(&item.materials)
+        .bind(&item.parent_script)
+        .bind(&item.child_action_a)
+        .bind(&item.child_action_b)
+        .bind(&item.observe_for)
+        .bind(&item.safety_note)
+        .bind(serde_json::to_string(&item.material_tags)?)
+        .bind(serde_json::to_string(&item.interest_tags)?)
         .bind(&item.review_status)
         .execute(pool)
         .await?;
@@ -209,4 +218,65 @@ pub fn sentence_from_row(row: &sqlx::sqlite::SqliteRow) -> AppResult<Sentence> {
         example_context: row.try_get("example_context")?,
         review_status: row.try_get("review_status")?,
     })
+}
+
+#[cfg(test)]
+mod activity_schema_tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn migrations_add_reviewable_activity_fields() {
+        let pool = SqlitePoolOptions::new()
+            .max_connections(1)
+            .connect("sqlite::memory:")
+            .await
+            .unwrap();
+        sqlx::migrate!("./migrations").run(&pool).await.unwrap();
+        let columns: Vec<String> =
+            sqlx::query_scalar("SELECT name FROM pragma_table_info('subject_item')")
+                .fetch_all(&pool)
+                .await
+                .unwrap();
+        for required in [
+            "scene",
+            "materials",
+            "parent_script",
+            "child_action_a",
+            "child_action_b",
+            "observe_for",
+            "safety_note",
+            "material_tags",
+            "interest_tags",
+        ] {
+            assert!(columns.iter().any(|column| column == required));
+        }
+    }
+
+    #[test]
+    fn published_seed_activities_have_complete_guidance() {
+        let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("../data/seed/subject_items.json");
+        let items: Vec<crate::models::SubjectItem> =
+            serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap();
+        for item in items
+            .iter()
+            .filter(|item| item.review_status == "published")
+        {
+            assert!(!item.scene.is_empty(), "{} scene", item.id);
+            assert!(!item.materials.is_empty(), "{} materials", item.id);
+            assert!(!item.parent_script.is_empty(), "{} parent_script", item.id);
+            assert!(
+                !item.child_action_a.is_empty(),
+                "{} child_action_a",
+                item.id
+            );
+            assert!(
+                !item.child_action_b.is_empty(),
+                "{} child_action_b",
+                item.id
+            );
+            assert!(!item.observe_for.is_empty(), "{} observe_for", item.id);
+            assert!(!item.safety_note.is_empty(), "{} safety_note", item.id);
+            assert!(!item.material_tags.is_empty(), "{} material_tags", item.id);
+        }
+    }
 }

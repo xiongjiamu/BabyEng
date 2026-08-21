@@ -27,7 +27,9 @@
         <div><b>准备：</b>{{ activityGuide.materials }}</div>
         <div><b>妈妈说：</b>“{{ activityGuide.parentScript }}”</div>
         <div><b>宝宝做：</b>{{ activityGuide.childAction }}</div>
+        <div><b>观察：</b>{{ activityGuide.observeFor }}</div>
       </div>
+      <div class="banner warn"><span class="ico">🛡️</span><span>{{ activityGuide.safetyNote }}</span></div>
       <div class="stack-3" style="width:100%">
         <button class="btn btn-primary btn-block" :disabled="saving" @click="complete('observed_with_help')">一起做过了</button>
         <button class="btn btn-ghost btn-block" :disabled="saving" @click="complete('observed_independent')">宝宝自己完成了</button>
@@ -67,18 +69,13 @@ const completedCount = ref(0)
 const current = computed(() => items.value[index.value])
 const categoryLabel = computed(() => ({ character: '看物说话', opposite: '比较概念', rhyme: '儿歌动作', counting: '实物数数', quantity: '比多少', shape: '寻找形状' })[current.value?.category] || '亲子活动')
 
-const activityGuide = computed(() => {
-  const guides = {
-    character: { materials: '家里的同类实物或宝宝自己的身体', parentScript: `找找和“${current.value?.title || ''}”有关的东西。`, actionA: '跟着妈妈看一看、摸一摸。', actionB: '自己指出或拿出对应的东西。' },
-    opposite: { materials: '两个大小、多少或位置不同的实物', parentScript: current.value?.prompt || '我们来比一比。', actionA: '跟着妈妈分别摸一摸两个物品。', actionB: '按妈妈的要求指出其中一个。' },
-    rhyme: { materials: '不需要材料，留出一点活动空间', parentScript: current.value?.prompt || '我们一起念一念。', actionA: '听妈妈念，跟着拍手或做动作。', actionB: '跟念一个词或模仿一个动作。' },
-    counting: { materials: '同类安全实物 1～4 个，例如积木或袜子', parentScript: current.value?.prompt || '我们一个一个数。', actionA: '看妈妈逐个触碰物品并数数。', actionB: '自己逐个移动物品，妈妈同步数数。' },
-    quantity: { materials: '数量明显不同的两小堆安全实物', parentScript: current.value?.prompt || '哪边多，哪边少？', actionA: '看妈妈把两堆排开并比较。', actionB: '指出多的一边，答错也不纠缠。' },
-    shape: { materials: '家里相似形状的安全物品', parentScript: `我们在家里找一个${current.value?.answer || '这样的形状'}。`, actionA: '跟妈妈摸一摸物品的边缘。', actionB: '从两个物品中找出相同形状。' },
-  }
-  const guide = guides[current.value?.category] || { materials: '一个家里的安全实物', parentScript: current.value?.prompt || '我们一起试试。', actionA: '跟着妈妈做动作。', actionB: '自己试着完成动作。' }
-  return { materials: guide.materials, parentScript: guide.parentScript, childAction: store.isBandA ? guide.actionA : guide.actionB }
-})
+const activityGuide = computed(() => ({
+  materials: current.value?.materials || '一个家里的安全实物',
+  parentScript: current.value?.parent_script || current.value?.prompt || '我们一起试试。',
+  childAction: store.isBandA ? current.value?.child_action_a : current.value?.child_action_b,
+  observeFor: current.value?.observe_for || '观察宝宝是否愿意共同注意或动手尝试。',
+  safetyNote: current.value?.safety_note || '全程由成人陪伴。',
+}))
 
 onMounted(async () => {
   await store.bootstrap()
@@ -90,6 +87,11 @@ async function loadItems() {
   try {
     const result = await api.subjectItems(subject.value, store.childId)
     const all = result.items || []
+    const requested = typeof route.query.activity === 'string' ? all.find((item) => item.id === route.query.activity) : null
+    if (requested) {
+      items.value = [requested]
+      return
+    }
     const ordered = [...all.filter((item) => !item.learned), ...all.filter((item) => item.learned)]
     items.value = ordered.slice(0, 3)
     loadError.value = items.value.length === 0

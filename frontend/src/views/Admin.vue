@@ -65,6 +65,15 @@
           <label class="field">标题<input v-model.trim="courseForm.title" required /></label>
           <label class="field">引导语<textarea v-model.trim="courseForm.prompt" required></textarea></label>
           <label class="field">答案<input v-model.trim="courseForm.answer" required /></label>
+          <label class="field">生活场景<select v-model="courseForm.scene"><option value="morning">起床</option><option value="meal">吃饭</option><option value="play">玩耍</option><option value="dressing">穿衣</option><option value="outing">出门</option><option value="bedtime">睡前</option></select></label>
+          <label class="field">准备材料<textarea v-model.trim="courseForm.materials"></textarea></label>
+          <label class="field">妈妈照着说<textarea v-model.trim="courseForm.parent_script"></textarea></label>
+          <label class="field">A 段动作（12～24 月）<textarea v-model.trim="courseForm.child_action_a"></textarea></label>
+          <label class="field">B 段动作（24～36 月）<textarea v-model.trim="courseForm.child_action_b"></textarea></label>
+          <label class="field">观察点<textarea v-model.trim="courseForm.observe_for"></textarea></label>
+          <label class="field">安全提醒<textarea v-model.trim="courseForm.safety_note"></textarea></label>
+          <div class="field">材料标签<div class="tag-grid"><button v-for="item in materialOptions" :key="item.id" type="button" class="tag-choice" :aria-pressed="courseForm.material_tags.includes(item.id)" @click="toggleCourseTag('material_tags', item.id)">{{ item.label }}</button></div></div>
+          <div class="field">兴趣标签<div class="tag-grid"><button v-for="item in interestOptions" :key="item.id" type="button" class="tag-choice" :aria-pressed="courseForm.interest_tags.includes(item.id)" @click="toggleCourseTag('interest_tags', item.id)">{{ item.label }}</button></div></div>
         </template>
         <div class="row"><label class="field grow">图标<input v-model.trim="courseForm.image_emoji" /></label><label class="field grow">难度<select v-model.number="courseForm.level"><option :value="1">L1</option><option :value="2">L2</option><option :value="3">L3</option></select></label></div>
         <label class="field">状态<select v-model="courseForm.review_status"><option value="draft">草稿</option><option value="published">发布</option></select></label>
@@ -82,6 +91,8 @@ const tab = ref('courses'), subject = ref('english'), users = ref([]), courses =
 const userSheet = ref(false), courseSheet = ref(false), editingUser = ref(''), editingCourseId = ref(''), aliasesText = ref(''), saving = ref(false)
 const message = ref(''), messageType = ref('ok')
 const subjects = [{ id:'english',label:'英语' },{ id:'chinese',label:'语文' },{ id:'math',label:'数学' }]
+const materialOptions = [{id:'household_objects',label:'日常物品'},{id:'toys_blocks',label:'玩具积木'},{id:'food_tableware',label:'食物餐具'},{id:'clothing',label:'衣物'},{id:'movement_space',label:'活动空间'}]
+const interestOptions = [{id:'animals',label:'动物'},{id:'music',label:'音乐儿歌'},{id:'vehicles',label:'车辆'},{id:'building',label:'搭建'},{id:'food',label:'食物'},{id:'outdoors',label:'户外'},{id:'movement',label:'动作模仿'}]
 const userForm = reactive({ username:'', password:'', role:'user' })
 const courseForm = reactive(emptyCourse())
 
@@ -92,10 +103,11 @@ async function selectSubject(value){ subject.value=value; await loadCourses() }
 function newUser(){ editingUser.value=''; Object.assign(userForm,{username:'',password:'',role:'user'}); userSheet.value=true }
 function editUser(item){ editingUser.value=item.username; Object.assign(userForm,{username:item.username,password:'',role:item.role}); userSheet.value=true }
 async function saveUser(){ saving.value=true; try { if(editingUser.value) await api.adminUpdateUser(editingUser.value,userForm); else await api.adminCreateUser(userForm); userSheet.value=false; await loadUsers(); show('用户已保存') } catch(e){ show(e.message,'danger') } finally{ saving.value=false } }
-function emptyCourse(){ return {id:'',subject:'english',kind:'word',category:'',title:'',prompt:'',answer:'',zh:'',en:'',aliases:[],phonetic:'',image_emoji:'',level:1,example_en:'',example_zh:'',mother_tip:'',review_status:'draft'} }
+function emptyCourse(){ return {id:'',subject:'english',kind:'word',category:'',title:'',prompt:'',answer:'',zh:'',en:'',aliases:[],phonetic:'',image_emoji:'',level:1,example_en:'',example_zh:'',mother_tip:'',scene:'play',materials:'',parent_script:'',child_action_a:'',child_action_b:'',observe_for:'',safety_note:'',material_tags:[],interest_tags:[],review_status:'draft'} }
 function newCourse(){ editingCourseId.value=''; Object.assign(courseForm,emptyCourse(),{subject:subject.value}); aliasesText.value=''; courseSheet.value=true }
 function editCourse(item){ editingCourseId.value=item.id; Object.assign(courseForm,emptyCourse(),item); aliasesText.value=(item.aliases||[]).join('，'); courseSheet.value=true }
 async function saveCourse(){ saving.value=true; courseForm.subject=subject.value; courseForm.aliases=aliasesText.value.split(/[，,]/).map(x=>x.trim()).filter(Boolean); try { if(editingCourseId.value) await api.adminUpdateCourse(editingCourseId.value,courseForm); else await api.adminCreateCourse(courseForm); courseSheet.value=false; await loadCourses(); show('课程已保存') } catch(e){ show(e.message,'danger') } finally{ saving.value=false } }
+function toggleCourseTag(key,value){ const list=courseForm[key]; courseForm[key]=list.includes(value)?list.filter(item=>item!==value):[...list,value] }
 async function importJson(event){ const file=event.target.files?.[0]; if(!file)return; try { const parsed=JSON.parse(await file.text()); const items=Array.isArray(parsed)?parsed:parsed.items; if(!Array.isArray(items))throw new Error('JSON 应为数组或包含 items 数组'); await api.adminImportCourses(items); await loadCourses(); show(`已导入 ${items.length} 条课程`) } catch(e){ show(e.message||'导入失败','danger') } finally{ event.target.value='' } }
 function show(text,type='ok'){ message.value=text; messageType.value=type; setTimeout(()=>{ if(message.value===text)message.value='' },4000) }
 </script>
@@ -111,6 +123,9 @@ function show(text,type='ok'){ message.value=text; messageType.value=type; setTi
 .field input,.field select,.field textarea { min-height:48px;border:2px solid var(--c-line);border-radius:var(--r-md);padding:10px 12px;font:inherit;background:var(--c-surface);color:var(--c-ink); }
 .field textarea { min-height:80px;resize:vertical; }
 .admin-sheet { max-height:88dvh;overflow-y:auto; }
+.tag-grid { display:flex;flex-wrap:wrap;gap:8px; }
+.tag-choice { border:1px solid var(--c-line);border-radius:999px;background:var(--c-surface-2);padding:8px 12px;font:inherit;color:var(--c-ink-2); }
+.tag-choice[aria-pressed="true"] { border-color:var(--c-mom);background:var(--c-mom-soft);color:var(--c-mom);font-weight:800; }
 @media (min-width: 760px) {
   .admin-tabs { width:360px;margin:var(--sp-4) auto 0; }
   .admin-main > .list { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--sp-3);background:transparent; }

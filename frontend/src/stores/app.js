@@ -32,6 +32,8 @@ export const useAppStore = defineStore('app', {
       bedtimeHour: 21,
       cloudModel: false, // 11.4 知情同意
       cloudConsentedAt: null,
+      availableMaterials: [],
+      childInterests: [],
     },
     // 会话内屏幕计时（B 段看图时累计，纯音频不计入）
     screenSecToday: 0,
@@ -81,6 +83,8 @@ export const useAppStore = defineStore('app', {
               bedtimeHour: s.bedtime_hour ?? 21,
               cloudModel: !!s.cloud_model,
               cloudConsentedAt: s.cloud_consented_at || null,
+              availableMaterials: Array.isArray(s.available_materials) ? s.available_materials : [],
+              childInterests: Array.isArray(s.child_interests) ? s.child_interests : [],
             }
             if (me.child?.child_id) localStorage.setItem('babyeng_child_id', me.child.child_id)
             if (me.family?.family_id) localStorage.setItem('babyeng_family_id', me.family.family_id)
@@ -136,6 +140,7 @@ export const useAppStore = defineStore('app', {
     },
 
     async saveSettings(partial) {
+      const previous = this.settings
       this.settings = { ...this.settings, ...partial }
       try {
         await api.familySettings({
@@ -147,10 +152,14 @@ export const useAppStore = defineStore('app', {
           bedtime_hour: this.settings.bedtimeHour,
           cloud_model: this.settings.cloudModel,
           cloud_consented_at: this.settings.cloudConsentedAt,
+          available_materials: this.settings.availableMaterials,
+          child_interests: this.settings.childInterests,
         })
+        return true
       } catch (e) {
-        // 设置保存失败不阻断页面
+        this.settings = previous
         console.warn('设置保存失败', e)
+        return false
       }
     },
 

@@ -3,6 +3,7 @@
 use axum::extract::{Extension, Path, Query, State};
 use axum::routing::get;
 use axum::{Json, Router};
+use chrono::Timelike;
 use serde::Deserialize;
 use serde_json::json;
 use sqlx::Row;
@@ -21,6 +22,7 @@ pub fn router() -> Router<SharedState> {
         .route("/api/sentences/{id}", get(sentence_detail))
         .route("/api/scenes", get(scenes))
         .route("/api/subject-items", get(subject_items))
+        .route("/api/activities/today", get(today_activities))
 }
 
 #[derive(Deserialize)]
@@ -48,7 +50,7 @@ async fn subject_items(
         .iter()
         .map(|row| row.try_get::<String, _>("target_id"))
         .collect::<Result<std::collections::HashSet<_>, _>>()?;
-    let rows = sqlx::query("SELECT id, subject, category, title, prompt, answer, image_emoji, level, review_status FROM subject_item WHERE subject=? AND review_status='published' ORDER BY level, category, id")
+    let rows = sqlx::query("SELECT id, subject, category, title, prompt, answer, image_emoji, level, scene, materials, parent_script, child_action_a, child_action_b, observe_for, safety_note, material_tags, interest_tags, review_status FROM subject_item WHERE subject=? AND review_status='published' ORDER BY level, category, id")
         .bind(&q.subject)
         .fetch_all(&state.pool)
         .await?;
@@ -59,10 +61,122 @@ async fn subject_items(
             "category": row.try_get::<String, _>("category")?, "title": row.try_get::<String, _>("title")?,
             "prompt": row.try_get::<String, _>("prompt")?, "answer": row.try_get::<String, _>("answer")?,
             "image_emoji": row.try_get::<String, _>("image_emoji")?, "level": row.try_get::<i64, _>("level")?,
+            "scene": row.try_get::<String, _>("scene")?, "materials": row.try_get::<String, _>("materials")?,
+            "parent_script": row.try_get::<String, _>("parent_script")?, "child_action_a": row.try_get::<String, _>("child_action_a")?,
+            "child_action_b": row.try_get::<String, _>("child_action_b")?, "observe_for": row.try_get::<String, _>("observe_for")?,
+            "safety_note": row.try_get::<String, _>("safety_note")?,
+            "material_tags": parse_tags(&row.try_get::<String, _>("material_tags")?),
+            "interest_tags": parse_tags(&row.try_get::<String, _>("interest_tags")?),
             "review_status": row.try_get::<String, _>("review_status")?, "learned": learned.contains(&id),
         }))
     }).collect::<Result<Vec<_>, sqlx::Error>>()?;
     Ok(Json(json!({ "total": items.len(), "items": items })))
+}
+
+#[derive(Deserialize)]
+struct TodayActivityQuery {
+    child_id: Option<String>,
+}
+
+async fn today_activities(
+    State(state): State<SharedState>,
+    Extension(user): Extension<AuthUser>,
+    Query(q): Query<TodayActivityQuery>,
+) -> AppResult<Json<serde_json::Value>> {
+    let child_id = auth::resolve_child(&state.pool, &user, q.child_id.as_deref()).await?;
+    let hour = chrono::Local::now().hour();
+    let scene = match hour {
+        6..=9 => "morning",
+        10..=13 | 18..=19 => "meal",
+        20..=23 => "bedtime",
+        _ => "play",
+    };
+    let settings_json: String = sqlx::query_scalar(
+        "SELECT f.settings FROM child c JOIN family f ON f.family_id=c.family_id WHERE c.child_id=?",
+    )
+    .bind(&child_id)
+    .fetch_one(&state.pool)
+    .await?;
+    let settings: serde_json::Value = serde_json::from_str(&settings_json).unwrap_or(json!({}));
+    let available_materials = setting_tags(&settings, "available_materials");
+    let child_interests = setting_tags(&settings, "child_interests");
+    let rows = sqlx::query(
+        "SELECT s.id, s.subject, s.category, s.title, s.prompt, s.answer, s.image_emoji, s.level, s.scene, s.materials, s.parent_script, s.child_action_a, s.child_action_b, s.observe_for, s.safety_note, s.material_tags, s.interest_tags, \
+         COALESCE(p.learn_count,0) AS learn_count FROM subject_item s LEFT JOIN progress p ON p.child_id=? AND p.target_type='subject_item' AND p.target_id=s.id \
+         WHERE s.review_status='published' ORDER BY CASE WHEN COALESCE(p.learn_count,0)=0 THEN 0 ELSE 1 END, s.subject, s.category, s.id",
+    )
+    .bind(&child_id)
+    .fetch_all(&state.pool)
+    .await?;
+
+    let mut scene_interests = Vec::new();
+    let mut scene_others = Vec::new();
+    let mut other_interests = Vec::new();
+    let mut other_items = Vec::new();
+    for row in rows {
+        let item_scene: String = row.try_get("scene")?;
+        let material_tags = parse_tags(&row.try_get::<String, _>("material_tags")?);
+        if !matches_available_materials(&material_tags, &available_materials) {
+            continue;
+        }
+        let interest_tags = parse_tags(&row.try_get::<String, _>("interest_tags")?);
+        let matches_interest = has_tag_overlap(&interest_tags, &child_interests);
+        let value = json!({
+            "id": row.try_get::<String,_>("id")?, "subject": row.try_get::<String,_>("subject")?,
+            "category": row.try_get::<String,_>("category")?, "title": row.try_get::<String,_>("title")?,
+            "prompt": row.try_get::<String,_>("prompt")?, "answer": row.try_get::<String,_>("answer")?,
+            "image_emoji": row.try_get::<String,_>("image_emoji")?, "level": row.try_get::<i64,_>("level")?,
+            "scene": item_scene.clone(), "materials": row.try_get::<String,_>("materials")?,
+            "parent_script": row.try_get::<String,_>("parent_script")?, "child_action_a": row.try_get::<String,_>("child_action_a")?,
+            "child_action_b": row.try_get::<String,_>("child_action_b")?, "observe_for": row.try_get::<String,_>("observe_for")?,
+            "safety_note": row.try_get::<String,_>("safety_note")?, "learned": row.try_get::<i64,_>("learn_count")? > 0,
+            "material_tags": material_tags, "interest_tags": interest_tags, "interest_match": matches_interest,
+        });
+        if item_scene == scene && matches_interest {
+            scene_interests.push(value);
+        } else if item_scene == scene {
+            scene_others.push(value);
+        } else if matches_interest {
+            other_interests.push(value);
+        } else {
+            other_items.push(value);
+        }
+    }
+    scene_interests.extend(scene_others);
+    scene_interests.truncate(2);
+    other_interests.extend(other_items);
+    scene_interests.extend(other_interests.into_iter().take(3 - scene_interests.len()));
+    Ok(Json(json!({
+        "date": chrono::Local::now().date_naive().format("%Y-%m-%d").to_string(),
+        "scene": scene,
+        "items": scene_interests,
+        "preferences_applied": !available_materials.is_empty() || !child_interests.is_empty(),
+    })))
+}
+
+fn parse_tags(raw: &str) -> Vec<String> {
+    serde_json::from_str(raw).unwrap_or_default()
+}
+
+fn setting_tags(settings: &serde_json::Value, key: &str) -> Vec<String> {
+    settings
+        .get(key)
+        .and_then(|value| value.as_array())
+        .map(|values| {
+            values
+                .iter()
+                .filter_map(|value| value.as_str().map(str::to_owned))
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
+fn matches_available_materials(required: &[String], available: &[String]) -> bool {
+    available.is_empty() || required.is_empty() || has_tag_overlap(required, available)
+}
+
+fn has_tag_overlap(left: &[String], right: &[String]) -> bool {
+    !right.is_empty() && left.iter().any(|tag| right.contains(tag))
 }
 
 #[derive(Deserialize)]
@@ -184,4 +298,39 @@ async fn scenes(
     let child_id = auth::resolve_child(pool, &user, q.child_id.as_deref()).await?;
     let stats = store::scene_stats(pool, &child_id).await?;
     Ok(Json(stats))
+}
+
+#[cfg(test)]
+mod activity_preference_tests {
+    use super::*;
+
+    fn tags(values: &[&str]) -> Vec<String> {
+        values.iter().map(|value| (*value).to_string()).collect()
+    }
+
+    #[test]
+    fn empty_material_preference_does_not_filter() {
+        assert!(matches_available_materials(&tags(&["toys_blocks"]), &[]));
+    }
+
+    #[test]
+    fn configured_materials_require_overlap() {
+        assert!(matches_available_materials(
+            &tags(&["toys_blocks", "household_objects"]),
+            &tags(&["toys_blocks"])
+        ));
+        assert!(!matches_available_materials(
+            &tags(&["food_tableware"]),
+            &tags(&["clothing"])
+        ));
+    }
+
+    #[test]
+    fn interest_match_only_applies_when_configured() {
+        assert!(has_tag_overlap(
+            &tags(&["animals", "movement"]),
+            &tags(&["animals"])
+        ));
+        assert!(!has_tag_overlap(&tags(&["animals"]), &[]));
+    }
 }

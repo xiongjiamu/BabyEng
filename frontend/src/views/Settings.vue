@@ -32,6 +32,26 @@
         </div>
       </div>
 
+      <div class="group">
+        <div class="t-label">亲子活动推荐</div>
+        <div class="card stack-4">
+          <div>
+            <div class="preference-title">家里方便使用</div>
+            <div class="preference-grid">
+              <button v-for="item in materialOptions" :key="item.id" class="chip-choice" :aria-pressed="store.settings.availableMaterials.includes(item.id)" @click="togglePreference('availableMaterials', item.id)">{{ item.label }}</button>
+            </div>
+          </div>
+          <div>
+            <div class="preference-title">宝宝最近喜欢</div>
+            <div class="preference-grid">
+              <button v-for="item in interestOptions" :key="item.id" class="chip-choice" :aria-pressed="store.settings.childInterests.includes(item.id)" @click="togglePreference('childInterests', item.id)">{{ item.label }}</button>
+            </div>
+          </div>
+          <div v-if="preferenceError" class="banner danger">{{ preferenceError }}</div>
+        </div>
+        <p class="note">未选择材料时不做过滤；选择后只推荐至少匹配一种现有材料的活动。兴趣只调整顺序，不限制宝宝探索其他内容。</p>
+      </div>
+
       <!-- 学习与屏幕时间（11.3） -->
       <div class="group">
         <div class="t-label">学习与屏幕时间</div>
@@ -202,6 +222,7 @@ const voiceSheet = ref(false)
 const childNameDraft = ref('')
 const nameError = ref('')
 const nameSaving = ref(false)
+const preferenceError = ref('')
 const username = localStorage.getItem('babyeng_username') || ''
 const isAdmin = localStorage.getItem('babyeng_role') === 'admin' || username === 'admin'
 const { unlock, playUrl } = useAudio()
@@ -213,7 +234,24 @@ const voices = [
   { id: 'en_US-hfc_female-medium', label: 'HFC Female', description: '英语（美国）' },
   { id: 'en_US-hfc_male-medium', label: 'HFC Male', description: '英语（美国）' },
 ]
+const materialOptions = [
+  { id: 'household_objects', label: '日常物品' }, { id: 'toys_blocks', label: '玩具积木' },
+  { id: 'food_tableware', label: '食物餐具' }, { id: 'clothing', label: '衣物' },
+  { id: 'movement_space', label: '活动空间' },
+]
+const interestOptions = [
+  { id: 'animals', label: '动物' }, { id: 'music', label: '音乐儿歌' },
+  { id: 'vehicles', label: '车辆' }, { id: 'building', label: '搭建' },
+  { id: 'food', label: '食物' }, { id: 'outdoors', label: '户外' }, { id: 'movement', label: '动作模仿' },
+]
 const currentVoiceLabel = computed(() => voices.find((v) => v.id === store.settings.ttsVoice)?.label || 'Mike')
+
+async function togglePreference(key, value) {
+  preferenceError.value = ''
+  const current = store.settings[key]
+  const next = current.includes(value) ? current.filter((item) => item !== value) : [...current, value]
+  if (!await store.saveSettings({ [key]: next })) preferenceError.value = '偏好保存失败，已恢复原设置。'
+}
 
 function openNameEditor() {
   childNameDraft.value = store.child?.child_name || ''
@@ -326,3 +364,10 @@ async function confirmClear() {
   }
 }
 </script>
+
+<style scoped>
+.preference-title { font-weight:800;margin-bottom:var(--sp-3); }
+.preference-grid { display:flex;flex-wrap:wrap;gap:var(--sp-2); }
+.chip-choice { border:1px solid var(--c-line);background:var(--c-surface-2);color:var(--c-ink-2);border-radius:999px;padding:9px 13px;font:inherit;font-weight:700; }
+.chip-choice[aria-pressed="true"] { border-color:var(--c-mom);background:var(--c-mom-soft);color:var(--c-mom); }
+</style>

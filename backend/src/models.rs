@@ -52,6 +52,24 @@ pub struct SubjectItem {
     pub answer: String,
     pub image_emoji: String,
     pub level: i64,
+    #[serde(default)]
+    pub scene: String,
+    #[serde(default)]
+    pub materials: String,
+    #[serde(default)]
+    pub parent_script: String,
+    #[serde(default)]
+    pub child_action_a: String,
+    #[serde(default)]
+    pub child_action_b: String,
+    #[serde(default)]
+    pub observe_for: String,
+    #[serde(default)]
+    pub safety_note: String,
+    #[serde(default)]
+    pub material_tags: Vec<String>,
+    #[serde(default)]
+    pub interest_tags: Vec<String>,
     #[serde(default = "default_review_status")]
     pub review_status: String,
 }
