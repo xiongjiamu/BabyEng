@@ -42,6 +42,20 @@ pub struct Sentence {
     pub review_status: String,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SubjectItem {
+    pub id: String,
+    pub subject: String,
+    pub category: String,
+    pub title: String,
+    pub prompt: String,
+    pub answer: String,
+    pub image_emoji: String,
+    pub level: i64,
+    #[serde(default = "default_review_status")]
+    pub review_status: String,
+}
+
 fn default_image_source() -> String {
     "family".into()
 }

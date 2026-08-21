@@ -55,13 +55,26 @@
       <div class="duo">
         <router-link class="tile" to="/learn">
           <span class="ico">📚</span>
-          <span class="t">学单词</span>
-          <span class="s">按场景成组学</span>
+          <span class="t">英语启蒙</span>
+          <span class="s">单词、短句与复习</span>
         </router-link>
         <router-link class="tile" to="/review">
           <span class="ico">🔁</span>
           <span class="t">复习</span>
           <span class="s">{{ reviewCount }} 个待复习</span>
+        </router-link>
+      </div>
+
+      <div class="duo">
+        <router-link class="tile" to="/subject-learn/chinese">
+          <span class="ico">📖</span>
+          <span class="t">语文启蒙</span>
+          <span class="s">常用字、反义词、儿歌</span>
+        </router-link>
+        <router-link class="tile" to="/subject-learn/math">
+          <span class="ico">🔢</span>
+          <span class="t">数学启蒙</span>
+          <span class="s">数数、多少、形状</span>
         </router-link>
       </div>
 

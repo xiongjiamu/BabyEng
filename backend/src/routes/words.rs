@@ -9,7 +9,7 @@ use sqlx::Row;
 
 use crate::error::AppResult;
 use crate::auth::{self, AuthUser};
-use crate::models::{Sentence, Word};
+use crate::models::{Sentence, SubjectItem, Word};
 use crate::state::SharedState;
 use crate::store;
 
@@ -20,6 +20,47 @@ pub fn router() -> Router<SharedState> {
         .route("/api/sentences", get(sentences))
         .route("/api/sentences/{id}", get(sentence_detail))
         .route("/api/scenes", get(scenes))
+        .route("/api/subject-items", get(subject_items))
+}
+
+#[derive(Deserialize)]
+struct SubjectQuery {
+    subject: String,
+    child_id: Option<String>,
+}
+
+async fn subject_items(
+    State(state): State<SharedState>,
+    Extension(user): Extension<AuthUser>,
+    Query(q): Query<SubjectQuery>,
+) -> AppResult<Json<serde_json::Value>> {
+    if !["chinese", "math"].contains(&q.subject.as_str()) {
+        return Err(crate::error::AppError::BadRequest("subject 非法".into()));
+    }
+    let child_id = auth::resolve_child(&state.pool, &user, q.child_id.as_deref()).await?;
+    let path = format!("{}/subject_items.json", state.cfg.seed_dir);
+    let source = std::fs::read_to_string(path)?;
+    let all: Vec<SubjectItem> = serde_json::from_str(&source)?;
+    let learned_rows = sqlx::query(
+        "SELECT target_id FROM progress WHERE child_id=? AND target_type='subject_item'",
+    )
+    .bind(&child_id)
+    .fetch_all(&state.pool)
+    .await?;
+    let learned = learned_rows
+        .iter()
+        .map(|row| row.try_get::<String, _>("target_id"))
+        .collect::<Result<std::collections::HashSet<_>, _>>()?;
+    let items = all
+        .into_iter()
+        .filter(|item| item.subject == q.subject && item.review_status == "published")
+        .map(|item| {
+            let mut value = serde_json::to_value(&item).unwrap_or(json!({}));
+            value["learned"] = json!(learned.contains(&item.id));
+            value
+        })
+        .collect::<Vec<_>>();
+    Ok(Json(json!({ "total": items.len(), "items": items })))
 }
 
 #[derive(Deserialize)]

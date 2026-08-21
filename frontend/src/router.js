@@ -14,6 +14,7 @@ const routes = [
   { path: '/states', name: 'states', component: () => import('./views/States.vue'), meta: { title: '异常状态' } },
   { path: '/learn', name: 'learn', component: () => import('./views/Learn.vue'), meta: { title: '学一学' } },
   { path: '/word-learn', name: 'word-learn', component: () => import('./views/WordLearn.vue'), meta: { title: '单词学习' } },
+  { path: '/subject-learn/:subject', name: 'subject-learn', component: () => import('./views/SubjectLearn.vue'), meta: { title: '启蒙学习' } },
   { path: '/review', name: 'review', component: () => import('./views/Review.vue'), meta: { title: '复习' } },
   { path: '/sentences', name: 'sentences', component: () => import('./views/Sentences.vue'), meta: { title: '情景短句' } },
   { path: '/profile', name: 'profile', component: () => import('./views/Profile.vue'), meta: { title: '我的' } },

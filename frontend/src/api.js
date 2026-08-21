@@ -116,6 +116,7 @@ export const api = {
   wordDetail: (id) => cachedRequest(`/words/${id}`, 30 * 60 * 1000),
   sentences: (params = '') => cachedRequest(`/sentences${params}`, 30 * 60 * 1000),
   scenes: (childId = '') => cachedRequest(`/scenes${childId ? `?child_id=${childId}` : ''}`, 60 * 1000),
+  subjectItems: (subject, childId = '') => cachedRequest(`/subject-items?subject=${encodeURIComponent(subject)}${childId ? `&child_id=${encodeURIComponent(childId)}` : ''}`, 5 * 60 * 1000),
 
   // ---------- 录音（M3） ----------
   uploadRecording: (blob, fileName, { childId, targetType, targetId, durationMs }) => {
@@ -145,6 +146,7 @@ export const api = {
     const result = await request('/learning-records', { method: 'POST', body: JSON.stringify(data) })
     invalidateCache('/words')
     invalidateCache('/scenes')
+    invalidateCache('/subject-items')
     return result
   },
   progressSummary: (childId) => request(`/progress/summary?child_id=${childId}`),

@@ -34,7 +34,7 @@ struct RecordBody {
 async fn record(State(state): State<SharedState>, Extension(user): Extension<AuthUser>, Json(body): Json<RecordBody>) -> AppResult<Json<serde_json::Value>> {
     let pool = &state.pool;
     auth::require_child(pool, &user, &body.child_id).await?;
-    if !["word", "sentence"].contains(&body.target_type.as_str()) {
+    if !["word", "sentence", "subject_item"].contains(&body.target_type.as_str()) {
         return Err(crate::error::AppError::BadRequest("target_type 非法".into()));
     }
     if !["learn", "review", "quiz", "ask"].contains(&body.action.as_str()) {
