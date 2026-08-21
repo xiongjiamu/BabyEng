@@ -12,6 +12,8 @@ pub struct Config {
     pub seed_dir: String,
     /// 录音与音频缓存根目录
     pub audio_dir: String,
+    /// 管理员上传的本地课程实物图片目录
+    pub content_image_dir: String,
     /// 推理服务地址（HTTP）
     pub tts_url: String,
     pub asr_url: String,
@@ -37,6 +39,8 @@ impl Config {
                 .unwrap_or_else(|_| "sqlite://data/babyeng.db".into()),
             seed_dir: env::var("SEED_DIR").unwrap_or_else(|_| "data/seed".into()),
             audio_dir: env::var("AUDIO_DIR").unwrap_or_else(|_| "data/audio".into()),
+            content_image_dir: env::var("CONTENT_IMAGE_DIR")
+                .unwrap_or_else(|_| "data/content-images".into()),
             tts_url: env::var("TTS_URL").unwrap_or_else(|_| "http://127.0.0.1:8101".into()),
             asr_url: env::var("ASR_URL").unwrap_or_else(|_| "http://127.0.0.1:8102".into()),
             llm_url: env::var("LLM_URL").unwrap_or_else(|_| "http://127.0.0.1:8103".into()),

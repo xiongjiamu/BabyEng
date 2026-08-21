@@ -7,8 +7,8 @@ use serde::Deserialize;
 use serde_json::json;
 use sqlx::Row;
 
-use crate::error::AppResult;
 use crate::auth::{self, AuthUser};
+use crate::error::AppResult;
 use crate::state::SharedState;
 
 pub fn router() -> Router<SharedState> {
@@ -20,7 +20,11 @@ struct UQuery {
     limit: Option<i64>,
 }
 
-async fn list(State(state): State<SharedState>, Extension(user): Extension<AuthUser>, Query(q): Query<UQuery>) -> AppResult<Json<serde_json::Value>> {
+async fn list(
+    State(state): State<SharedState>,
+    Extension(user): Extension<AuthUser>,
+    Query(q): Query<UQuery>,
+) -> AppResult<Json<serde_json::Value>> {
     let pool = &state.pool;
     let Some(family_id) = auth::family_id(pool, &user).await? else {
         return Ok(Json(json!({ "unmatched": [] })));

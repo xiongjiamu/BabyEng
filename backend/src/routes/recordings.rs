@@ -11,8 +11,8 @@ use sqlx::sqlite::SqliteRow;
 use sqlx::Row;
 use uuid::Uuid;
 
-use crate::error::{AppError, AppResult};
 use crate::auth::{self, AuthUser};
+use crate::error::{AppError, AppResult};
 use crate::state::SharedState;
 
 pub fn router() -> Router<SharedState> {
@@ -254,7 +254,10 @@ async fn audio(
 }
 
 /// 过期清理（30 天前非收藏，PRD 5.4 / 8.4）：设置页一键清理入口
-async fn cleanup_expired(State(state): State<SharedState>, Extension(user): Extension<AuthUser>) -> AppResult<Json<serde_json::Value>> {
+async fn cleanup_expired(
+    State(state): State<SharedState>,
+    Extension(user): Extension<AuthUser>,
+) -> AppResult<Json<serde_json::Value>> {
     let pool = &state.pool;
     let cutoff = (Local::now() - Duration::days(30))
         .format("%Y-%m-%dT%H:%M:%SZ")
@@ -278,7 +281,9 @@ async fn cleanup_expired(State(state): State<SharedState>, Extension(user): Exte
             .execute(pool)
             .await?;
     }
-    Ok(Json(json!({ "ok": true, "cleaned": rows_count, "freed_bytes": freed })))
+    Ok(Json(
+        json!({ "ok": true, "cleaned": rows_count, "freed_bytes": freed }),
+    ))
 }
 
 #[cfg(test)]

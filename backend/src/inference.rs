@@ -254,7 +254,8 @@ fn flux_tts_request(text: &str) -> serde_json::Value {
 
 fn classify_asr_err(e: ureq::Error) -> AppError {
     match e {
-        ureq::Error::Status(503, _) | ureq::Error::Status(500, _) => AppError::AsrUnavailable,
+        ureq::Error::Transport(_) => AppError::AsrUnavailable,
+        ureq::Error::Status(status, _) if (500..=599).contains(&status) => AppError::AsrUnavailable,
         _ => AppError::Inference(format!("asr error: {}", e)),
     }
 }
@@ -277,6 +278,7 @@ mod tests {
     use std::time::Duration;
 
     use super::{flux_tts_request, InferenceClients, ReadyState};
+    use crate::error::AppError;
 
     #[test]
     fn flux_request_uses_fixed_model_voice_and_mp3() {
@@ -322,7 +324,9 @@ mod tests {
                     break;
                 }
             }
-            request_tx.send(String::from_utf8(request).unwrap()).unwrap();
+            request_tx
+                .send(String::from_utf8(request).unwrap())
+                .unwrap();
             stream
                 .write_all(b"HTTP/1.1 200 OK\r\nContent-Type: audio/mpeg\r\nContent-Length: 11\r\nConnection: close\r\n\r\nID3testdata")
                 .unwrap();
@@ -363,5 +367,22 @@ mod tests {
         assert!(request_lower.contains("x-title: babyeng\r\n"));
         assert!(request.contains("\"model\":\"deepgram/flux-tts:free\""));
         assert!(request.contains("\"voice\":\"flux-drew-en\""));
+    }
+
+    #[tokio::test]
+    async fn unreachable_asr_is_classified_as_unavailable_degradation() {
+        let clients = InferenceClients {
+            tts_url: String::new(),
+            asr_url: "http://127.0.0.1:9".into(),
+            llm_url: String::new(),
+            timeout: Duration::from_secs(1),
+            ffmpeg_bin: String::new(),
+            audio_dir: std::env::temp_dir().to_string_lossy().into_owned(),
+            openrouter_api_key: String::new(),
+            openrouter_tts_url: String::new(),
+            ready: std::sync::RwLock::new(ReadyState::default()),
+        };
+        let result = clients.asr_recognize(vec![0; 44]).await;
+        assert!(matches!(result, Err(AppError::AsrUnavailable)));
     }
 }

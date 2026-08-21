@@ -76,6 +76,13 @@
           <div class="field">兴趣标签<div class="tag-grid"><button v-for="item in interestOptions" :key="item.id" type="button" class="tag-choice" :aria-pressed="courseForm.interest_tags.includes(item.id)" @click="toggleCourseTag('interest_tags', item.id)">{{ item.label }}</button></div></div>
         </template>
         <div class="row"><label class="field grow">图标<input v-model.trim="courseForm.image_emoji" /></label><label class="field grow">难度<select v-model.number="courseForm.level"><option :value="1">L1</option><option :value="2">L2</option><option :value="3">L3</option></select></label></div>
+        <div v-if="editingCourseId && canHaveImage" class="field">
+          <span>自家实物照片</span>
+          <ContentImage class="course-image-preview" :kind="courseImageKind" :target-id="courseForm.id" :emoji="courseForm.image_emoji" :alt="courseForm.zh || courseForm.title" :version="imageVersion" @loaded="courseImageExists=true" @fallback="courseImageExists=false" />
+          <label class="btn btn-ghost btn-block import-btn">{{ courseImageExists ? '替换照片' : '上传照片' }}<input type="file" accept="image/jpeg,image/png,image/webp" @change="uploadCourseImage" /></label>
+          <button v-if="courseImageExists" type="button" class="btn btn-ghost btn-block" :disabled="savingImage" @click="deleteCourseImage">删除照片并恢复图标</button>
+          <span class="t-mom-sm">仅支持 JPEG、PNG、WebP，最大 5MB。照片保存在自己的服务器上。</span>
+        </div>
         <label class="field">状态<select v-model="courseForm.review_status"><option value="draft">草稿</option><option value="published">发布</option></select></label>
         <button class="btn btn-primary btn-block" :disabled="saving">保存课程</button><button type="button" class="btn btn-ghost btn-block" @click="courseSheet=false">取消</button>
       </form>
@@ -84,12 +91,14 @@
 </template>
 
 <script setup>
-import { onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { api } from '../api'
+import ContentImage from '../components/ContentImage.vue'
 
 const tab = ref('courses'), subject = ref('english'), users = ref([]), courses = ref([])
 const userSheet = ref(false), courseSheet = ref(false), editingUser = ref(''), editingCourseId = ref(''), aliasesText = ref(''), saving = ref(false)
 const message = ref(''), messageType = ref('ok')
+const savingImage = ref(false), courseImageExists = ref(false), imageVersion = ref(Date.now())
 const subjects = [{ id:'english',label:'英语' },{ id:'chinese',label:'语文' },{ id:'math',label:'数学' }]
 const materialOptions = [{id:'household_objects',label:'日常物品'},{id:'toys_blocks',label:'玩具积木'},{id:'food_tableware',label:'食物餐具'},{id:'clothing',label:'衣物'},{id:'movement_space',label:'活动空间'}]
 const interestOptions = [{id:'animals',label:'动物'},{id:'music',label:'音乐儿歌'},{id:'vehicles',label:'车辆'},{id:'building',label:'搭建'},{id:'food',label:'食物'},{id:'outdoors',label:'户外'},{id:'movement',label:'动作模仿'}]
@@ -104,10 +113,14 @@ function newUser(){ editingUser.value=''; Object.assign(userForm,{username:'',pa
 function editUser(item){ editingUser.value=item.username; Object.assign(userForm,{username:item.username,password:'',role:item.role}); userSheet.value=true }
 async function saveUser(){ saving.value=true; try { if(editingUser.value) await api.adminUpdateUser(editingUser.value,userForm); else await api.adminCreateUser(userForm); userSheet.value=false; await loadUsers(); show('用户已保存') } catch(e){ show(e.message,'danger') } finally{ saving.value=false } }
 function emptyCourse(){ return {id:'',subject:'english',kind:'word',category:'',title:'',prompt:'',answer:'',zh:'',en:'',aliases:[],phonetic:'',image_emoji:'',level:1,example_en:'',example_zh:'',mother_tip:'',scene:'play',materials:'',parent_script:'',child_action_a:'',child_action_b:'',observe_for:'',safety_note:'',material_tags:[],interest_tags:[],review_status:'draft'} }
-function newCourse(){ editingCourseId.value=''; Object.assign(courseForm,emptyCourse(),{subject:subject.value}); aliasesText.value=''; courseSheet.value=true }
-function editCourse(item){ editingCourseId.value=item.id; Object.assign(courseForm,emptyCourse(),item); aliasesText.value=(item.aliases||[]).join('，'); courseSheet.value=true }
+const canHaveImage = computed(() => subject.value !== 'english' || courseForm.kind === 'word')
+const courseImageKind = computed(() => subject.value === 'english' ? 'word' : 'activity')
+function newCourse(){ editingCourseId.value=''; courseImageExists.value=false; Object.assign(courseForm,emptyCourse(),{subject:subject.value}); aliasesText.value=''; courseSheet.value=true }
+function editCourse(item){ editingCourseId.value=item.id; courseImageExists.value=false; imageVersion.value=Date.now(); Object.assign(courseForm,emptyCourse(),item); aliasesText.value=(item.aliases||[]).join('，'); courseSheet.value=true }
 async function saveCourse(){ saving.value=true; courseForm.subject=subject.value; courseForm.aliases=aliasesText.value.split(/[，,]/).map(x=>x.trim()).filter(Boolean); try { if(editingCourseId.value) await api.adminUpdateCourse(editingCourseId.value,courseForm); else await api.adminCreateCourse(courseForm); courseSheet.value=false; await loadCourses(); show('课程已保存') } catch(e){ show(e.message,'danger') } finally{ saving.value=false } }
 function toggleCourseTag(key,value){ const list=courseForm[key]; courseForm[key]=list.includes(value)?list.filter(item=>item!==value):[...list,value] }
+async function uploadCourseImage(event){ const file=event.target.files?.[0]; event.target.value=''; if(!file)return; if(file.size>5*1024*1024){show('图片不能超过 5MB','danger');return} const replace=courseImageExists.value; if(replace&&!confirm('确定用新照片替换当前照片吗？'))return; savingImage.value=true; try{const result=await api.adminUploadContentImage(courseImageKind.value,courseForm.id,file,replace);courseImageExists.value=true;imageVersion.value=result.version||Date.now();show('照片已保存')}catch(e){show(e.message,'danger')}finally{savingImage.value=false} }
+async function deleteCourseImage(){ if(!confirm('确定删除这张照片并恢复使用图标吗？'))return; savingImage.value=true; try{await api.adminDeleteContentImage(courseImageKind.value,courseForm.id);courseImageExists.value=false;imageVersion.value=Date.now();show('照片已删除')}catch(e){show(e.message,'danger')}finally{savingImage.value=false} }
 async function importJson(event){ const file=event.target.files?.[0]; if(!file)return; try { const parsed=JSON.parse(await file.text()); const items=Array.isArray(parsed)?parsed:parsed.items; if(!Array.isArray(items))throw new Error('JSON 应为数组或包含 items 数组'); await api.adminImportCourses(items); await loadCourses(); show(`已导入 ${items.length} 条课程`) } catch(e){ show(e.message||'导入失败','danger') } finally{ event.target.value='' } }
 function show(text,type='ok'){ message.value=text; messageType.value=type; setTimeout(()=>{ if(message.value===text)message.value='' },4000) }
 </script>
@@ -123,6 +136,7 @@ function show(text,type='ok'){ message.value=text; messageType.value=type; setTi
 .field input,.field select,.field textarea { min-height:48px;border:2px solid var(--c-line);border-radius:var(--r-md);padding:10px 12px;font:inherit;background:var(--c-surface);color:var(--c-ink); }
 .field textarea { min-height:80px;resize:vertical; }
 .admin-sheet { max-height:88dvh;overflow-y:auto; }
+.course-image-preview { width:180px;height:180px;border-radius:var(--r-lg);background:var(--c-surface-2);align-self:center;font-size:72px; }
 .tag-grid { display:flex;flex-wrap:wrap;gap:8px; }
 .tag-choice { border:1px solid var(--c-line);border-radius:999px;background:var(--c-surface-2);padding:8px 12px;font:inherit;color:var(--c-ink-2); }
 .tag-choice[aria-pressed="true"] { border-color:var(--c-mom);background:var(--c-mom-soft);color:var(--c-mom);font-weight:800; }

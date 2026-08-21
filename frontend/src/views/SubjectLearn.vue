@@ -17,7 +17,7 @@
     <section v-else-if="view === 'learn' && current" class="page-body pad center stack-5">
       <div v-if="saveError" class="banner warn"><span class="ico">⚠️</span><span>刚才的观察没有保存，活动仍可继续。</span></div>
       <span class="chip kid">{{ categoryLabel }}</span>
-      <div class="subject-emoji">{{ current.image_emoji }}</div>
+      <ContentImage class="subject-image" kind="activity" :target-id="current.id" :emoji="current.image_emoji" :alt="current.title" />
       <div class="center-text">
         <h2 class="subject-title">{{ current.title }}</h2>
         <p class="t-zh-lg">{{ current.prompt }}</p>
@@ -54,6 +54,7 @@ import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { api } from '../api'
 import { useAppStore } from '../stores/app'
+import ContentImage from '../components/ContentImage.vue'
 
 const route = useRoute()
 const store = useAppStore()
@@ -121,6 +122,7 @@ function restart() {
 
 <style scoped>
 .subject-emoji { font-size: 82px; line-height: 1; }
+.subject-image { width:180px;height:180px;border-radius:var(--r-lg);background:var(--c-surface-2);font-size:82px; }
 .subject-title { margin: 0; font-size: 34px; }
 .subject-guide { width: 100%; font-size: var(--fs-mom); line-height: 1.55; }
 </style>

@@ -28,6 +28,7 @@ services:
       DATABASE_URL: "sqlite:///data/babyeng.db"
       SEED_DIR: "/app/data/seed"
       AUDIO_DIR: "/data/audio"
+      CONTENT_IMAGE_DIR: "/data/content-images"
       STATIC_DIR: "/app/static"
       TTS_URL: "http://tts:8101"
       ASR_URL: "http://asr:8102"

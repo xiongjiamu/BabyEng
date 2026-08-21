@@ -7,8 +7,8 @@ use serde::Deserialize;
 use serde_json::{json, Value};
 use sqlx::{Row, SqlitePool};
 
-use crate::error::{AppError, AppResult};
 use crate::auth::{self, AuthUser};
+use crate::error::{AppError, AppResult};
 use crate::state::SharedState;
 
 pub fn router() -> Router<SharedState> {
@@ -18,11 +18,17 @@ pub fn router() -> Router<SharedState> {
 }
 
 async fn json_rows(pool: &SqlitePool, sql: &str, family_id: &str) -> AppResult<Value> {
-    let raw: String = sqlx::query_scalar(sql).bind(family_id).fetch_one(pool).await?;
+    let raw: String = sqlx::query_scalar(sql)
+        .bind(family_id)
+        .fetch_one(pool)
+        .await?;
     Ok(serde_json::from_str(&raw)?)
 }
 
-async fn export_all(State(state): State<SharedState>, Extension(user): Extension<AuthUser>) -> AppResult<Json<Value>> {
+async fn export_all(
+    State(state): State<SharedState>,
+    Extension(user): Extension<AuthUser>,
+) -> AppResult<Json<Value>> {
     let pool = &state.pool;
     let family_id = auth::require_family_id(pool, &user).await?;
     let families = json_rows(pool, "SELECT COALESCE(json_group_array(json_object('family_id',family_id,'mother_name',mother_name,'settings',json(settings),'created_at',created_at)),'[]') FROM family WHERE family_id=?", &family_id).await?;

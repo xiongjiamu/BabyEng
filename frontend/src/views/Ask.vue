@@ -82,7 +82,7 @@
         <button @click="reset">不对？</button>
       </div>
 
-      <div v-if="result.image_emoji" class="photo result-photo"><span class="emoji">{{ result.image_emoji }}</span></div>
+      <ContentImage v-if="result.image_emoji" class="photo result-photo" :kind="result.target_type === 'word' ? 'word' : 'activity'" :target-id="result.target_id" :emoji="result.image_emoji" :alt="result.zh" />
 
       <div class="word-block">
         <div class="t-word-en">{{ result.en }}</div>
@@ -116,7 +116,7 @@
       <h2 class="t-zh-lg center-text">你是说哪一个？</h2>
       <div class="choice">
         <button v-for="c in candidates" :key="c.target_id" @click="confirm(c)">
-          <span class="photo sm"><span class="emoji">{{ c.image_emoji || '❓' }}</span></span>
+          <ContentImage class="photo sm" :kind="c.target_type === 'word' ? 'word' : 'activity'" :target-id="c.target_id" :emoji="c.image_emoji || '❓'" :alt="c.zh" />
           <span class="grow">
             <div class="t-word-en-s">{{ c.en }}</div>
             <div class="t-mom">{{ c.zh }}{{ c.scene ? ' · ' + sceneLabel(c.scene) : '' }}</div>
@@ -139,7 +139,7 @@
         <div class="t-label" style="margin-bottom:var(--sp-3)">同类目，宝宝也常听到</div>
         <div class="suggest">
           <button v-for="c in candidates" :key="c.target_id" @click="confirm(c)">
-            <span class="photo sm"><span class="emoji">{{ c.image_emoji || '❓' }}</span></span>
+            <ContentImage class="photo sm" :kind="c.target_type === 'word' ? 'word' : 'activity'" :target-id="c.target_id" :emoji="c.image_emoji || '❓'" :alt="c.zh" />
             <span class="t-word-en-s">{{ c.en }}</span>
             <span class="t-mom-sm">{{ c.zh }}</span>
           </button>
@@ -180,7 +180,7 @@
         <span class="ico">🔈</span>
         <span>发音暂时不可用，其他都能用。<br>可以先看着音标教，稍后自动恢复。</span>
       </div>
-      <div v-if="result.image_emoji" class="photo result-photo"><span class="emoji">{{ result.image_emoji }}</span></div>
+      <ContentImage v-if="result.image_emoji" class="photo result-photo" :kind="result.target_type === 'word' ? 'word' : 'activity'" :target-id="result.target_id" :emoji="result.image_emoji" :alt="result.zh" />
       <div class="word-block">
         <div class="t-word-en">{{ result.en }}</div>
         <div v-if="result.phonetic" class="t-phonetic">{{ result.phonetic }}</div>
@@ -212,6 +212,7 @@ import { useRouter } from 'vue-router'
 import { useAppStore } from '../stores/app'
 import { api } from '../api'
 import { useAudio } from '../composables/useAudio'
+import ContentImage from '../components/ContentImage.vue'
 
 const router = useRouter()
 const store = useAppStore()

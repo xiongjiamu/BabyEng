@@ -63,7 +63,7 @@
           class="card daily-activity row"
           :to="{ path: `/subject-learn/${activity.subject}`, query: { activity: activity.id } }"
         >
-          <span class="daily-activity-emoji">{{ activity.image_emoji }}</span>
+          <ContentImage class="daily-activity-image" kind="activity" :target-id="activity.id" :emoji="activity.image_emoji" :alt="activity.title" />
           <span class="grow">
             <span class="daily-activity-title">{{ activity.title }}</span>
             <span class="t-mom-sm">{{ store.isBandA ? activity.child_action_a : activity.child_action_b }}</span>
@@ -135,6 +135,7 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import TabBar from '../components/TabBar.vue'
+import ContentImage from '../components/ContentImage.vue'
 import { useAppStore } from '../stores/app'
 import { api } from '../api'
 
@@ -217,6 +218,7 @@ onMounted(async () => {
 <style scoped>
 .daily-activity { text-decoration:none;color:inherit;gap:var(--sp-3);align-items:center; }
 .daily-activity-emoji { font-size:38px;line-height:1;min-width:44px;text-align:center; }
+.daily-activity-image { width:52px;height:52px;flex:none;border-radius:var(--r-sm);background:var(--c-surface-2);font-size:38px; }
 .daily-activity-title { display:block;font-size:19px;font-weight:800;margin-bottom:4px; }
 .daily-activity-arrow { font-size:26px;color:var(--c-ink-3); }
 </style>

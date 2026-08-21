@@ -107,11 +107,24 @@ HTTPS 配置不会自动增加账号鉴权；远程访问仍需使用家庭 VPN 
 npm install
 AUTH_USERNAME=family-a AUTH_PASSWORD='你的密码' npm run verify -- http://127.0.0.1:8080 /tmp/babyeng-shots
 AUTH_USERNAME=family-a AUTH_PASSWORD='你的密码' npm run release-check -- http://127.0.0.1:8080
+AUTH_USERNAME=family-a AUTH_PASSWORD='你的密码' npm run degradation-check -- http://127.0.0.1:18080
+AUTH_USERNAME=family-a AUTH_PASSWORD='你的密码' npm run pronunciation-check -- http://127.0.0.1:18080 /tmp/babyeng-a6-pronunciation.json
+npm run pronunciation-check -- --verify-manual /tmp/babyeng-a6-pronunciation.json
+npm run device-evidence -- --generate /tmp/babyeng-device-evidence.json
+npm run device-evidence -- --verify /tmp/babyeng-device-evidence.json
 ```
 
 `verify` 检查 12 个页面、主要交互和 API；`release-check` 自动覆盖 A2 全量别名、A3 十例同音容错与 A4 十例未命中。它输出的 A1 数值只是本机文字 API 基线，不能替代局域网中端安卓语音链路的 P95 验收。
 
-A6 必须人工逐条试听 58 条 TTS 音频并核对音标；A8 必须在安卓 Chrome 与 iOS Safari 各完成完整闭环并记录 PRD 9.2 的四项结论。
+`degradation-check` 会依次停止 TTS、ASR 容器，检查文字路径始终可用、ASR 停止时语音接口明确返回 `asr_fail`，并在成功、失败或中断后恢复它停止的服务。执行前要求 Backend、TTS、ASR 均已运行；脚本不会启动原本就停止的环境。当前未收录发音使用 OpenRouter Flux，因此停止本地 TTS 后，配置了 Key 时应由远端继续提供发音，未配置时应返回 `tts_only_down` 并保留文字结果。自动输出中的 `manual_ui_evidence` 固定为 `false`，仍需人工记录移动端提示和恢复体验。
+
+`pronunciation-check` 逐条请求 48 个单词和 10 个句子的实际 TTS，记录 HTTP 状态、音频 MIME、字节数和 SHA-256，并检查音标与来源字段。输出 JSON 权限为 `0600`，每条都预留人工试听、发音正确性、自然清晰度、音标核对、验收人和时间字段；这些字段初始为 `null`，脚本固定输出 `manual_complete=false`。人工填写后用 `--verify-manual` 检查是否恰好 58 条且所有结论、验收人和时间均已填写；自动通过 58 条只代表音频可读取，不能代替 A6 人工结论。
+
+`device-evidence` 生成权限为 `0600` 的 A1/A5/A7/A8 与屏幕计时真机清单。A1 必须填写中端安卓 Chrome 的 20 次语音样本，校验器计算 P95 并执行 1200ms/800ms 阈值；A5、A7、A8 和屏幕计时必须同时有安卓与 iOS 的设备、浏览器、验收人、时间及逐项通过记录，iOS 四项 PWA 限制允许结论为 supported/limited/unavailable，但必须描述实测行为并确认应对路径。空模板不能通过 `--verify`，桌面模拟数据也不能替代真机字段。
+
+A6 必须人工逐条试听 58 条 TTS 音频并核对音标；A7 仍需人工查看 TTS/ASR 故障时的界面降级；A8 必须在安卓 Chrome 与 iOS Safari 各完成完整闭环并记录 PRD 9.2 的四项结论。
+
+管理后台可为已保存的单词和亲子活动上传 JPEG、PNG 或 WebP 实物照片，单张不超过 5 MB；替换和删除都需要明确确认。照片保存在 Backend 数据卷的 `/data/content-images`，应随数据库和录音一并备份。课程 JSON 导入导出不嵌入图片文件；迁移课程时需另行复制该目录。未上传照片时前端继续显示课程 emoji。
 
 ## 无 GPU 说明（PRD 9.7）
 

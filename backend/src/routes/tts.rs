@@ -22,7 +22,10 @@ struct TtsQuery {
     rate: Option<f64>,
 }
 
-async fn audio(State(state): State<SharedState>, Query(q): Query<TtsQuery>) -> AppResult<axum::response::Response> {
+async fn audio(
+    State(state): State<SharedState>,
+    Query(q): Query<TtsQuery>,
+) -> AppResult<axum::response::Response> {
     let text = q.text.trim().to_string();
     if text.is_empty() {
         return Err(crate::error::AppError::BadRequest("text 为空".into()));
@@ -37,7 +40,9 @@ async fn audio(State(state): State<SharedState>, Query(q): Query<TtsQuery>) -> A
             | "en_US-hfc_female-medium"
             | "en_US-hfc_male-medium"
     ) {
-        return Err(crate::error::AppError::BadRequest("不支持的英语音色".into()));
+        return Err(crate::error::AppError::BadRequest(
+            "不支持的英语音色".into(),
+        ));
     }
     let rate = q.rate.unwrap_or(0.8).clamp(0.5, 1.5);
 
@@ -48,10 +53,8 @@ async fn audio(State(state): State<SharedState>, Query(q): Query<TtsQuery>) -> A
         _ => "audio/wav",
     };
     let mut resp = axum::response::Response::new(axum::body::Body::from(bytes));
-    resp.headers_mut().insert(
-        header::CONTENT_TYPE,
-        header::HeaderValue::from_static(mime),
-    );
+    resp.headers_mut()
+        .insert(header::CONTENT_TYPE, header::HeaderValue::from_static(mime));
     resp.headers_mut().insert(
         header::CACHE_CONTROL,
         header::HeaderValue::from_static("public, max-age=86400"),

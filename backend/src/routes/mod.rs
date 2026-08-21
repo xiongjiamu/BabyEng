@@ -3,6 +3,7 @@
 pub mod admin;
 pub mod ask;
 pub mod auth;
+pub mod content_images;
 pub mod data;
 pub mod family;
 pub mod health;
@@ -21,6 +22,7 @@ pub fn api_router(state: SharedState) -> Router<()> {
     let protected = Router::new()
         .merge(auth::protected_router())
         .merge(admin::router())
+        .merge(content_images::router())
         .merge(data::router())
         .merge(ask::router())
         .merge(tts::router())

@@ -4,7 +4,10 @@
   "version": "0.4.0",
   "scripts": {
     "verify": "node verify.js",
-    "release-check": "node release-check.js"
+    "release-check": "node release-check.js",
+    "degradation-check": "node degradation-check.js",
+    "pronunciation-check": "node pronunciation-check.js",
+    "device-evidence": "node device-evidence.js"
   },
   "devDependencies": {
     "playwright-core": "1.62.1"

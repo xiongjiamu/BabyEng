@@ -9,7 +9,7 @@
     <!-- ============ 1. 准备录音 ============ -->
     <section v-show="view === 'ready'" class="page-body pad stack-6 compare-ready">
       <div class="card target">
-        <span class="photo sm"><span class="emoji">{{ emoji }}</span></span>
+        <ContentImage class="photo sm" :kind="targetType === 'word' ? 'word' : 'activity'" :target-id="targetId" :emoji="emoji" :alt="zh" />
         <div class="grow">
           <div class="t-word-en-s">{{ en }}</div>
           <div class="t-phonetic">{{ phonetic || '' }}</div>
@@ -128,6 +128,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAppStore } from '../stores/app'
 import { api } from '../api'
+import ContentImage from '../components/ContentImage.vue'
 import { useAudio } from '../composables/useAudio'
 import { useRecorder } from '../composables/useRecorder'
 

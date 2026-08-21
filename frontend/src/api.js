@@ -112,6 +112,8 @@ export const api = {
   // ---------- TTS ----------
   ttsUrl: (text, rate = 0.8, voice = 'en_US-mike-medium') =>
     `${BASE}/tts/audio?text=${encodeURIComponent(text)}&voice=${encodeURIComponent(voice)}&rate=${rate}&access_token=${encodeURIComponent(authToken())}`,
+  contentImageUrl: (kind, targetId, version = '') =>
+    `${BASE}/content-images/${encodeURIComponent(kind)}/${encodeURIComponent(targetId)}?access_token=${encodeURIComponent(authToken())}${version ? `&v=${encodeURIComponent(version)}` : ''}`,
 
   // ---------- 词库 / 场景（M5 / M2） ----------
   words: (params = '') => cachedRequest(`/words${params}`, 5 * 60 * 1000),
@@ -160,6 +162,8 @@ export const api = {
 
   // ---------- 日报 / 成就（M8 / M6） ----------
   reportToday: (childId) => request(`/report/today?child_id=${childId}`),
+  activityWeek: (childId) => request(`/report/activity-week?child_id=${childId}`),
+  activityObservations: (childId, days = 30) => request(`/report/activity-observations?child_id=${childId}&days=${days}`),
   reportCalendar: (childId) => request(`/report/calendar?child_id=${childId}`),
   achievements: (childId) => request(`/achievements?child_id=${childId}`),
   recordingsToday: (childId) => request(`/report/recordings-today?child_id=${childId}`),
@@ -187,6 +191,16 @@ export const api = {
     invalidateCourseCaches()
     return result
   },
+  adminUploadContentImage: (kind, targetId, file, replace = false) => {
+    const form = new FormData()
+    form.append('kind', kind)
+    form.append('target_id', targetId)
+    if (replace) form.append('confirmation', 'REPLACE_CONTENT_IMAGE')
+    form.append('image', file, file.name)
+    return authFetch(BASE + '/admin/content-images', { method: 'POST', body: form }).then(handleJson)
+  },
+  adminDeleteContentImage: (kind, targetId) =>
+    request(`/admin/content-images/${encodeURIComponent(kind)}/${encodeURIComponent(targetId)}?confirmation=DELETE_CONTENT_IMAGE`, { method: 'DELETE' }),
 }
 
 function invalidateCourseCaches() {

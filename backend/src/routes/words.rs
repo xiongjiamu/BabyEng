@@ -100,6 +100,26 @@ async fn today_activities(
     let settings: serde_json::Value = serde_json::from_str(&settings_json).unwrap_or(json!({}));
     let available_materials = setting_tags(&settings, "available_materials");
     let child_interests = setting_tags(&settings, "child_interests");
+    let feedback_since = (chrono::Utc::now() - chrono::Duration::days(3)).to_rfc3339();
+    let feedback_rows = sqlx::query(
+        "SELECT target_id, mother_mark FROM learning_record WHERE child_id=? \
+         AND target_type='subject_item' AND action='observe' AND recorded_at>=? \
+         ORDER BY recorded_at DESC",
+    )
+    .bind(&child_id)
+    .bind(&feedback_since)
+    .fetch_all(&state.pool)
+    .await?;
+    let feedback = feedback_rows
+        .into_iter()
+        .map(|row| {
+            Ok((
+                row.try_get::<String, _>("target_id")?,
+                row.try_get::<Option<String>, _>("mother_mark")?,
+            ))
+        })
+        .collect::<Result<Vec<_>, sqlx::Error>>()?;
+    let recently_not_interested = latest_not_interested(feedback);
     let rows = sqlx::query(
         "SELECT s.id, s.subject, s.category, s.title, s.prompt, s.answer, s.image_emoji, s.level, s.scene, s.materials, s.parent_script, s.child_action_a, s.child_action_b, s.observe_for, s.safety_note, s.material_tags, s.interest_tags, \
          COALESCE(p.learn_count,0) AS learn_count FROM subject_item s LEFT JOIN progress p ON p.child_id=? AND p.target_type='subject_item' AND p.target_id=s.id \
@@ -113,7 +133,9 @@ async fn today_activities(
     let mut scene_others = Vec::new();
     let mut other_interests = Vec::new();
     let mut other_items = Vec::new();
+    let mut deferred = Vec::new();
     for row in rows {
+        let id: String = row.try_get("id")?;
         let item_scene: String = row.try_get("scene")?;
         let material_tags = parse_tags(&row.try_get::<String, _>("material_tags")?);
         if !matches_available_materials(&material_tags, &available_materials) {
@@ -121,8 +143,9 @@ async fn today_activities(
         }
         let interest_tags = parse_tags(&row.try_get::<String, _>("interest_tags")?);
         let matches_interest = has_tag_overlap(&interest_tags, &child_interests);
+        let is_deferred = recently_not_interested.contains(&id);
         let value = json!({
-            "id": row.try_get::<String,_>("id")?, "subject": row.try_get::<String,_>("subject")?,
+            "id": id.clone(), "subject": row.try_get::<String,_>("subject")?,
             "category": row.try_get::<String,_>("category")?, "title": row.try_get::<String,_>("title")?,
             "prompt": row.try_get::<String,_>("prompt")?, "answer": row.try_get::<String,_>("answer")?,
             "image_emoji": row.try_get::<String,_>("image_emoji")?, "level": row.try_get::<i64,_>("level")?,
@@ -131,8 +154,11 @@ async fn today_activities(
             "child_action_b": row.try_get::<String,_>("child_action_b")?, "observe_for": row.try_get::<String,_>("observe_for")?,
             "safety_note": row.try_get::<String,_>("safety_note")?, "learned": row.try_get::<i64,_>("learn_count")? > 0,
             "material_tags": material_tags, "interest_tags": interest_tags, "interest_match": matches_interest,
+            "recently_not_interested": is_deferred,
         });
-        if item_scene == scene && matches_interest {
+        if is_deferred {
+            deferred.push(value);
+        } else if item_scene == scene && matches_interest {
             scene_interests.push(value);
         } else if item_scene == scene {
             scene_others.push(value);
@@ -146,6 +172,18 @@ async fn today_activities(
     scene_interests.truncate(2);
     other_interests.extend(other_items);
     scene_interests.extend(other_interests.into_iter().take(3 - scene_interests.len()));
+    for value in deferred {
+        if scene_interests.len() >= 3 {
+            break;
+        }
+        let current_scene_count = scene_interests
+            .iter()
+            .filter(|item| item["scene"].as_str() == Some(scene))
+            .count();
+        if value["scene"].as_str() != Some(scene) || current_scene_count < 2 {
+            scene_interests.push(value);
+        }
+    }
     Ok(Json(json!({
         "date": chrono::Local::now().date_naive().format("%Y-%m-%d").to_string(),
         "scene": scene,
@@ -177,6 +215,20 @@ fn matches_available_materials(required: &[String], available: &[String]) -> boo
 
 fn has_tag_overlap(left: &[String], right: &[String]) -> bool {
     !right.is_empty() && left.iter().any(|tag| right.contains(tag))
+}
+
+/// 输入按时间倒序；同一活动只采用最新反馈。
+fn latest_not_interested(
+    feedback: impl IntoIterator<Item = (String, Option<String>)>,
+) -> std::collections::HashSet<String> {
+    let mut latest = std::collections::HashMap::new();
+    for (id, mark) in feedback {
+        latest.entry(id).or_insert(mark);
+    }
+    latest
+        .into_iter()
+        .filter_map(|(id, mark)| (mark.as_deref() == Some("not_interested")).then_some(id))
+        .collect()
 }
 
 #[derive(Deserialize)]
@@ -332,5 +384,16 @@ mod activity_preference_tests {
             &tags(&["animals"])
         ));
         assert!(!has_tag_overlap(&tags(&["animals"]), &[]));
+    }
+
+    #[test]
+    fn latest_feedback_can_clear_not_interested_downgrade() {
+        let deferred = latest_not_interested([
+            ("cleared".into(), Some("observed_with_help".into())),
+            ("cleared".into(), Some("not_interested".into())),
+            ("still_deferred".into(), Some("not_interested".into())),
+        ]);
+        assert!(!deferred.contains("cleared"));
+        assert!(deferred.contains("still_deferred"));
     }
 }
