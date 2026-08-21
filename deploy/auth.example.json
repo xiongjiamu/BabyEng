@@ -1,6 +1,6 @@
 {
   "accounts": [
-    { "username": "family-a", "password": "replace-with-a-long-random-password" },
+    { "username": "admin", "password": "replace-with-a-long-random-password", "role": "admin" },
     { "username": "family-b", "password": "replace-with-another-long-random-password" }
   ]
 }

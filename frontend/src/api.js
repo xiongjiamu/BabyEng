@@ -70,6 +70,7 @@ export const api = {
   login: async (username, password) => {
     const result = await request('/auth/login', { method: 'POST', body: JSON.stringify({ username, password }) })
     localStorage.setItem(TOKEN_KEY, result.token)
+    localStorage.setItem('babyeng_role', result.role || 'user')
     invalidateCache()
     return result
   },
@@ -77,6 +78,7 @@ export const api = {
   logout: async () => {
     try { await request('/auth/logout', { method: 'POST' }) } finally {
       localStorage.removeItem(TOKEN_KEY)
+      localStorage.removeItem('babyeng_role')
       invalidateCache()
     }
   },
@@ -161,6 +163,34 @@ export const api = {
 
   // ---------- 未命中表（8.8） ----------
   unmatched: () => request('/unmatched'),
+
+  // ---------- 管理后台 ----------
+  adminUsers: () => request('/admin/users'),
+  adminCreateUser: (data) => request('/admin/users', { method: 'POST', body: JSON.stringify(data) }),
+  adminUpdateUser: (username, data) => request(`/admin/users/${encodeURIComponent(username)}`, { method: 'PUT', body: JSON.stringify(data) }),
+  adminCourses: (subject) => request(`/admin/courses?subject=${encodeURIComponent(subject)}`),
+  adminCreateCourse: async (data) => {
+    const result = await request('/admin/courses', { method: 'POST', body: JSON.stringify(data) })
+    invalidateCourseCaches()
+    return result
+  },
+  adminUpdateCourse: async (id, data) => {
+    const result = await request(`/admin/courses/${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify(data) })
+    invalidateCourseCaches()
+    return result
+  },
+  adminImportCourses: async (items) => {
+    const result = await request('/admin/courses/import', { method: 'POST', body: JSON.stringify({ items }) })
+    invalidateCourseCaches()
+    return result
+  },
+}
+
+function invalidateCourseCaches() {
+  invalidateCache('/words')
+  invalidateCache('/sentences')
+  invalidateCache('/subject-items')
+  invalidateCache('/scenes')
 }
 
 async function handleJson(res) {

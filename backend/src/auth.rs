@@ -5,7 +5,7 @@ use axum::http::header;
 use axum::middleware::Next;
 use axum::response::Response;
 use chrono::{Duration, Utc};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use sqlx::SqlitePool;
 use uuid::Uuid;
 
@@ -15,35 +15,59 @@ use crate::state::SharedState;
 #[derive(Debug, Clone)]
 pub struct AuthUser {
     pub username: String,
+    pub role: String,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 #[serde(untagged)]
-enum AuthFile {
+pub enum AuthFile {
     AccountsObject { accounts: Vec<Account> },
     Accounts(Vec<Account>),
 }
 
-#[derive(Debug, Deserialize)]
-struct Account {
-    username: String,
-    password: String,
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct Account {
+    pub username: String,
+    pub password: String,
+    #[serde(default = "default_role")]
+    pub role: String,
+}
+
+fn default_role() -> String {
+    "user".into()
+}
+
+pub fn load_accounts(path: &str) -> AppResult<Vec<Account>> {
+    let raw = std::fs::read_to_string(path)
+        .map_err(|e| AppError::Internal(format!("无法读取账号配置 {}: {}", path, e)))?;
+    let file: AuthFile = serde_json::from_str(&raw)
+        .map_err(|e| AppError::Internal(format!("账号配置格式错误: {}", e)))?;
+    Ok(match file {
+        AuthFile::AccountsObject { accounts } | AuthFile::Accounts(accounts) => accounts,
+    })
+}
+
+pub fn account_role(path: &str, username: &str) -> AppResult<String> {
+    let account = load_accounts(path)?
+        .into_iter()
+        .find(|a| a.username == username)
+        .ok_or_else(|| AppError::Unauthorized("账号已不存在".into()))?;
+    Ok(if account.role == "admin" || account.username == "admin" {
+        "admin".into()
+    } else {
+        "user".into()
+    })
 }
 
 pub struct AuthService;
 
 impl AuthService {
     pub fn login(&self, path: &str, username: &str, password: &str) -> AppResult<String> {
-        let raw = std::fs::read_to_string(path).map_err(|e| {
-            AppError::Internal(format!("无法读取账号配置 {}: {}", path, e))
-        })?;
-        let file: AuthFile = serde_json::from_str(&raw)
-            .map_err(|e| AppError::Internal(format!("账号配置格式错误: {}", e)))?;
-        let accounts = match file {
-            AuthFile::AccountsObject { accounts } | AuthFile::Accounts(accounts) => accounts,
-        };
+        let accounts = load_accounts(path)?;
         let valid = accounts.iter().any(|a| {
-            !a.username.is_empty() && a.username == username && constant_time_eq(&a.password, password)
+            !a.username.is_empty()
+                && a.username == username
+                && constant_time_eq(&a.password, password)
         });
         if !valid {
             return Err(AppError::Unauthorized("账号或密码错误".into()));
@@ -90,24 +114,33 @@ pub async fn require_auth(
         .bind(token)
         .fetch_one(&state.pool)
         .await?;
-    request.extensions_mut().insert(AuthUser { username });
+    let role = account_role(&state.cfg.auth_file, &username)?;
+    request.extensions_mut().insert(AuthUser { username, role });
     Ok(next.run(request).await)
 }
 
 fn query_token(query: Option<&str>) -> Option<&str> {
-    query?.split('&').find_map(|part| part.strip_prefix("access_token="))
+    query?
+        .split('&')
+        .find_map(|part| part.strip_prefix("access_token="))
 }
 
 pub fn bearer_token(value: Option<&axum::http::HeaderValue>) -> Option<&str> {
-    value?.to_str().ok()?.strip_prefix("Bearer ").filter(|v| !v.is_empty())
+    value?
+        .to_str()
+        .ok()?
+        .strip_prefix("Bearer ")
+        .filter(|v| !v.is_empty())
 }
 
 pub async fn family_id(pool: &SqlitePool, user: &AuthUser) -> AppResult<Option<String>> {
-    Ok(sqlx::query_scalar("SELECT family_id FROM account_family WHERE username=?")
-        .bind(&user.username)
-        .fetch_optional(pool)
-        .await?
-        .flatten())
+    Ok(
+        sqlx::query_scalar("SELECT family_id FROM account_family WHERE username=?")
+            .bind(&user.username)
+            .fetch_optional(pool)
+            .await?
+            .flatten(),
+    )
 }
 
 pub async fn require_family_id(pool: &SqlitePool, user: &AuthUser) -> AppResult<String> {
@@ -124,7 +157,11 @@ pub async fn require_child(pool: &SqlitePool, user: &AuthUser, child_id: &str) -
     .bind(child_id)
     .fetch_one(pool)
     .await?;
-    if owned { Ok(()) } else { Err(AppError::NotFound("孩子不存在".into())) }
+    if owned {
+        Ok(())
+    } else {
+        Err(AppError::NotFound("孩子不存在".into()))
+    }
 }
 
 pub async fn default_child(pool: &SqlitePool, user: &AuthUser) -> AppResult<String> {
@@ -137,7 +174,11 @@ pub async fn default_child(pool: &SqlitePool, user: &AuthUser) -> AppResult<Stri
     .ok_or_else(|| AppError::NotFound("未创建孩子档案".into()))
 }
 
-pub async fn resolve_child(pool: &SqlitePool, user: &AuthUser, requested: Option<&str>) -> AppResult<String> {
+pub async fn resolve_child(
+    pool: &SqlitePool,
+    user: &AuthUser,
+    requested: Option<&str>,
+) -> AppResult<String> {
     if let Some(id) = requested.filter(|id| !id.is_empty()) {
         require_child(pool, user, id).await?;
         Ok(id.to_string())

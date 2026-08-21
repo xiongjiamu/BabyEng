@@ -7,9 +7,9 @@ use serde::Deserialize;
 use serde_json::json;
 use sqlx::Row;
 
-use crate::error::AppResult;
 use crate::auth::{self, AuthUser};
-use crate::models::{Sentence, SubjectItem, Word};
+use crate::error::AppResult;
+use crate::models::{Sentence, Word};
 use crate::state::SharedState;
 use crate::store;
 
@@ -38,9 +38,6 @@ async fn subject_items(
         return Err(crate::error::AppError::BadRequest("subject 非法".into()));
     }
     let child_id = auth::resolve_child(&state.pool, &user, q.child_id.as_deref()).await?;
-    let path = format!("{}/subject_items.json", state.cfg.seed_dir);
-    let source = std::fs::read_to_string(path)?;
-    let all: Vec<SubjectItem> = serde_json::from_str(&source)?;
     let learned_rows = sqlx::query(
         "SELECT target_id FROM progress WHERE child_id=? AND target_type='subject_item'",
     )
@@ -51,15 +48,20 @@ async fn subject_items(
         .iter()
         .map(|row| row.try_get::<String, _>("target_id"))
         .collect::<Result<std::collections::HashSet<_>, _>>()?;
-    let items = all
-        .into_iter()
-        .filter(|item| item.subject == q.subject && item.review_status == "published")
-        .map(|item| {
-            let mut value = serde_json::to_value(&item).unwrap_or(json!({}));
-            value["learned"] = json!(learned.contains(&item.id));
-            value
-        })
-        .collect::<Vec<_>>();
+    let rows = sqlx::query("SELECT id, subject, category, title, prompt, answer, image_emoji, level, review_status FROM subject_item WHERE subject=? AND review_status='published' ORDER BY level, category, id")
+        .bind(&q.subject)
+        .fetch_all(&state.pool)
+        .await?;
+    let items = rows.into_iter().map(|row| {
+        let id: String = row.try_get("id")?;
+        Ok(json!({
+            "id": id, "subject": row.try_get::<String, _>("subject")?,
+            "category": row.try_get::<String, _>("category")?, "title": row.try_get::<String, _>("title")?,
+            "prompt": row.try_get::<String, _>("prompt")?, "answer": row.try_get::<String, _>("answer")?,
+            "image_emoji": row.try_get::<String, _>("image_emoji")?, "level": row.try_get::<i64, _>("level")?,
+            "review_status": row.try_get::<String, _>("review_status")?, "learned": learned.contains(&id),
+        }))
+    }).collect::<Result<Vec<_>, sqlx::Error>>()?;
     Ok(Json(json!({ "total": items.len(), "items": items })))
 }
 
@@ -72,7 +74,11 @@ struct WordQuery {
     limit: Option<i64>,
 }
 
-async fn words(State(state): State<SharedState>, Extension(user): Extension<AuthUser>, Query(q): Query<WordQuery>) -> AppResult<Json<serde_json::Value>> {
+async fn words(
+    State(state): State<SharedState>,
+    Extension(user): Extension<AuthUser>,
+    Query(q): Query<WordQuery>,
+) -> AppResult<Json<serde_json::Value>> {
     let pool = &state.pool;
     let mut sql = String::from("SELECT * FROM word WHERE review_status='published'");
 
@@ -103,10 +109,11 @@ async fn words(State(state): State<SharedState>, Extension(user): Extension<Auth
     let mut learned = std::collections::HashSet::new();
     if let Some(cid) = &q.child_id {
         auth::require_child(pool, &user, cid).await?;
-        let rows = sqlx::query("SELECT target_id FROM progress WHERE child_id=? AND target_type='word'")
-            .bind(cid)
-            .fetch_all(pool)
-            .await?;
+        let rows =
+            sqlx::query("SELECT target_id FROM progress WHERE child_id=? AND target_type='word'")
+                .bind(cid)
+                .fetch_all(pool)
+                .await?;
         for r in rows {
             learned.insert(r.try_get::<String, _>("target_id")?);
         }
@@ -122,7 +129,10 @@ async fn words(State(state): State<SharedState>, Extension(user): Extension<Auth
     })))
 }
 
-async fn word_detail(State(state): State<SharedState>, Path(id): Path<String>) -> AppResult<Json<serde_json::Value>> {
+async fn word_detail(
+    State(state): State<SharedState>,
+    Path(id): Path<String>,
+) -> AppResult<Json<serde_json::Value>> {
     let pool = &state.pool;
     let w = store::get_word(pool, &id).await?;
     let Some(w) = w else {
@@ -131,7 +141,10 @@ async fn word_detail(State(state): State<SharedState>, Path(id): Path<String>) -
     Ok(Json(serde_json::to_value(w)?))
 }
 
-async fn sentences(State(state): State<SharedState>, Query(q): Query<WordQuery>) -> AppResult<Json<serde_json::Value>> {
+async fn sentences(
+    State(state): State<SharedState>,
+    Query(q): Query<WordQuery>,
+) -> AppResult<Json<serde_json::Value>> {
     let pool = &state.pool;
     let mut sql = String::from("SELECT * FROM sentence WHERE review_status='published'");
     if let Some(scene) = &q.category {
@@ -149,7 +162,10 @@ async fn sentences(State(state): State<SharedState>, Query(q): Query<WordQuery>)
     Ok(Json(json!({ "sentences": sents, "total": sents.len() })))
 }
 
-async fn sentence_detail(State(state): State<SharedState>, Path(id): Path<String>) -> AppResult<Json<serde_json::Value>> {
+async fn sentence_detail(
+    State(state): State<SharedState>,
+    Path(id): Path<String>,
+) -> AppResult<Json<serde_json::Value>> {
     let pool = &state.pool;
     let s = store::get_sentence(pool, &id).await?;
     let Some(s) = s else {
@@ -159,7 +175,11 @@ async fn sentence_detail(State(state): State<SharedState>, Path(id): Path<String
 }
 
 /// 场景分类汇总（首页场景快捷区 / 学习模式入口统计）
-async fn scenes(State(state): State<SharedState>, Extension(user): Extension<AuthUser>, Query(q): Query<WordQuery>) -> AppResult<Json<serde_json::Value>> {
+async fn scenes(
+    State(state): State<SharedState>,
+    Extension(user): Extension<AuthUser>,
+    Query(q): Query<WordQuery>,
+) -> AppResult<Json<serde_json::Value>> {
     let pool = &state.pool;
     let child_id = auth::resolve_child(pool, &user, q.child_id.as_deref()).await?;
     let stats = store::scene_stats(pool, &child_id).await?;

@@ -18,6 +18,7 @@ const routes = [
   { path: '/review', name: 'review', component: () => import('./views/Review.vue'), meta: { title: '复习' } },
   { path: '/sentences', name: 'sentences', component: () => import('./views/Sentences.vue'), meta: { title: '情景短句' } },
   { path: '/profile', name: 'profile', component: () => import('./views/Profile.vue'), meta: { title: '我的' } },
+  { path: '/admin', name: 'admin', component: () => import('./views/Admin.vue'), meta: { title: '管理后台', admin: true } },
 ]
 
 const router = createRouter({
@@ -27,7 +28,12 @@ const router = createRouter({
 
 router.beforeEach((to) => {
   if (!to.meta.public && !authToken()) return { name: 'login', query: { redirect: to.fullPath } }
-  if (to.name === 'login' && authToken()) return { name: 'home' }
+  if (to.name === 'login' && authToken()) {
+    const redirect = typeof to.query.redirect === 'string' && to.query.redirect.startsWith('/') ? to.query.redirect : ''
+    if (redirect.startsWith('/admin') && (localStorage.getItem('babyeng_role') === 'admin' || localStorage.getItem('babyeng_username') === 'admin')) return redirect
+    return { name: 'home' }
+  }
+  if (to.meta.admin && localStorage.getItem('babyeng_role') !== 'admin' && localStorage.getItem('babyeng_username') !== 'admin') return { name: 'home' }
   document.title = `${to.meta.title || 'BabyEng'} · BabyEng`
 })
 

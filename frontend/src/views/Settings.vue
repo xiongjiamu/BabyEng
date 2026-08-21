@@ -117,6 +117,7 @@
         <div class="t-label">关于</div>
         <div class="list">
           <div class="list-item"><span class="grow">当前账号</span><span class="val">{{ username }}</span></div>
+          <router-link v-if="isAdmin" class="list-item" to="/admin"><span class="grow">管理后台</span><span class="val">›</span></router-link>
           <button class="list-item danger" @click="logout"><span class="grow">退出登录</span><span class="val">›</span></button>
           <div class="list-item"><span class="grow">版本</span><span class="val">MVP 0.4</span></div>
         </div>
@@ -202,6 +203,7 @@ const childNameDraft = ref('')
 const nameError = ref('')
 const nameSaving = ref(false)
 const username = localStorage.getItem('babyeng_username') || ''
+const isAdmin = localStorage.getItem('babyeng_role') === 'admin' || username === 'admin'
 const { unlock, playUrl } = useAudio()
 const voices = [
   { id: 'en_US-mike-medium', label: 'Mike', description: '英语（美国）' },

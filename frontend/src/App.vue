@@ -1,7 +1,7 @@
 <template>
   <!-- 移动端优先布局：宽屏时居中套手机外壳（对应原型的 phone 外壳体验） -->
-  <div class="app-frame">
-    <div class="app-screen">
+  <div class="app-frame" :class="{ 'admin-frame': isAdminPage }">
+    <div class="app-screen" :class="{ 'admin-screen': isAdminPage }">
       <router-view v-slot="{ Component }">
         <transition name="page" mode="out-in">
           <component :is="Component" />
@@ -12,7 +12,11 @@
 </template>
 
 <script setup>
-// 根组件：仅负责布局容器
+import { computed } from 'vue'
+import { useRoute } from 'vue-router'
+
+const route = useRoute()
+const isAdminPage = computed(() => route.meta.admin === true)
 </script>
 
 <style>
@@ -46,4 +50,9 @@
 }
 .page-enter-active, .page-leave-active { transition: opacity var(--t-enter) var(--ease); }
 .page-enter-from, .page-leave-to { opacity: 0; }
+.app-frame.admin-frame { padding: 0; background: #F4F6F8; }
+.app-screen.admin-screen { max-width: none; min-height: 100dvh; height: 100dvh; box-shadow: none; background: #F4F6F8; }
+@media (min-width: 520px) {
+  .app-screen.admin-screen { border: 0; border-radius: 0; min-height: 100dvh; height: 100dvh; }
+}
 </style>

@@ -59,6 +59,7 @@ pub async fn seed_if_empty(pool: &SqlitePool, seed_dir: &str) -> AppResult<()> {
     let count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM word")
         .fetch_one(pool)
         .await?;
+    seed_subject_items(pool, seed_dir).await?;
     if count > 0 {
         info!("word table already seeded ({} rows), skip", count);
         return Ok(());
@@ -139,6 +140,32 @@ pub async fn seed_if_empty(pool: &SqlitePool, seed_dir: &str) -> AppResult<()> {
         sentences.len(),
         seed_dir
     );
+    Ok(())
+}
+
+async fn seed_subject_items(pool: &SqlitePool, seed_dir: &str) -> AppResult<()> {
+    let path = format!("{}/subject_items.json", seed_dir);
+    if !Path::new(&path).exists() {
+        return Ok(());
+    }
+    let items: Vec<crate::models::SubjectItem> =
+        serde_json::from_str(&std::fs::read_to_string(path)?)?;
+    for item in &items {
+        sqlx::query(
+            "INSERT OR IGNORE INTO subject_item (id, subject, category, title, prompt, answer, image_emoji, level, review_status) VALUES (?,?,?,?,?,?,?,?,?)",
+        )
+        .bind(&item.id)
+        .bind(&item.subject)
+        .bind(&item.category)
+        .bind(&item.title)
+        .bind(&item.prompt)
+        .bind(&item.answer)
+        .bind(&item.image_emoji)
+        .bind(item.level)
+        .bind(&item.review_status)
+        .execute(pool)
+        .await?;
+    }
     Ok(())
 }
 

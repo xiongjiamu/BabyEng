@@ -36,7 +36,10 @@ async fn login(
     if username.is_empty() || body.password.is_empty() {
         return Err(AppError::BadRequest("账号和密码不能为空".into()));
     }
-    let token = state.auth.login(&state.cfg.auth_file, username, &body.password)?;
+    let token = state
+        .auth
+        .login(&state.cfg.auth_file, username, &body.password)?;
+    let role = crate::auth::account_role(&state.cfg.auth_file, username)?;
     let now = Utc::now();
     let expires_at = now + Duration::days(30);
     sqlx::query(
@@ -67,15 +70,19 @@ async fn login(
         "ok": true,
         "token": token,
         "username": username,
+        "role": role,
         "expires_at": expires_at.to_rfc3339(),
     })))
 }
 
 async fn me(Extension(user): Extension<AuthUser>) -> Json<serde_json::Value> {
-    Json(json!({ "authenticated": true, "username": user.username }))
+    Json(json!({ "authenticated": true, "username": user.username, "role": user.role }))
 }
 
-async fn logout(State(state): State<SharedState>, headers: HeaderMap) -> AppResult<Json<serde_json::Value>> {
+async fn logout(
+    State(state): State<SharedState>,
+    headers: HeaderMap,
+) -> AppResult<Json<serde_json::Value>> {
     let token = bearer_token(headers.get(header::AUTHORIZATION))
         .ok_or_else(|| AppError::Unauthorized("请先登录".into()))?;
     sqlx::query("DELETE FROM auth_session WHERE token=?")

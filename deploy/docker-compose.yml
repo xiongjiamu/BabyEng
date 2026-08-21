@@ -39,7 +39,7 @@ services:
     volumes:
       - data:/data
       - audio:/data/audio
-      - "${AUTH_FILE:-./auth.json}:/app/auth.json:ro"
+      - "${AUTH_FILE:-./auth.json}:/app/auth.json"
     depends_on:
       tts:
         condition: service_healthy
