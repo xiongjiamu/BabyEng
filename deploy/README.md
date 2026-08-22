@@ -6,7 +6,7 @@
 [移动端 PWA] ──HTTPS── [Nginx(web)] ──/api── [backend Rust:8080]
                                     │
                         [SQLite /data/babyeng.db]
-                        [TTS Piper  :8101]
+                        [TTS cache + OpenRouter Flux fallback]
                         [ASR sherpa :8102]
                         [LLM 可选   :8103, profile=full]
 ```
@@ -42,7 +42,7 @@ BabyEng 使用 `auth.json` 中的本地账号登录。Compose 默认只把 Web �
 
 ## 模型下载
 
-TTS（Piper，每个音色约 60MB）：
+Piper 模型只用于复用已有的本地发音缓存（每个音色约 60MB）。新内容不再调用 Piper 实时生成：
 ```bash
 # 下载应用可选的 6 个美式英语音色；Mike 为默认音色
 mkdir -p models/piper
@@ -61,7 +61,7 @@ tar xjf sherpa-onnx-streaming-zipformer-bilingual-zh-en-2023-02-20.tar.bz2
 rm sherpa-onnx-streaming-zipformer-bilingual-zh-en-2023-02-20.tar.bz2
 ```
 
-**模型缺失时应用仍可用**：TTS/ASR 返回 503，前端自动降级——
+**模型缺失时应用仍可用**：配置 `OPENROUTER_API_KEY` 后，未收录发音会由 OpenRouter Flux TTS 生成并缓存；OpenRouter 或 ASR 不可用时，前端自动降级——
 问一问改打字、发音显示「暂时不可用」，不影响文字教学闭环（PRD 4.1.3 / 5.4）。
 
 ## 环境变量
@@ -71,6 +71,7 @@ rm sherpa-onnx-streaming-zipformer-bilingual-zh-en-2023-02-20.tar.bz2
 | `WEB_BIND_ADDR` | 127.0.0.1 | Web 监听地址；家庭局域网使用时填写服务器内网 IP |
 | `WEB_PORT` | 80 | Web 宿主机端口；端口冲突时可改为 8080 等空闲端口 |
 | `AUTH_FILE` | ./auth.json | 宿主机账号配置文件路径，只读挂载到后端 |
+| `OPENROUTER_API_KEY` | 空 | OpenRouter Key；本地音频未收录时固定用 `deepgram/flux-tts:free` 的 `flux-drew-en` 生成 |
 | `LLM_BASE_URL` | http://host.docker.internal:11434/v1 | 本地 ollama 或云端 OpenAI 兼容地址（full profile） |
 | `LLM_API_KEY` | 空 | 云端 API Key（full profile） |
 | `LLM_MODEL` | qwen2.5:7b-instruct | 模型名（full profile） |
@@ -106,11 +107,32 @@ HTTPS 配置不会自动增加账号鉴权；远程访问仍需使用家庭 VPN 
 npm install
 AUTH_USERNAME=family-a AUTH_PASSWORD='你的密码' npm run verify -- http://127.0.0.1:8080 /tmp/babyeng-shots
 AUTH_USERNAME=family-a AUTH_PASSWORD='你的密码' npm run release-check -- http://127.0.0.1:8080
+AUTH_USERNAME=family-a AUTH_PASSWORD='你的密码' npm run degradation-check -- http://127.0.0.1:18080
+AUTH_USERNAME=family-a AUTH_PASSWORD='你的密码' npm run pronunciation-check -- http://127.0.0.1:18080 /tmp/babyeng-a6-pronunciation.json
+npm run pronunciation-check -- --verify-manual /tmp/babyeng-a6-pronunciation.json
+npm run device-evidence -- --generate /tmp/babyeng-device-evidence.json
+npm run device-evidence -- --verify /tmp/babyeng-device-evidence.json
+npm run custom-voice-readiness -- --generate /tmp/babyeng-custom-voice-readiness.json
+npm run custom-voice-readiness -- --verify /tmp/babyeng-custom-voice-readiness.json
 ```
 
 `verify` 检查 12 个页面、主要交互和 API；`release-check` 自动覆盖 A2 全量别名、A3 十例同音容错与 A4 十例未命中。它输出的 A1 数值只是本机文字 API 基线，不能替代局域网中端安卓语音链路的 P95 验收。
 
-A6 必须人工逐条试听 58 条 TTS 音频并核对音标；A8 必须在安卓 Chrome 与 iOS Safari 各完成完整闭环并记录 PRD 9.2 的四项结论。
+`degradation-check` 会依次停止 TTS、ASR 容器，检查文字路径始终可用、ASR 停止时语音接口明确返回 `asr_fail`，并在成功、失败或中断后恢复它停止的服务。执行前要求 Backend、TTS、ASR 均已运行；脚本不会启动原本就停止的环境。当前未收录发音使用 OpenRouter Flux，因此停止本地 TTS 后，配置了 Key 时应由远端继续提供发音，未配置时应返回 `tts_only_down` 并保留文字结果。自动输出中的 `manual_ui_evidence` 固定为 `false`，仍需人工记录移动端提示和恢复体验。
+
+`pronunciation-check` 逐条请求 48 个单词和 10 个句子的实际 TTS，记录 HTTP 状态、音频 MIME、字节数和 SHA-256，并检查音标与来源字段。输出 JSON 权限为 `0600`，每条都预留人工试听、发音正确性、自然清晰度、音标核对、验收人和时间字段；这些字段初始为 `null`，脚本固定输出 `manual_complete=false`。人工填写后用 `--verify-manual` 检查是否恰好 58 条且所有结论、验收人和时间均已填写；自动通过 58 条只代表音频可读取，不能代替 A6 人工结论。
+
+`device-evidence` 生成权限为 `0600` 的 A1/A5/A7/A8 与屏幕计时真机清单。A1 必须填写中端安卓 Chrome 的 20 次语音样本，校验器计算 P95 并执行 1200ms/800ms 阈值；A5、A7、A8 和屏幕计时必须同时有安卓与 iOS 的设备、浏览器、验收人、时间及逐项通过记录，iOS 四项 PWA 限制允许结论为 supported/limited/unavailable，但必须描述实测行为并确认应对路径。空模板不能通过 `--verify`，桌面模拟数据也不能替代真机字段。
+
+`custom-voice-readiness` 只生成和校验自定义音色的人工决策清单，不读取、复制或上传录音，也不会启动训练。清单固定为本家庭成年母亲的本地英语 TTS，明确拒绝幼儿音色；必须填完说话人授权、20～30 分钟试采目标、原始/派生/模型/缓存/备份删除边界、隔离 GPU、训练器与 checkpoint 许可证以及批准人和时间。空白清单、允许幼儿声音、低于 8 GB VRAM、云训练或覆盖已有证据文件都会被拒绝。详细边界见 `docs/自定义音色准备与数据治理.md`；校验通过只代表决策完整，不代表已经采集、训练或获得可用音色。
+
+A6 必须人工逐条试听 58 条 TTS 音频并核对音标；A7 仍需人工查看 TTS/ASR 故障时的界面降级；A8 必须在安卓 Chrome 与 iOS Safari 各完成完整闭环并记录 PRD 9.2 的四项结论。
+
+管理后台可为已保存的单词和亲子活动上传 JPEG、PNG 或 WebP 实物照片，单张不超过 5 MB；替换和删除都需要明确确认。照片保存在 Backend 数据卷的 `/data/content-images`，应随数据库和录音一并备份。课程 JSON 导入导出不嵌入图片文件；迁移课程时需另行复制该目录。未上传照片时前端继续显示课程 emoji。
+课程列表会汇总可配照片内容的覆盖率，并在每个单词/活动旁标记“有照片”或“待照片”；句子不支持照片并明确显示“无照片”。
+
+管理后台的“使用证据”从数据库迁移 `0009_usage_evidence` 生效后开始按 7、28 或 90 天统计 PRD 13 指标。事件只保存输入方式、命中状态、课程目标、后端处理时长及问答—跟读关联，不额外复制提问原文；未命中原文仍只保存在原有待补词表中。未命中率以已经获得文本的提问为分母，`asr_fail` 只进入 ASR 成功率和总问答闭环率，避免把识别故障误判为词库缺口。闭环教学日要求同一问答事件关联到已保存的宝宝跟读录音。跟踪周从首条事件日期起每 7 天分组，无事件周显示为零，当前未满 7 天的周期标为“进行中”；只有首个 28 天完整结束后才显示前四周周均、第 4 周目标与止损结论。统计事件会进入家庭数据导出，也会随“清空学习数据”的明确确认一起删除。历史数据不会推测补齐，页面显示的后端 P95 不能替代 A1 真机端到端时延。
+使用证据页同时提供“待补词清单”：管理员可按同一时间窗口查看 pending 未命中，结果按归一化文本跨家庭聚合并显示出现家庭数、次数和最近时间；接口不返回家庭原始提问或录音内容，普通家庭账号无权访问。该清单只读，新增课程仍需管理员在课程内容页明确导入/发布。
 
 ## 无 GPU 说明（PRD 9.7）
 

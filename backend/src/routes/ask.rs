@@ -8,9 +8,11 @@ use axum::routing::post;
 use axum::{Json, Router};
 use serde::Deserialize;
 use serde_json::json;
+use std::time::Instant;
+use uuid::Uuid;
 
-use crate::error::{AppError, AppResult};
 use crate::auth::{self, AuthUser};
+use crate::error::{AppError, AppResult};
 use crate::matcher::Match;
 use crate::models::{AskResponse, AskResult};
 use crate::state::SharedState;
@@ -36,6 +38,7 @@ async fn ask_text(
     Extension(user): Extension<AuthUser>,
     Json(body): Json<AskTextBody>,
 ) -> AppResult<Json<AskResponse>> {
+    let started = Instant::now();
     let text = body.text.trim().to_string();
     if text.is_empty() {
         return Err(AppError::BadRequest("文本为空".into()));
@@ -44,12 +47,21 @@ async fn ask_text(
         auth::require_child(&state.pool, &user, child_id).await?;
     }
     let family_id = auth::family_id(&state.pool, &user).await?;
-    let resp = run_pipeline(
+    let mut resp = run_pipeline(
         &state,
         &text,
         body.asr_confidence,
         family_id.as_deref(),
         body.child_id.as_deref(),
+    )
+    .await;
+    resp.event_id = record_ask_event(
+        &state,
+        family_id.as_deref(),
+        body.child_id.as_deref(),
+        "text",
+        &resp,
+        started.elapsed().as_millis(),
     )
     .await;
     Ok(Json(resp))
@@ -61,6 +73,7 @@ async fn ask_voice(
     Extension(user): Extension<AuthUser>,
     mut multipart: Multipart,
 ) -> AppResult<Json<AskResponse>> {
+    let started = Instant::now();
     let mut audio_bytes: Option<Vec<u8>> = None;
     let mut ext = "webm".to_string();
     let mut child_id: Option<String> = None;
@@ -113,38 +126,69 @@ async fn ask_voice(
     let outcome = match state.inference.asr_recognize(wav).await {
         Ok(o) => o,
         Err(AppError::AsrUnavailable) => {
-            return Ok(Json(AskResponse {
+            let mut response = AskResponse {
                 status: "asr_fail".into(),
                 result: None,
                 candidates: vec![],
                 recognized_text: None,
                 normalized_text: None,
                 unmatched_id: None,
+                event_id: None,
                 message: Some("识别服务暂时不可用，可以打字提问".into()),
-            }));
+            };
+            response.event_id = record_ask_event(
+                &state,
+                family_id.as_deref(),
+                child_id.as_deref(),
+                "voice",
+                &response,
+                started.elapsed().as_millis(),
+            )
+            .await;
+            return Ok(Json(response));
         }
         Err(e) => return Err(e),
     };
 
     let text = outcome.text.trim().to_string();
     if text.is_empty() {
-        return Ok(Json(AskResponse {
+        let mut response = AskResponse {
             status: "asr_fail".into(),
             result: None,
             candidates: vec![],
             recognized_text: Some(String::new()),
             normalized_text: None,
             unmatched_id: None,
+            event_id: None,
             message: Some("没听清，再说一次".into()),
-        }));
+        };
+        response.event_id = record_ask_event(
+            &state,
+            family_id.as_deref(),
+            child_id.as_deref(),
+            "voice",
+            &response,
+            started.elapsed().as_millis(),
+        )
+        .await;
+        return Ok(Json(response));
     }
 
-    let resp = run_pipeline(
+    let mut resp = run_pipeline(
         &state,
         &text,
         outcome.confidence,
         family_id.as_deref(),
         child_id.as_deref(),
+    )
+    .await;
+    resp.event_id = record_ask_event(
+        &state,
+        family_id.as_deref(),
+        child_id.as_deref(),
+        "voice",
+        &resp,
+        started.elapsed().as_millis(),
     )
     .await;
     Ok(Json(resp))
@@ -156,6 +200,7 @@ struct ConfirmBody {
     target_type: String,
     target_id: String,
     child_id: Option<String>,
+    event_id: Option<String>,
 }
 
 async fn ask_confirm(
@@ -233,7 +278,61 @@ async fn ask_confirm(
         .await?;
     }
 
-    Ok(Json(json!({ "ok": true, "result": result })))
+    let confirmed_event_id = if let Some(event_id) = body.event_id.as_deref() {
+        let family_id = auth::require_family_id(pool, &user).await?;
+        let updated = sqlx::query(
+            "UPDATE ask_event SET status='hit', target_type=?, target_id=? WHERE id=? AND family_id=? AND status='ambiguous' AND (child_id IS NULL OR child_id=?)",
+        )
+        .bind(&result.target_type)
+        .bind(&result.target_id)
+        .bind(event_id)
+        .bind(family_id)
+        .bind(body.child_id.as_deref())
+        .execute(pool)
+        .await?;
+        (updated.rows_affected() == 1).then(|| event_id.to_string())
+    } else {
+        None
+    };
+
+    Ok(Json(
+        json!({ "ok": true, "result": result, "event_id": confirmed_event_id }),
+    ))
+}
+
+async fn record_ask_event(
+    state: &SharedState,
+    family_id: Option<&str>,
+    child_id: Option<&str>,
+    input_mode: &str,
+    response: &AskResponse,
+    elapsed_ms: u128,
+) -> Option<String> {
+    let family_id = family_id?;
+    let id = Uuid::new_v4().to_string();
+    let target = response.result.as_ref();
+    let latency_ms = i64::try_from(elapsed_ms).unwrap_or(i64::MAX);
+    let inserted = sqlx::query(
+        "INSERT INTO ask_event (id, family_id, child_id, input_mode, status, target_type, target_id, latency_ms, asked_at) VALUES (?,?,?,?,?,?,?,?,?)",
+    )
+    .bind(&id)
+    .bind(family_id)
+    .bind(child_id)
+    .bind(input_mode)
+    .bind(&response.status)
+    .bind(target.map(|value| value.target_type.as_str()))
+    .bind(target.map(|value| value.target_id.as_str()))
+    .bind(latency_ms)
+    .bind(chrono::Utc::now().to_rfc3339())
+    .execute(&state.pool)
+    .await;
+    match inserted {
+        Ok(_) => Some(id),
+        Err(error) => {
+            tracing::warn!(%error, "记录本地问答指标失败");
+            None
+        }
+    }
 }
 
 /// 匹配管线主流程（L0 → L1 → L2 → 兜底）
@@ -251,7 +350,7 @@ async fn run_pipeline(
     let outcome = matcher.match_query(&normalized, raw);
     drop(matcher);
 
-    let tts_ready = state.inference.ready.read().map(|r| r.tts).unwrap_or(false);
+    let tts_ready = state.inference.tts_available();
 
     match outcome {
         Match::Hit(target, level) => {
@@ -291,6 +390,7 @@ async fn run_pipeline(
                         recognized_text: Some(raw.to_string()),
                         normalized_text: Some(normalized.clone()),
                         unmatched_id: None,
+                        event_id: None,
                         message: None,
                     }
                 }
@@ -301,6 +401,7 @@ async fn run_pipeline(
                     recognized_text: Some(raw.to_string()),
                     normalized_text: Some(normalized),
                     unmatched_id: None,
+                    event_id: None,
                     message: Some("内部错误，请重试".into()),
                 },
             }
@@ -323,6 +424,7 @@ async fn run_pipeline(
                 recognized_text: Some(raw.to_string()),
                 normalized_text: Some(normalized),
                 unmatched_id: None,
+                event_id: None,
                 message: Some("你是说哪一个？".into()),
             }
         }
@@ -357,6 +459,7 @@ async fn run_pipeline(
                 recognized_text: Some(raw.to_string()),
                 normalized_text: Some(normalized.clone()),
                 unmatched_id,
+                event_id: None,
                 message: Some("这个词还没准备好，我记下了".into()),
             }
         }

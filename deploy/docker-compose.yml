@@ -28,16 +28,19 @@ services:
       DATABASE_URL: "sqlite:///data/babyeng.db"
       SEED_DIR: "/app/data/seed"
       AUDIO_DIR: "/data/audio"
+      CONTENT_IMAGE_DIR: "/data/content-images"
       STATIC_DIR: "/app/static"
       TTS_URL: "http://tts:8101"
       ASR_URL: "http://asr:8102"
       LLM_URL: "http://llm:8103"
       SVC_TIMEOUT_SECS: "15"
       AUTH_FILE: "/app/auth.json"
+      OPENROUTER_API_KEY: "${OPENROUTER_API_KEY:-}"
+      OPENROUTER_TTS_URL: "https://openrouter.ai/api/v1/audio/speech"
     volumes:
       - data:/data
       - audio:/data/audio
-      - "${AUTH_FILE:-./auth.json}:/app/auth.json:ro"
+      - "${AUTH_FILE:-./auth.json}:/app/auth.json"
     depends_on:
       tts:
         condition: service_healthy

@@ -52,16 +52,50 @@
         <span style="font-size:28px">›</span>
       </router-link>
 
+      <section v-if="dailyActivities.length" class="stack-3">
+        <div class="row-between">
+          <div class="t-label">今天的亲子活动</div>
+          <span class="chip mom">{{ dailySceneLabel }}</span>
+        </div>
+        <router-link
+          v-for="activity in dailyActivities"
+          :key="activity.id"
+          class="card daily-activity row"
+          :to="{ path: `/subject-learn/${activity.subject}`, query: { activity: activity.id } }"
+        >
+          <ContentImage class="daily-activity-image" kind="activity" :target-id="activity.id" :emoji="activity.image_emoji" :alt="activity.title" />
+          <span class="grow">
+            <span class="daily-activity-title">{{ activity.title }}</span>
+            <span class="t-mom-sm">{{ store.isBandA ? activity.child_action_a : activity.child_action_b }}</span>
+          </span>
+          <span class="daily-activity-arrow">›</span>
+        </router-link>
+        <p class="note">任选一张做 2～5 分钟即可，不需要全部完成。</p>
+      </section>
+
       <div class="duo">
         <router-link class="tile" to="/learn">
           <span class="ico">📚</span>
-          <span class="t">学单词</span>
-          <span class="s">按场景成组学</span>
+          <span class="t">英语启蒙</span>
+          <span class="s">单词、短句与复习</span>
         </router-link>
         <router-link class="tile" to="/review">
           <span class="ico">🔁</span>
           <span class="t">复习</span>
           <span class="s">{{ reviewCount }} 个待复习</span>
+        </router-link>
+      </div>
+
+      <div class="duo">
+        <router-link class="tile" to="/subject-learn/chinese">
+          <span class="ico">📖</span>
+          <span class="t">语言亲子活动</span>
+          <span class="s">实验 · 比较、儿歌与动作</span>
+        </router-link>
+        <router-link class="tile" to="/subject-learn/math">
+          <span class="ico">🔢</span>
+          <span class="t">数学亲子活动</span>
+          <span class="s">实验 · 实物数数、多少、形状</span>
         </router-link>
       </div>
 
@@ -101,12 +135,16 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import TabBar from '../components/TabBar.vue'
+import ContentImage from '../components/ContentImage.vue'
 import { useAppStore } from '../stores/app'
 import { api } from '../api'
 
 const store = useAppStore()
 const summary = ref(null)
 const reviewCount = ref(0)
+const dailyActivities = ref([])
+const dailyScene = ref('play')
+const dailySceneLabel = computed(() => ({ morning: '起床', meal: '吃饭', play: '玩耍', dressing: '穿衣', outing: '出门', bedtime: '睡前' })[dailyScene.value] || '现在')
 
 const greeting = computed(() => {
   const h = new Date().getHours()
@@ -168,6 +206,19 @@ onMounted(async () => {
   } catch {
     /* 离线模式保持默认值 */
   }
+  try {
+    const activities = await api.todayActivities(store.childId)
+    dailyActivities.value = activities.items || []
+    dailyScene.value = activities.scene || 'play'
+  } catch { /* 亲子活动推荐不可用时不影响英语主入口 */ }
   store.refreshSvcStatus()
 })
 </script>
+
+<style scoped>
+.daily-activity { text-decoration:none;color:inherit;gap:var(--sp-3);align-items:center; }
+.daily-activity-emoji { font-size:38px;line-height:1;min-width:44px;text-align:center; }
+.daily-activity-image { width:52px;height:52px;flex:none;border-radius:var(--r-sm);background:var(--c-surface-2);font-size:38px; }
+.daily-activity-title { display:block;font-size:19px;font-weight:800;margin-bottom:4px; }
+.daily-activity-arrow { font-size:26px;color:var(--c-ink-3); }
+</style>

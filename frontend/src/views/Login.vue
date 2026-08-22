@@ -15,11 +15,12 @@
 
 <script setup>
 import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { api } from '../api'
 import { useAppStore } from '../stores/app'
 
 const router = useRouter()
+const route = useRoute()
 const store = useAppStore()
 const username = ref('')
 const password = ref('')
@@ -32,9 +33,11 @@ async function submit() {
   try {
     const result = await api.login(username.value, password.value)
     localStorage.setItem('babyeng_username', result.username)
+    localStorage.setItem('babyeng_role', result.role || 'user')
     store.resetUserData()
     await store.bootstrap()
-    router.replace(store.initialized ? '/home' : '/onboarding')
+    const redirect = typeof route.query.redirect === 'string' && route.query.redirect.startsWith('/') ? route.query.redirect : ''
+    router.replace(redirect || (store.initialized ? '/home' : '/onboarding'))
   } catch (e) { error.value = e.message || '登录失败' } finally { loading.value = false }
 }
 </script>

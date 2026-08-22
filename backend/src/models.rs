@@ -42,6 +42,38 @@ pub struct Sentence {
     pub review_status: String,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SubjectItem {
+    pub id: String,
+    pub subject: String,
+    pub category: String,
+    pub title: String,
+    pub prompt: String,
+    pub answer: String,
+    pub image_emoji: String,
+    pub level: i64,
+    #[serde(default)]
+    pub scene: String,
+    #[serde(default)]
+    pub materials: String,
+    #[serde(default)]
+    pub parent_script: String,
+    #[serde(default)]
+    pub child_action_a: String,
+    #[serde(default)]
+    pub child_action_b: String,
+    #[serde(default)]
+    pub observe_for: String,
+    #[serde(default)]
+    pub safety_note: String,
+    #[serde(default)]
+    pub material_tags: Vec<String>,
+    #[serde(default)]
+    pub interest_tags: Vec<String>,
+    #[serde(default = "default_review_status")]
+    pub review_status: String,
+}
+
 fn default_image_source() -> String {
     "family".into()
 }
@@ -80,6 +112,7 @@ pub struct AskResponse {
     pub recognized_text: Option<String>,
     pub normalized_text: Option<String>,
     pub unmatched_id: Option<String>, // nomatch 时写入的未命中表 id
+    pub event_id: Option<String>,     // 本地使用证据事件；可贯穿到跟读录音
     pub message: Option<String>,
 }
 

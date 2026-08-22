@@ -37,6 +37,30 @@
       </div>
 
       <div class="card stack-3">
+        <div class="row-between">
+          <div class="t-label">近 7 天亲子活动</div>
+          <span class="t-mom-sm">活跃 {{ activityWeek?.active_days || 0 }} 天</span>
+        </div>
+        <div class="activity-summary">
+          <span><b>{{ activityWeek?.independent || 0 }}</b>自己完成</span>
+          <span><b>{{ activityWeek?.with_help || 0 }}</b>在帮助下</span>
+          <span><b>{{ activityWeek?.not_interested || 0 }}</b>没兴趣</span>
+        </div>
+        <div v-if="activityWeek?.recent?.length" class="activity-recent">
+          <div v-for="item in activityWeek.recent.slice(0, 4)" :key="item.recorded_at + item.id" class="row-between">
+            <span class="row"><ContentImage class="profile-activity-image" kind="activity" :target-id="item.id" :emoji="item.image_emoji" :alt="item.title" />{{ item.title }}</span>
+            <span class="t-mom-sm">{{ markLabel(item.mark) }}</span>
+          </div>
+        </div>
+        <p v-else class="t-mom-sm" style="margin:0">完成亲子活动并留下观察后，这里会形成一周回顾。</p>
+        <p class="note" style="margin:0">这些是你的日常观察记录，不代表能力测评或发展诊断。</p>
+        <button class="btn secondary" :disabled="exportingObservations" @click="exportObservations">
+          {{ exportingObservations ? '正在整理…' : '导出近 30 天观察记录' }}
+        </button>
+        <div v-if="observationExportError" class="banner warn"><span class="ico">⚠️</span><span>{{ observationExportError }}</span></div>
+      </div>
+
+      <div class="card stack-3">
         <div class="t-label">妈妈学习卡</div>
         <div v-for="w in (report?.new_words || []).slice(0, 1)" :key="w.id" class="row" style="align-items:flex-start;gap:var(--sp-3)">
           <span style="font-size:24px">📖</span>
@@ -127,6 +151,7 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import TabBar from '../components/TabBar.vue'
+import ContentImage from '../components/ContentImage.vue'
 import { useAppStore } from '../stores/app'
 import { api } from '../api'
 import { useAudio } from '../composables/useAudio'
@@ -136,6 +161,9 @@ const { playUrl, unlock } = useAudio()
 
 const tab = ref('daily')
 const report = ref(null)
+const activityWeek = ref(null)
+const exportingObservations = ref(false)
+const observationExportError = ref('')
 const recs = ref([])
 const cal = ref(null)
 const medals = ref([])
@@ -175,16 +203,18 @@ onMounted(async () => {
   if (!store.initialized) { location.href = '/onboarding'; return }
   const cid = store.childId
   try {
-    const [r, rec, c, m] = await Promise.all([
+    const [r, rec, c, m, week] = await Promise.all([
       api.reportToday(cid),
       api.recordingsToday(cid),
       api.reportCalendar(cid),
       api.achievements(cid),
+      api.activityWeek(cid).catch(() => null),
     ])
     report.value = r
     recs.value = rec.recordings
     cal.value = c
     medals.value = m.medals
+    activityWeek.value = week
   } catch { /* 离线默认 */ }
 })
 
@@ -199,6 +229,32 @@ function fmtTime(iso) {
 function fmtDur(ms) {
   return `0:${String(Math.floor((ms || 0) / 1000)).padStart(2, '0')}`
 }
+function markLabel(mark) {
+  return {
+    observed_independent: '自己完成',
+    observed_with_help: '在帮助下',
+    not_interested: '今天没兴趣',
+  }[mark] || ''
+}
+async function exportObservations() {
+  if (exportingObservations.value) return
+  exportingObservations.value = true
+  observationExportError.value = ''
+  try {
+    const data = await api.activityObservations(store.childId, 30)
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `babyeng-activity-observations-${new Date().toISOString().slice(0, 10)}.json`
+    link.click()
+    setTimeout(() => URL.revokeObjectURL(url), 0)
+  } catch {
+    observationExportError.value = '观察记录导出失败，请稍后重试。'
+  } finally {
+    exportingObservations.value = false
+  }
+}
 function playRec(r) {
   playUrl(api.recordingUrl(r.id))
 }
@@ -210,3 +266,11 @@ async function toggleFav(r) {
   } catch { /* ignore */ }
 }
 </script>
+
+<style scoped>
+.activity-summary { display:grid;grid-template-columns:repeat(3,1fr);gap:var(--sp-2); }
+.activity-summary span { padding:var(--sp-3) var(--sp-2);border-radius:var(--r-sm);background:var(--c-surface-2);text-align:center;font-size:13px;color:var(--c-ink-2); }
+.activity-summary b { display:block;font-size:26px;color:var(--c-ink-1); }
+.activity-recent { display:grid;gap:var(--sp-2); }
+.profile-activity-image { width:30px;height:30px;border-radius:8px;background:var(--c-surface-2);font-size:22px;flex:none; }
+</style>

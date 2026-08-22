@@ -24,7 +24,7 @@
       </div>
       <div class="quiz-opts">
         <button v-for="opt in quizOptions" :key="opt.id" class="quiz-opt" @click="answerQuiz(opt.id === current.id)">
-          <span class="photo"><span class="emoji">{{ opt.image_emoji || '🖼' }}</span></span>
+          <ContentImage class="photo" kind="word" :target-id="opt.target_id" :emoji="opt.image_emoji" :alt="opt.zh" />
         </button>
       </div>
       <button class="btn-quiet btn-block" @click="skipQuiz">跳过这题 ›</button>
@@ -33,7 +33,7 @@
 
     <!-- ============ A 段：只跟读，不测 ============ -->
     <section v-else-if="view === 'speakA' && current" class="page-body pad stack-6">
-      <div class="photo" style="width:180px;margin:0 auto"><span class="emoji">{{ current.image_emoji || '🖼' }}</span></div>
+      <ContentImage class="photo" style="width:180px;margin:0 auto" kind="word" :target-id="current.target_id" :emoji="current.image_emoji" :alt="current.zh" />
       <div style="text-align:center">
         <div class="t-word-en">{{ current.en }}</div>
         <div class="t-phonetic">{{ current.phonetic || '' }}</div>
@@ -52,7 +52,7 @@
     <!-- ============ 跟读环节（两段共用） ============ -->
     <section v-else-if="view === 'speak' && current" class="page-body pad stack-6">
       <div style="text-align:center"><span class="chip ok">✓ 选对了</span></div>
-      <div class="photo" style="width:170px;margin:0 auto"><span class="emoji">{{ current.image_emoji || '🖼' }}</span></div>
+      <ContentImage class="photo" style="width:170px;margin:0 auto" kind="word" :target-id="current.target_id" :emoji="current.image_emoji" :alt="current.zh" />
       <div style="text-align:center">
         <div class="t-word-en">{{ current.en }}</div>
         <div class="t-phonetic">{{ current.phonetic || '' }}</div>
@@ -76,7 +76,7 @@
         <div class="t-label">接下来怎么排</div>
         <div class="queue">
           <div v-for="w in queue" :key="w.target_id" class="queue-row">
-            <span class="photo sm"><span class="emoji">{{ w.image_emoji || '🖼' }}</span></span>
+            <ContentImage class="photo sm" kind="word" :target-id="w.target_id" :emoji="w.image_emoji" :alt="w.zh" />
             <span class="grow">
               <div class="t-word-en-s" style="font-size:22px">{{ w.en }}</div>
               <div class="t-mom-sm">{{ w.review_label }}</div>
@@ -101,6 +101,7 @@ import { computed, onMounted, ref } from 'vue'
 import { useAppStore } from '../stores/app'
 import { api } from '../api'
 import { useAudio } from '../composables/useAudio'
+import ContentImage from '../components/ContentImage.vue'
 
 const store = useAppStore()
 const { playUrl, unlock } = useAudio()

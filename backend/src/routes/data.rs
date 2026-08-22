@@ -7,8 +7,8 @@ use serde::Deserialize;
 use serde_json::{json, Value};
 use sqlx::{Row, SqlitePool};
 
-use crate::error::{AppError, AppResult};
 use crate::auth::{self, AuthUser};
+use crate::error::{AppError, AppResult};
 use crate::state::SharedState;
 
 pub fn router() -> Router<SharedState> {
@@ -18,11 +18,17 @@ pub fn router() -> Router<SharedState> {
 }
 
 async fn json_rows(pool: &SqlitePool, sql: &str, family_id: &str) -> AppResult<Value> {
-    let raw: String = sqlx::query_scalar(sql).bind(family_id).fetch_one(pool).await?;
+    let raw: String = sqlx::query_scalar(sql)
+        .bind(family_id)
+        .fetch_one(pool)
+        .await?;
     Ok(serde_json::from_str(&raw)?)
 }
 
-async fn export_all(State(state): State<SharedState>, Extension(user): Extension<AuthUser>) -> AppResult<Json<Value>> {
+async fn export_all(
+    State(state): State<SharedState>,
+    Extension(user): Extension<AuthUser>,
+) -> AppResult<Json<Value>> {
     let pool = &state.pool;
     let family_id = auth::require_family_id(pool, &user).await?;
     let families = json_rows(pool, "SELECT COALESCE(json_group_array(json_object('family_id',family_id,'mother_name',mother_name,'settings',json(settings),'created_at',created_at)),'[]') FROM family WHERE family_id=?", &family_id).await?;
@@ -32,10 +38,12 @@ async fn export_all(State(state): State<SharedState>, Extension(user): Extension
     let achievements = json_rows(pool, "SELECT COALESCE(json_group_array(json_object('id',a.id,'child_id',a.child_id,'type',a.type,'key',a.key,'unlocked_at',a.unlocked_at)),'[]') FROM achievement a JOIN child c ON c.child_id=a.child_id WHERE c.family_id=?", &family_id).await?;
     let daily = json_rows(pool, "SELECT COALESCE(json_group_array(json_object('child_id',d.child_id,'day',d.day,'learn_count',d.learn_count,'rec_count',d.rec_count,'rec_ms',d.rec_ms,'screen_sec',d.screen_sec,'frozen',d.frozen)),'[]') FROM child_daily d JOIN child c ON c.child_id=d.child_id WHERE c.family_id=?", &family_id).await?;
     let unmatched = json_rows(pool, "SELECT COALESCE(json_group_array(json_object('id',id,'family_id',family_id,'raw_text',raw_text,'normalized_text',normalized_text,'asr_confidence',asr_confidence,'llm_result',llm_result,'hit_count',hit_count,'status',status,'last_seen_at',last_seen_at)),'[]') FROM unmatched_query WHERE family_id=?", &family_id).await?;
+    let ask_events = json_rows(pool, "SELECT COALESCE(json_group_array(json_object('id',ae.id,'family_id',ae.family_id,'child_id',ae.child_id,'input_mode',ae.input_mode,'status',ae.status,'target_type',ae.target_type,'target_id',ae.target_id,'latency_ms',ae.latency_ms,'asked_at',ae.asked_at)),'[]') FROM ask_event ae WHERE ae.family_id=?", &family_id).await?;
+    let recording_attempts = json_rows(pool, "SELECT COALESCE(json_group_array(json_object('id',ra.id,'child_id',ra.child_id,'duration_ms',ra.duration_ms,'accepted',ra.accepted,'recording_id',ra.recording_id,'created_at',ra.created_at)),'[]') FROM recording_attempt ra JOIN child c ON c.child_id=ra.child_id WHERE c.family_id=?", &family_id).await?;
     let model_configs = json_rows(pool, "SELECT COALESCE(json_group_array(json_object('config_id',config_id,'family_id',family_id,'type',type,'provider',provider,'model_name',model_name,'endpoint',endpoint,'params',json(params),'created_at',created_at)),'[]') FROM model_config WHERE family_id=?", &family_id).await?;
 
     let rows = sqlx::query(
-        "SELECT r.id, r.child_id, r.target_type, r.target_id, r.audio_path, r.duration_ms, r.favorited, r.created_at, r.expires_at FROM recording r JOIN child c ON c.child_id=r.child_id WHERE c.family_id=? ORDER BY r.created_at",
+        "SELECT r.id, r.child_id, r.target_type, r.target_id, r.audio_path, r.duration_ms, r.favorited, r.created_at, r.expires_at, r.ask_event_id FROM recording r JOIN child c ON c.child_id=r.child_id WHERE c.family_id=? ORDER BY r.created_at",
     )
     .bind(&family_id)
     .fetch_all(pool)
@@ -53,6 +61,7 @@ async fn export_all(State(state): State<SharedState>, Extension(user): Extension
             "favorited": row.try_get::<i64, _>("favorited")? > 0,
             "created_at": row.try_get::<String, _>("created_at")?,
             "expires_at": row.try_get::<String, _>("expires_at")?,
+            "ask_event_id": row.try_get::<Option<String>, _>("ask_event_id")?,
             "audio_file": std::path::Path::new(&path).file_name().and_then(|v| v.to_str()),
             "audio_base64": encode_base64(&bytes),
         }));
@@ -69,6 +78,8 @@ async fn export_all(State(state): State<SharedState>, Extension(user): Extension
         "achievements": achievements,
         "daily": daily,
         "unmatched_queries": unmatched,
+        "ask_events": ask_events,
+        "recording_attempts": recording_attempts,
         "model_configs": model_configs,
     })))
 }
@@ -100,12 +111,14 @@ async fn clear_all(
 
     let mut tx = state.pool.begin().await?;
     for statement in [
+        "DELETE FROM recording_attempt WHERE child_id IN (SELECT child_id FROM child WHERE family_id=?)",
         "DELETE FROM recording WHERE child_id IN (SELECT child_id FROM child WHERE family_id=?)",
         "DELETE FROM learning_record WHERE child_id IN (SELECT child_id FROM child WHERE family_id=?)",
         "DELETE FROM progress WHERE child_id IN (SELECT child_id FROM child WHERE family_id=?)",
         "DELETE FROM achievement WHERE child_id IN (SELECT child_id FROM child WHERE family_id=?)",
         "DELETE FROM child_daily WHERE child_id IN (SELECT child_id FROM child WHERE family_id=?)",
         "DELETE FROM unmatched_query WHERE family_id=?",
+        "DELETE FROM ask_event WHERE family_id=?",
     ] {
         sqlx::query(statement).bind(&family_id).execute(&mut *tx).await?;
     }

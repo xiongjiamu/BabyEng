@@ -12,7 +12,7 @@
 
     <!-- ============ 逐词流 ============ -->
     <section v-if="view === 'learn' && currentWord" class="page-body pad stack-5">
-      <div class="photo" style="width:186px;margin:0 auto"><span class="emoji">{{ currentWord.image_emoji || '🖼' }}</span></div>
+      <ContentImage class="photo" style="width:186px;margin:0 auto" kind="word" :target-id="currentWord.id" :emoji="currentWord.image_emoji" :alt="currentWord.zh" />
 
       <div style="text-align:center">
         <div class="t-word-en">{{ currentWord.en }}</div>
@@ -51,7 +51,7 @@
       </div>
       <div class="quiz-opts">
         <button v-for="(opt, i) in quizOptions" :key="opt.id" class="quiz-opt" @click="answerQuiz(opt.id === quizWord.id)">
-          <span class="photo"><span class="emoji">{{ opt.image_emoji || '🖼' }}</span></span>
+          <ContentImage class="photo" kind="word" :target-id="opt.id" :emoji="opt.image_emoji" :alt="opt.zh" />
         </button>
       </div>
       <p class="note">
@@ -83,7 +83,7 @@
       <div class="card stack-3" style="width:100%">
         <div class="t-label">明天会先复习</div>
         <div class="row">
-          <span class="photo sm"><span class="emoji">{{ weakWord.image_emoji || '🖼' }}</span></span>
+          <ContentImage class="photo sm" kind="word" :target-id="weakWord.id" :emoji="weakWord.image_emoji" :alt="weakWord.zh" />
           <span class="grow"><div class="t-word-en-s">{{ weakWord.en }}</div><div class="t-mom-sm">还没稳，明天再来一次</div></span>
         </div>
       </div>
@@ -101,6 +101,7 @@ import { useRoute } from 'vue-router'
 import { useAppStore } from '../stores/app'
 import { api } from '../api'
 import { useAudio } from '../composables/useAudio'
+import ContentImage from '../components/ContentImage.vue'
 
 const route = useRoute()
 const store = useAppStore()

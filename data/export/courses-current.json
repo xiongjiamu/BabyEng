@@ -1,0 +1,1614 @@
+{
+  "format_version": 1,
+  "exported_at": "2026-08-21T06:49:54Z",
+  "description": "BabyEng 管理后台课程导入文件；可复制条目、修改 ID 和内容后重新导入。",
+  "counts": {
+    "english": 58,
+    "chinese": 10,
+    "math": 10,
+    "total": 78
+  },
+  "items": [
+    {
+      "aliases": [
+        "开心",
+        "高兴",
+        "快乐",
+        "笑嘻嘻"
+      ],
+      "category": "emotion",
+      "en": "happy",
+      "example_en": "I am happy.",
+      "example_zh": "我很开心。",
+      "id": "word_happy",
+      "image_emoji": "😊",
+      "kind": "word",
+      "level": 1,
+      "mother_tip": "h 轻送气，/æ/ 张大嘴，py 轻快收尾。整体「哈-皮」，重音在前。",
+      "phonetic": "/ˈhæpi/",
+      "review_status": "published",
+      "subject": "english",
+      "zh": "开心"
+    },
+    {
+      "aliases": [
+        "难过",
+        "伤心",
+        "不开心",
+        "哭"
+      ],
+      "category": "emotion",
+      "en": "sad",
+      "example_en": "He looks sad.",
+      "example_zh": "他看起来很难过。",
+      "id": "word_sad",
+      "image_emoji": "😢",
+      "kind": "word",
+      "level": 1,
+      "mother_tip": "/æ/ 张大嘴，d 干脆收住。配一个瘪嘴表情教，孩子记得快。",
+      "phonetic": "/sæd/",
+      "review_status": "published",
+      "subject": "english",
+      "zh": "难过"
+    },
+    {
+      "aliases": [
+        "困",
+        "困了",
+        "想睡觉",
+        "打哈欠"
+      ],
+      "category": "emotion",
+      "en": "sleepy",
+      "example_en": "I am sleepy.",
+      "example_zh": "我困了。",
+      "id": "word_sleepy",
+      "image_emoji": "🥱",
+      "kind": "word",
+      "level": 1,
+      "mother_tip": "sl 连读，ee 是长音 /iː/，py 轻快。教的时候打个哈欠。",
+      "phonetic": "/ˈsliːpi/",
+      "review_status": "published",
+      "subject": "english",
+      "zh": "困"
+    },
+    {
+      "aliases": [
+        "生气",
+        "发火",
+        "气鼓鼓"
+      ],
+      "category": "emotion",
+      "en": "angry",
+      "example_en": "Don't be angry.",
+      "example_zh": "别生气。",
+      "id": "word_angry",
+      "image_emoji": "😠",
+      "kind": "word",
+      "level": 2,
+      "mother_tip": "ng 是舌根音，像中文「昂」的尾音，然后直接接 gri。别念成「安-格-瑞」。",
+      "phonetic": "/ˈæŋɡri/",
+      "review_status": "published",
+      "subject": "english",
+      "zh": "生气"
+    },
+    {
+      "aliases": [
+        "害怕",
+        "怕怕",
+        "恐惧",
+        "吓人"
+      ],
+      "category": "emotion",
+      "en": "scared",
+      "example_en": "The baby is scared.",
+      "example_zh": "宝宝害怕了。",
+      "id": "word_scared",
+      "image_emoji": "😨",
+      "kind": "word",
+      "level": 2,
+      "mother_tip": "sc 连读像「思-克」合并，/ɛ/ 短音，结尾 d 轻收。教的时候配发抖的动作。",
+      "phonetic": "/skɛrd/",
+      "review_status": "published",
+      "subject": "english",
+      "zh": "害怕"
+    },
+    {
+      "aliases": [
+        "灯",
+        "电灯",
+        "灯灯"
+      ],
+      "category": "item_appliance",
+      "en": "light",
+      "example_en": "Turn on the light.",
+      "example_zh": "把灯打开。",
+      "id": "word_light",
+      "image_emoji": "💡",
+      "kind": "word",
+      "level": 2,
+      "mother_tip": "gh 不发音，light 就是「lait」。结尾 t 轻收，不要念成「赖-哥-特」。",
+      "phonetic": "/laɪt/",
+      "review_status": "published",
+      "subject": "english",
+      "zh": "灯"
+    },
+    {
+      "aliases": [
+        "手机",
+        "电话",
+        "电话机"
+      ],
+      "category": "item_appliance",
+      "en": "phone",
+      "example_en": "This is my phone.",
+      "example_zh": "这是我的手机。",
+      "id": "word_phone",
+      "image_emoji": "📱",
+      "kind": "word",
+      "level": 2,
+      "mother_tip": "ph 发 /f/。结尾 n 舌尖顶上颚。别念成「佛-尼」。",
+      "phonetic": "/foʊn/",
+      "review_status": "published",
+      "subject": "english",
+      "zh": "手机"
+    },
+    {
+      "aliases": [
+        "外套",
+        "大衣",
+        "外衣",
+        "衣服(外穿)"
+      ],
+      "category": "item_clothing",
+      "en": "coat",
+      "example_en": "Put on your coat.",
+      "example_zh": "穿上你的外套。",
+      "id": "word_coat",
+      "image_emoji": "🧥",
+      "kind": "word",
+      "level": 1,
+      "mother_tip": "oa 发「欧」滑动音。结尾 t 轻收，与 cost（成本）区分开。",
+      "phonetic": "/koʊt/",
+      "review_status": "published",
+      "subject": "english",
+      "zh": "外套"
+    },
+    {
+      "aliases": [
+        "帽子",
+        "小帽",
+        "遮阳帽"
+      ],
+      "category": "item_clothing",
+      "en": "hat",
+      "example_en": "Put on your hat.",
+      "example_zh": "戴上你的帽子。",
+      "id": "word_hat",
+      "image_emoji": "🧢",
+      "kind": "word",
+      "level": 1,
+      "mother_tip": "/æ/ 是中文没有的音，嘴巴横向张大，像在笑。结尾 t 轻收。",
+      "phonetic": "/hæt/",
+      "review_status": "published",
+      "subject": "english",
+      "zh": "帽子"
+    },
+    {
+      "aliases": [
+        "鞋子",
+        "鞋",
+        "小鞋"
+      ],
+      "category": "item_clothing",
+      "en": "shoe",
+      "example_en": "Where is your shoe?",
+      "example_zh": "你的鞋在哪儿？",
+      "id": "word_shoe",
+      "image_emoji": "👟",
+      "kind": "word",
+      "level": 1,
+      "mother_tip": "sh 像中文「嘘」的嘴形但不真的发「嘘」，气声通过。双唇略圆发长音 u。",
+      "phonetic": "/ʃuː/",
+      "review_status": "published",
+      "subject": "english",
+      "zh": "鞋子"
+    },
+    {
+      "aliases": [
+        "袜子",
+        "小袜",
+        "袜子一只"
+      ],
+      "category": "item_clothing",
+      "en": "sock",
+      "example_en": "Your sock is on the floor.",
+      "example_zh": "你的袜子在地上。",
+      "id": "word_sock",
+      "image_emoji": "🧦",
+      "kind": "word",
+      "level": 1,
+      "mother_tip": "so 像中文「扫」的声母加短「啊」，结尾 ck 轻收。别念成「搜克」。",
+      "phonetic": "/sɑːk/",
+      "review_status": "published",
+      "subject": "english",
+      "zh": "袜子"
+    },
+    {
+      "aliases": [
+        "裙子",
+        "连衣裙",
+        "小裙子"
+      ],
+      "category": "item_clothing",
+      "en": "dress",
+      "example_en": "You look pretty in your dress.",
+      "example_zh": "你穿裙子真好看。",
+      "id": "word_dress",
+      "image_emoji": "👗",
+      "kind": "word",
+      "level": 2,
+      "mother_tip": "dr 连读：舌尖顶住上齿龈发 d 后立即滑向 r。别念成「德-瑞斯」。",
+      "phonetic": "/drɛs/",
+      "review_status": "published",
+      "subject": "english",
+      "zh": "裙子"
+    },
+    {
+      "aliases": [
+        "裤子",
+        "长裤",
+        "小裤"
+      ],
+      "category": "item_clothing",
+      "en": "pants",
+      "example_en": "Pull up your pants.",
+      "example_zh": "把裤子提上来。",
+      "id": "word_pants",
+      "image_emoji": "👖",
+      "kind": "word",
+      "level": 2,
+      "mother_tip": "an 张大嘴 /æ/，ts 连读像中文「次」但更轻。复数词，永远说 pants 不说 pant。",
+      "phonetic": "/pænts/",
+      "review_status": "published",
+      "subject": "english",
+      "zh": "裤子"
+    },
+    {
+      "aliases": [
+        "苹果",
+        "大苹果",
+        "红苹果"
+      ],
+      "category": "item_food",
+      "en": "apple",
+      "example_en": "I have an apple.",
+      "example_zh": "我有一个苹果。",
+      "id": "word_apple",
+      "image_emoji": "🍎",
+      "kind": "word",
+      "level": 1,
+      "mother_tip": "ap 张大嘴 /æ/，ple 轻轻带过。整体「爱-剖」，两个音节都要短。",
+      "phonetic": "/ˈæpəl/",
+      "review_status": "published",
+      "subject": "english",
+      "zh": "苹果"
+    },
+    {
+      "aliases": [
+        "香蕉",
+        "小香蕉",
+        "芭蕉"
+      ],
+      "category": "item_food",
+      "en": "banana",
+      "example_en": "The monkey likes banana.",
+      "example_zh": "猴子喜欢香蕉。",
+      "id": "word_banana",
+      "image_emoji": "🍌",
+      "kind": "word",
+      "level": 1,
+      "mother_tip": "重音在第二个 na：ba-NA-na。第一个和最后一个 a 都是弱读的「ə」。",
+      "phonetic": "/bəˈnænə/",
+      "review_status": "published",
+      "subject": "english",
+      "zh": "香蕉"
+    },
+    {
+      "aliases": [
+        "面包",
+        "小面包",
+        "吐司"
+      ],
+      "category": "item_food",
+      "en": "bread",
+      "example_en": "Would you like some bread?",
+      "example_zh": "想吃点面包吗？",
+      "id": "word_bread",
+      "image_emoji": "🍞",
+      "kind": "word",
+      "level": 1,
+      "mother_tip": "br 连读，ea 发 /ɛ/ 短音，与 bed 的元音相同。结尾 d 轻收。",
+      "phonetic": "/brɛd/",
+      "review_status": "published",
+      "subject": "english",
+      "zh": "面包"
+    },
+    {
+      "aliases": [
+        "鸡蛋",
+        "蛋",
+        "蛋蛋"
+      ],
+      "category": "item_food",
+      "en": "egg",
+      "example_en": "The egg is yummy.",
+      "example_zh": "鸡蛋真好吃。",
+      "id": "word_egg",
+      "image_emoji": "🥚",
+      "kind": "word",
+      "level": 1,
+      "mother_tip": "/ɛ/ 短音，结尾 gg 发 /ɡ/，干脆收住。别念成「挨格」拖长音。",
+      "phonetic": "/ɛɡ/",
+      "review_status": "published",
+      "subject": "english",
+      "zh": "鸡蛋"
+    },
+    {
+      "aliases": [
+        "牛奶",
+        "奶",
+        "喝奶"
+      ],
+      "category": "item_food",
+      "en": "milk",
+      "example_en": "Drink your milk.",
+      "example_zh": "喝你的牛奶。",
+      "id": "word_milk",
+      "image_emoji": "🥛",
+      "kind": "word",
+      "level": 1,
+      "mother_tip": "/ɪ/ 是短音，比「衣」嘴形松、发音短。结尾 lk 舌尖顶上颚，轻轻收住。",
+      "phonetic": "/mɪlk/",
+      "review_status": "published",
+      "subject": "english",
+      "zh": "牛奶"
+    },
+    {
+      "aliases": [
+        "米饭",
+        "饭",
+        "大米"
+      ],
+      "category": "item_food",
+      "en": "rice",
+      "example_en": "I eat rice every day.",
+      "example_zh": "我每天都吃米饭。",
+      "id": "word_rice",
+      "image_emoji": "🍚",
+      "kind": "word",
+      "level": 2,
+      "mother_tip": "r 舌尖微卷，ai 发「爱」滑动音。别与 rise（/raɪz/）混淆，结尾 s 是清音。",
+      "phonetic": "/raɪs/",
+      "review_status": "published",
+      "subject": "english",
+      "zh": "米饭"
+    },
+    {
+      "aliases": [
+        "床",
+        "小床",
+        "睡觉的地方"
+      ],
+      "category": "item_furniture",
+      "en": "bed",
+      "example_en": "Time for bed.",
+      "example_zh": "该睡觉了。",
+      "id": "word_bed",
+      "image_emoji": "🛏️",
+      "kind": "word",
+      "level": 1,
+      "mother_tip": "bed 是短音 /ɛ/，嘴巴张开一点点，类似中文「爱」但更短。别念成长音 beed。",
+      "phonetic": "/bɛd/",
+      "review_status": "published",
+      "subject": "english",
+      "zh": "床"
+    },
+    {
+      "aliases": [
+        "椅子",
+        "凳子",
+        "座椅",
+        "小椅子"
+      ],
+      "category": "item_furniture",
+      "en": "chair",
+      "example_en": "Sit on the chair.",
+      "example_zh": "坐在椅子上。",
+      "id": "word_chair",
+      "image_emoji": "🪑",
+      "kind": "word",
+      "level": 1,
+      "mother_tip": "ch 的发音像「吃」但气流更轻，舌尖抵上齿龈后部。结尾 r 不卷得太重，美式轻卷即可。",
+      "phonetic": "/tʃɛər/",
+      "review_status": "published",
+      "subject": "english",
+      "zh": "椅子"
+    },
+    {
+      "aliases": [
+        "门",
+        "大门",
+        "门口"
+      ],
+      "category": "item_furniture",
+      "en": "door",
+      "example_en": "Open the door.",
+      "example_zh": "开门。",
+      "id": "word_door",
+      "image_emoji": "🚪",
+      "kind": "word",
+      "level": 1,
+      "mother_tip": "/ɔː/ 比中文「哦」嘴形更圆，发长音。结尾 r 轻卷。",
+      "phonetic": "/dɔːr/",
+      "review_status": "published",
+      "subject": "english",
+      "zh": "门"
+    },
+    {
+      "aliases": [
+        "沙发",
+        "软沙发",
+        "长沙发"
+      ],
+      "category": "item_furniture",
+      "en": "sofa",
+      "example_en": "Let's sit on the sofa.",
+      "example_zh": "我们坐沙发上吧。",
+      "id": "word_sofa",
+      "image_emoji": "🛋️",
+      "kind": "word",
+      "level": 1,
+      "mother_tip": "so 像「搜」，fa 轻轻带过。整体说「搜-发」，别重读第二个音节。",
+      "phonetic": "/ˈsoʊfə/",
+      "review_status": "published",
+      "subject": "english",
+      "zh": "沙发"
+    },
+    {
+      "aliases": [
+        "桌子",
+        "餐桌",
+        "台子",
+        "饭桌"
+      ],
+      "category": "item_furniture",
+      "en": "table",
+      "example_en": "The cup is on the table.",
+      "example_zh": "杯子在桌子上。",
+      "id": "word_table",
+      "image_emoji": "🪑",
+      "kind": "word",
+      "level": 1,
+      "mother_tip": "重音在第一个音节 tei，第二个音节 bəl 轻轻带过，不要念成「台不累」。",
+      "phonetic": "/ˈteɪbəl/",
+      "review_status": "published",
+      "subject": "english",
+      "zh": "桌子"
+    },
+    {
+      "aliases": [
+        "窗户",
+        "窗子",
+        "窗"
+      ],
+      "category": "item_furniture",
+      "en": "window",
+      "example_en": "Look out the window.",
+      "example_zh": "看窗外。",
+      "id": "word_window",
+      "image_emoji": "🪟",
+      "kind": "word",
+      "level": 2,
+      "mother_tip": "win 要读得清楚，dow 的 o 像中文「欧」，合起来「温-豆」。",
+      "phonetic": "/ˈwɪndoʊ/",
+      "review_status": "published",
+      "subject": "english",
+      "zh": "窗户"
+    },
+    {
+      "aliases": [
+        "碗",
+        "小碗",
+        "饭碗"
+      ],
+      "category": "item_tableware",
+      "en": "bowl",
+      "example_en": "Your soup is in the bowl.",
+      "example_zh": "你的汤在碗里。",
+      "id": "word_bowl",
+      "image_emoji": "🍜",
+      "kind": "word",
+      "level": 1,
+      "mother_tip": "ow 发「欧」的滑动音，从 o 滑向 u，嘴唇逐渐收圆。",
+      "phonetic": "/boʊl/",
+      "review_status": "published",
+      "subject": "english",
+      "zh": "碗"
+    },
+    {
+      "aliases": [
+        "杯子",
+        "水杯",
+        "喝水杯",
+        "杯"
+      ],
+      "category": "item_tableware",
+      "en": "cup",
+      "example_en": "Here is your cup.",
+      "example_zh": "这是你的杯子。",
+      "id": "word_cup",
+      "image_emoji": "☕",
+      "kind": "word",
+      "level": 1,
+      "mother_tip": "/ʌ/ 比中文「啊」更短促，嘴唇放松。结尾 p 轻轻闭唇，不要念成「卡普」。",
+      "phonetic": "/kʌp/",
+      "review_status": "published",
+      "subject": "english",
+      "zh": "杯子"
+    },
+    {
+      "aliases": [
+        "叉子",
+        "餐叉",
+        "叉"
+      ],
+      "category": "item_tableware",
+      "en": "fork",
+      "example_en": "Use a fork for noodles.",
+      "example_zh": "吃面用叉子。",
+      "id": "word_fork",
+      "image_emoji": "🍴",
+      "kind": "word",
+      "level": 1,
+      "mother_tip": "for 嘴形要圆，结尾 k 轻轻送气。连起来「佛克」，不要念成「佛-尔-克」三个音节。",
+      "phonetic": "/fɔːrk/",
+      "review_status": "published",
+      "subject": "english",
+      "zh": "叉子"
+    },
+    {
+      "aliases": [
+        "盘子",
+        "碟子",
+        "餐盘"
+      ],
+      "category": "item_tableware",
+      "en": "plate",
+      "example_en": "Put the bread on the plate.",
+      "example_zh": "把面包放在盘子上。",
+      "id": "word_plate",
+      "image_emoji": "🍽️",
+      "kind": "word",
+      "level": 1,
+      "mother_tip": "pl 连读：先摆好 p 的口型直接滑到 l。结尾 t 轻收，不念成「普雷特」。",
+      "phonetic": "/pleɪt/",
+      "review_status": "published",
+      "subject": "english",
+      "zh": "盘子"
+    },
+    {
+      "aliases": [
+        "勺子",
+        "小勺",
+        "调羹",
+        "勺"
+      ],
+      "category": "item_tableware",
+      "en": "spoon",
+      "example_en": "Eat with a spoon.",
+      "example_zh": "用勺子吃。",
+      "id": "word_spoon",
+      "image_emoji": "🥄",
+      "kind": "word",
+      "level": 1,
+      "mother_tip": "开头 sp 要连着出，别念成「思-普」。结尾 n 舌尖顶上颚，中文「恩」的位置就对了。",
+      "phonetic": "/spuːn/",
+      "review_status": "published",
+      "subject": "english",
+      "zh": "勺子"
+    },
+    {
+      "aliases": [
+        "瓶子",
+        "奶瓶",
+        "水瓶",
+        "水壶"
+      ],
+      "category": "item_tableware",
+      "en": "bottle",
+      "example_en": "Drink from your bottle.",
+      "example_zh": "用你的奶瓶喝。",
+      "id": "word_bottle",
+      "image_emoji": "🍼",
+      "kind": "word",
+      "level": 2,
+      "mother_tip": "美式 tt 常发轻快的 /d/ 音，像「巴-斗」。别念成「包特了」。",
+      "phonetic": "/ˈbɑːtəl/",
+      "review_status": "published",
+      "subject": "english",
+      "zh": "瓶子"
+    },
+    {
+      "aliases": [
+        "球",
+        "皮球",
+        "小球"
+      ],
+      "category": "item_toy",
+      "en": "ball",
+      "example_en": "Catch the ball.",
+      "example_zh": "接住球。",
+      "id": "word_ball",
+      "image_emoji": "⚽",
+      "kind": "word",
+      "level": 1,
+      "mother_tip": "/ɔː/ 长音，嘴形圆。结尾 l 舌尖顶上颚，中文「球」的尾音位置。",
+      "phonetic": "/bɔːl/",
+      "review_status": "published",
+      "subject": "english",
+      "zh": "球"
+    },
+    {
+      "aliases": [
+        "汽车",
+        "车",
+        "小汽车",
+        "车车"
+      ],
+      "category": "item_toy",
+      "en": "car",
+      "example_en": "Vroom vroom, the car goes.",
+      "example_zh": "呜呜，车开走了。",
+      "id": "word_car",
+      "image_emoji": "🚗",
+      "kind": "word",
+      "level": 1,
+      "mother_tip": "/ɑː/ 长音，像看医生时张嘴「啊」，结尾 r 轻卷。别念成「卡儿」两音节。",
+      "phonetic": "/kɑːr/",
+      "review_status": "published",
+      "subject": "english",
+      "zh": "汽车"
+    },
+    {
+      "aliases": [
+        "娃娃",
+        "玩偶",
+        "布娃娃"
+      ],
+      "category": "item_toy",
+      "en": "doll",
+      "example_en": "Hug your doll.",
+      "example_zh": "抱抱你的娃娃。",
+      "id": "word_doll",
+      "image_emoji": "🪆",
+      "kind": "word",
+      "level": 1,
+      "mother_tip": "/ɑː/ 长音张嘴。与 dahl 同音，与 doll（多儿）在英式不同，美式都是 /dɑːl/。",
+      "phonetic": "/dɑːl/",
+      "review_status": "published",
+      "subject": "english",
+      "zh": "娃娃"
+    },
+    {
+      "aliases": [
+        "积木",
+        "积木块",
+        "搭积木"
+      ],
+      "category": "item_toy",
+      "en": "block",
+      "example_en": "Let's build with blocks.",
+      "example_zh": "我们用积木搭个东西吧。",
+      "id": "word_block",
+      "image_emoji": "🧱",
+      "kind": "word",
+      "level": 2,
+      "mother_tip": "bl 连读：b 的口型直接滑向 l。结尾 ck 轻收，干脆。",
+      "phonetic": "/blɑːk/",
+      "review_status": "published",
+      "subject": "english",
+      "zh": "积木"
+    },
+    {
+      "aliases": [
+        "五",
+        "5",
+        "五个"
+      ],
+      "category": "number",
+      "en": "five",
+      "example_en": "Five toes.",
+      "example_zh": "五个脚趾。",
+      "id": "word_five",
+      "image_emoji": "5️⃣",
+      "kind": "word",
+      "level": 1,
+      "mother_tip": "f 咬下唇，i 发「爱」滑动音，结尾 v 轻咬下唇出声。别念成「费夫」。",
+      "phonetic": "/faɪv/",
+      "review_status": "published",
+      "subject": "english",
+      "zh": "五"
+    },
+    {
+      "aliases": [
+        "四",
+        "4",
+        "四个"
+      ],
+      "category": "number",
+      "en": "four",
+      "example_en": "Four fingers.",
+      "example_zh": "四根手指。",
+      "id": "word_four",
+      "image_emoji": "4️⃣",
+      "kind": "word",
+      "level": 1,
+      "mother_tip": "f 轻咬下唇，/ɔː/ 圆唇长音，结尾 r 轻卷。与 fork 开头相同。",
+      "phonetic": "/fɔːr/",
+      "review_status": "published",
+      "subject": "english",
+      "zh": "四"
+    },
+    {
+      "aliases": [
+        "一",
+        "1",
+        "一个"
+      ],
+      "category": "number",
+      "en": "one",
+      "example_en": "One apple.",
+      "example_zh": "一个苹果。",
+      "id": "word_one",
+      "image_emoji": "1️⃣",
+      "kind": "word",
+      "level": 1,
+      "mother_tip": "o 在这里发 /wʌ/，开头有 w 音。别念成「欧恩」，是「万」的嘴形但更柔和。",
+      "phonetic": "/wʌn/",
+      "review_status": "published",
+      "subject": "english",
+      "zh": "一"
+    },
+    {
+      "aliases": [
+        "三",
+        "3",
+        "三个"
+      ],
+      "category": "number",
+      "en": "three",
+      "example_en": "Three apples.",
+      "example_zh": "三个苹果。",
+      "id": "word_three",
+      "image_emoji": "3️⃣",
+      "kind": "word",
+      "level": 1,
+      "mother_tip": "th 舌尖轻夹齿间，气流摩擦而出，这是重点音。r 紧随其后轻卷。",
+      "phonetic": "/θriː/",
+      "review_status": "published",
+      "subject": "english",
+      "zh": "三"
+    },
+    {
+      "aliases": [
+        "二",
+        "2",
+        "两个"
+      ],
+      "category": "number",
+      "en": "two",
+      "example_en": "Two hands.",
+      "example_zh": "两只手。",
+      "id": "word_two",
+      "image_emoji": "2️⃣",
+      "kind": "word",
+      "level": 1,
+      "mother_tip": "w 不发音，two 就是 /tuː/。嘴形圆，长音。",
+      "phonetic": "/tuː/",
+      "review_status": "published",
+      "subject": "english",
+      "zh": "二"
+    },
+    {
+      "aliases": [
+        "宝宝",
+        "宝贝",
+        "小宝宝"
+      ],
+      "category": "person_family",
+      "en": "baby",
+      "example_en": "You are my baby.",
+      "example_zh": "你是我的宝宝。",
+      "id": "word_baby",
+      "image_emoji": "👶",
+      "kind": "word",
+      "level": 1,
+      "mother_tip": "重音在前：BA-by。两个音节都轻快，别拖。",
+      "phonetic": "/ˈbeɪbi/",
+      "review_status": "published",
+      "subject": "english",
+      "zh": "宝宝"
+    },
+    {
+      "aliases": [
+        "男孩",
+        "小男孩",
+        "男生"
+      ],
+      "category": "person_family",
+      "en": "boy",
+      "example_en": "The boy is playing.",
+      "example_zh": "男孩在玩。",
+      "id": "word_boy",
+      "image_emoji": "👦",
+      "kind": "word",
+      "level": 1,
+      "mother_tip": "oy 发「奥衣」滑动音，从圆唇滑向扁唇。单音节，一口气念完。",
+      "phonetic": "/bɔɪ/",
+      "review_status": "published",
+      "subject": "english",
+      "zh": "男孩"
+    },
+    {
+      "aliases": [
+        "爸爸",
+        "爸",
+        "父亲"
+      ],
+      "category": "person_family",
+      "en": "dad",
+      "example_en": "Where is dad?",
+      "example_zh": "爸爸在哪儿？",
+      "id": "word_dad",
+      "image_emoji": "👨",
+      "kind": "word",
+      "level": 1,
+      "mother_tip": "/æ/ 张大嘴，像在笑。首尾都是 d，干脆短促。",
+      "phonetic": "/dæd/",
+      "review_status": "published",
+      "subject": "english",
+      "zh": "爸爸"
+    },
+    {
+      "aliases": [
+        "奶奶",
+        "姥姥",
+        "外婆",
+        "奶奶(外)"
+      ],
+      "category": "person_family",
+      "en": "grandma",
+      "example_en": "Grandma made cookies.",
+      "example_zh": "奶奶做了饼干。",
+      "id": "word_grandma",
+      "image_emoji": "👵",
+      "kind": "word",
+      "level": 1,
+      "mother_tip": "grand 的 d 在 m 前几乎不发音，直接过渡到 ma。重音在前。",
+      "phonetic": "/ˈɡrænmɑː/",
+      "review_status": "published",
+      "subject": "english",
+      "zh": "奶奶"
+    },
+    {
+      "aliases": [
+        "爷爷",
+        "姥爷",
+        "外公",
+        "爷爷(外)"
+      ],
+      "category": "person_family",
+      "en": "grandpa",
+      "example_en": "Grandpa is coming.",
+      "example_zh": "爷爷要来了。",
+      "id": "word_grandpa",
+      "image_emoji": "👴",
+      "kind": "word",
+      "level": 1,
+      "mother_tip": "grand 连读时 d 很轻，几乎贴到 p 上。重音在 grand 上。",
+      "phonetic": "/ˈɡrænpɑː/",
+      "review_status": "published",
+      "subject": "english",
+      "zh": "爷爷"
+    },
+    {
+      "aliases": [
+        "妈妈",
+        "妈",
+        "母亲"
+      ],
+      "category": "person_family",
+      "en": "mom",
+      "example_en": "I love my mom.",
+      "example_zh": "我爱妈妈。",
+      "id": "word_mom",
+      "image_emoji": "👩",
+      "kind": "word",
+      "level": 1,
+      "mother_tip": "m 双唇紧闭，元音是 /ɑː/ 长音。两个 m 只发一次音。",
+      "phonetic": "/mɑːm/",
+      "review_status": "published",
+      "subject": "english",
+      "zh": "妈妈"
+    },
+    {
+      "aliases": [
+        "哥哥",
+        "弟弟",
+        "兄弟"
+      ],
+      "category": "person_family",
+      "en": "brother",
+      "example_en": "My brother is tall.",
+      "example_zh": "我哥哥很高。",
+      "id": "word_brother",
+      "image_emoji": "👦",
+      "kind": "word",
+      "level": 2,
+      "mother_tip": "th 发音时舌尖轻夹在齿间，气流从缝隙过。这是中文没有的音，多练几次。",
+      "phonetic": "/ˈbrʌðər/",
+      "review_status": "published",
+      "subject": "english",
+      "zh": "哥哥"
+    },
+    {
+      "aliases": [
+        "姐姐",
+        "妹妹",
+        "姐妹"
+      ],
+      "category": "person_family",
+      "en": "sister",
+      "example_en": "My sister likes dolls.",
+      "example_zh": "我姐姐喜欢娃娃。",
+      "id": "word_sister",
+      "image_emoji": "👧",
+      "kind": "word",
+      "level": 2,
+      "mother_tip": "重音在前：SIS-ter。结尾 er 轻卷，不重读。",
+      "phonetic": "/ˈsɪstər/",
+      "review_status": "published",
+      "subject": "english",
+      "zh": "姐姐"
+    },
+    {
+      "aliases": [
+        "晚安",
+        "睡觉觉",
+        "做个好梦"
+      ],
+      "category": "bedtime",
+      "en": "Good night.",
+      "example_zh": "盖好被子、关灯后的最后一句话",
+      "id": "sent_good_night",
+      "image_emoji": "💬",
+      "kind": "sentence",
+      "level": 1,
+      "phonetic": "/ɡʊd naɪt/",
+      "review_status": "published",
+      "subject": "english",
+      "zh": "晚安"
+    },
+    {
+      "aliases": [
+        "该睡觉了",
+        "要睡觉了",
+        "去睡觉",
+        "睡觉了"
+      ],
+      "category": "bedtime",
+      "en": "Time for bed.",
+      "example_zh": "关灯前抱着他说，声音放轻放慢",
+      "id": "sent_time_for_bed",
+      "image_emoji": "💬",
+      "kind": "sentence",
+      "level": 1,
+      "phonetic": "/taɪm fɔːr bɛd/",
+      "review_status": "published",
+      "subject": "english",
+      "zh": "该睡觉了"
+    },
+    {
+      "aliases": [
+        "该吃饭了",
+        "吃饭了",
+        "要吃饭了",
+        "开饭了"
+      ],
+      "category": "meal",
+      "en": "Time to eat.",
+      "example_zh": "把他抱上餐椅的那一刻",
+      "id": "sent_time_to_eat",
+      "image_emoji": "💬",
+      "kind": "sentence",
+      "level": 1,
+      "phonetic": "/taɪm tuː iːt/",
+      "review_status": "published",
+      "subject": "english",
+      "zh": "该吃饭了"
+    },
+    {
+      "aliases": [
+        "好吃",
+        "真好吃",
+        "好香",
+        "真香"
+      ],
+      "category": "meal",
+      "en": "Yummy!",
+      "example_zh": "宝宝吃第一口时，夸张地示范",
+      "id": "sent_yummy",
+      "image_emoji": "💬",
+      "kind": "sentence",
+      "level": 1,
+      "phonetic": "/ˈjʌmi/",
+      "review_status": "published",
+      "subject": "english",
+      "zh": "好吃"
+    },
+    {
+      "aliases": [
+        "早上好",
+        "早安",
+        "早晨好",
+        "早上好呀"
+      ],
+      "category": "morning",
+      "en": "Good morning.",
+      "example_zh": "宝宝睁眼、你走进房间的第一句",
+      "id": "sent_good_morning",
+      "image_emoji": "💬",
+      "kind": "sentence",
+      "level": 1,
+      "phonetic": "/ɡʊd ˈmɔːrnɪŋ/",
+      "review_status": "published",
+      "subject": "english",
+      "zh": "早上好"
+    },
+    {
+      "aliases": [
+        "起床啦",
+        "起床了",
+        "该起床了",
+        "醒醒"
+      ],
+      "category": "morning",
+      "en": "Wake up!",
+      "example_zh": "拉开窗帘时说，配一个夸张的语调",
+      "id": "sent_wake_up",
+      "image_emoji": "💬",
+      "kind": "sentence",
+      "level": 1,
+      "phonetic": "/weɪk ʌp/",
+      "review_status": "published",
+      "subject": "english",
+      "zh": "起床啦"
+    },
+    {
+      "aliases": [
+        "牵着我的手",
+        "拉手",
+        "手拉手",
+        "牵着妈妈"
+      ],
+      "category": "outing",
+      "en": "Hold my hand.",
+      "example_zh": "过马路前蹲下来，伸手等他来牵",
+      "id": "sent_hold_my_hand",
+      "image_emoji": "💬",
+      "kind": "sentence",
+      "level": 1,
+      "phonetic": "/hoʊld maɪ hænd/",
+      "review_status": "published",
+      "subject": "english",
+      "zh": "牵着我的手"
+    },
+    {
+      "aliases": [
+        "我们走吧",
+        "走吧",
+        "出发",
+        "出门啦"
+      ],
+      "category": "outing",
+      "en": "Let's go.",
+      "example_zh": "出门前在门口说，配上背书包的动作",
+      "id": "sent_lets_go",
+      "image_emoji": "💬",
+      "kind": "sentence",
+      "level": 1,
+      "phonetic": "/lɛts ɡoʊ/",
+      "review_status": "published",
+      "subject": "english",
+      "zh": "我们走吧"
+    },
+    {
+      "aliases": [
+        "小心",
+        "当心",
+        "注意安全",
+        "慢点"
+      ],
+      "category": "play",
+      "en": "Be careful.",
+      "example_zh": "宝宝爬高或跑动时提醒，语气平稳不吓人",
+      "id": "sent_be_careful",
+      "image_emoji": "💬",
+      "kind": "sentence",
+      "level": 1,
+      "phonetic": "/bi ˈkɛrfəl/",
+      "review_status": "published",
+      "subject": "english",
+      "zh": "小心"
+    },
+    {
+      "aliases": [
+        "我们一起玩吧",
+        "来玩吧",
+        "玩吧",
+        "一起玩"
+      ],
+      "category": "play",
+      "en": "Let's play.",
+      "example_zh": "拿出玩具时自然带出",
+      "id": "sent_lets_play",
+      "image_emoji": "💬",
+      "kind": "sentence",
+      "level": 1,
+      "phonetic": "/lɛts pleɪ/",
+      "review_status": "published",
+      "subject": "english",
+      "zh": "我们一起玩吧"
+    },
+    {
+      "answer": "口",
+      "category": "character",
+      "id": "cn_kou",
+      "image_emoji": "👄",
+      "kind": "activity",
+      "level": 1,
+      "prompt": "这是“口”字，摸摸自己的小嘴巴。",
+      "review_status": "draft",
+      "subject": "chinese",
+      "title": "口"
+    },
+    {
+      "answer": "月",
+      "category": "character",
+      "id": "cn_moon",
+      "image_emoji": "🌙",
+      "kind": "activity",
+      "level": 1,
+      "prompt": "这是“月”字，月亮晚上挂天空。",
+      "review_status": "draft",
+      "subject": "chinese",
+      "title": "月"
+    },
+    {
+      "answer": "人",
+      "category": "character",
+      "id": "cn_ren",
+      "image_emoji": "🧍",
+      "kind": "activity",
+      "level": 1,
+      "prompt": "这是“人”字，像一个人迈开两条腿。",
+      "review_status": "draft",
+      "subject": "chinese",
+      "title": "人"
+    },
+    {
+      "answer": "手",
+      "category": "character",
+      "id": "cn_shou",
+      "image_emoji": "✋",
+      "kind": "activity",
+      "level": 1,
+      "prompt": "这是“手”字，伸出小手挥一挥。",
+      "review_status": "draft",
+      "subject": "chinese",
+      "title": "手"
+    },
+    {
+      "answer": "日",
+      "category": "character",
+      "id": "cn_sun",
+      "image_emoji": "☀️",
+      "kind": "activity",
+      "level": 1,
+      "prompt": "这是“日”字，太阳出来天亮了。",
+      "review_status": "draft",
+      "subject": "chinese",
+      "title": "日"
+    },
+    {
+      "answer": "大象",
+      "category": "opposite",
+      "id": "cn_da",
+      "image_emoji": "🐘",
+      "kind": "activity",
+      "level": 1,
+      "prompt": "大象大，蚂蚁小。哪个是大的？",
+      "review_status": "published",
+      "subject": "chinese",
+      "title": "大和小",
+      "scene": "play",
+      "materials": "一大一小两个安全玩具",
+      "parent_script": "这个大，这个小。请把大的给妈妈。",
+      "child_action_a": "看妈妈依次触摸大玩具和小玩具。",
+      "child_action_b": "从两个玩具中指出或拿起大的。",
+      "observe_for": "是否愿意同时看两个物品，并注意大小差异。",
+      "safety_note": "玩具应无小零件、尖角，并适合宝宝抓握。",
+      "material_tags": [
+        "toys_blocks"
+      ],
+      "interest_tags": [
+        "animals",
+        "building"
+      ]
+    },
+    {
+      "answer": "一篮苹果",
+      "category": "opposite",
+      "id": "cn_more",
+      "image_emoji": "🍎",
+      "kind": "activity",
+      "level": 1,
+      "prompt": "一篮苹果多，一个苹果少。哪边多？",
+      "review_status": "published",
+      "subject": "chinese",
+      "title": "多和少",
+      "scene": "meal",
+      "materials": "三个水果和一个空盘子",
+      "parent_script": "这边多，那边少。哪边多？",
+      "child_action_a": "看妈妈把水果分成三和一两堆。",
+      "child_action_b": "指出多的一堆，再一起交换位置。",
+      "observe_for": "是否注意两堆数量差异，而不是要求说出答案。",
+      "safety_note": "食物大小须符合进食安全要求，全程由成人看护。",
+      "material_tags": [
+        "food_tableware"
+      ],
+      "interest_tags": [
+        "food"
+      ]
+    },
+    {
+      "answer": "小鸟",
+      "category": "opposite",
+      "id": "cn_up",
+      "image_emoji": "🐦",
+      "kind": "activity",
+      "level": 1,
+      "prompt": "小鸟在上面，小鱼在下面。谁在上面？",
+      "review_status": "published",
+      "subject": "chinese",
+      "title": "上和下",
+      "scene": "play",
+      "materials": "一个玩具和一个低矮盒子",
+      "parent_script": "玩具在盒子上面，现在到下面。",
+      "child_action_a": "看妈妈缓慢移动玩具。",
+      "child_action_b": "按妈妈的话把玩具放到盒子上面或旁边地面。",
+      "observe_for": "是否会跟随移动物体，并理解简单方位指令。",
+      "safety_note": "盒子保持低矮稳定，不在高处摆放玩具。",
+      "material_tags": [
+        "toys_blocks"
+      ],
+      "interest_tags": [
+        "building"
+      ]
+    },
+    {
+      "answer": "一起拍拍手念一遍",
+      "category": "rhyme",
+      "id": "cn_rhyme_star",
+      "image_emoji": "⭐",
+      "kind": "activity",
+      "level": 1,
+      "prompt": "一闪一闪亮晶晶，满天都是小星星。",
+      "review_status": "published",
+      "subject": "chinese",
+      "title": "小星星",
+      "scene": "bedtime",
+      "materials": "不需要材料",
+      "parent_script": "一闪一闪亮晶晶，满天都是小星星。",
+      "child_action_a": "听妈妈慢慢念，跟着轻轻拍手。",
+      "child_action_b": "跟念末尾的“小星星”或模仿闪烁手势。",
+      "observe_for": "是否愿意听节奏、看动作或发出相似声音。",
+      "safety_note": "睡前保持轻声，不使用闪烁屏幕刺激。",
+      "material_tags": [
+        "movement_space"
+      ],
+      "interest_tags": [
+        "music"
+      ]
+    },
+    {
+      "answer": "一起学小兔跳一跳",
+      "category": "rhyme",
+      "id": "cn_rhyme_white",
+      "image_emoji": "🐇",
+      "kind": "activity",
+      "level": 1,
+      "prompt": "小白兔，白又白，两只耳朵竖起来。",
+      "review_status": "published",
+      "subject": "chinese",
+      "title": "小白兔",
+      "scene": "play",
+      "materials": "一块不滑的空地",
+      "parent_script": "小白兔，白又白，两只耳朵竖起来。",
+      "child_action_a": "看妈妈用双手模仿兔耳朵。",
+      "child_action_b": "模仿兔耳朵或在妈妈扶持下轻轻蹲起。",
+      "observe_for": "是否会模仿一个简单动作或声音。",
+      "safety_note": "清理地面障碍，不要求宝宝真正跳跃。",
+      "material_tags": [
+        "movement_space"
+      ],
+      "interest_tags": [
+        "animals",
+        "movement"
+      ]
+    },
+    {
+      "answer": "4",
+      "category": "counting",
+      "id": "math_four",
+      "image_emoji": "🧱",
+      "kind": "activity",
+      "level": 1,
+      "prompt": "四块积木，一、二、三、四。",
+      "review_status": "published",
+      "subject": "math",
+      "title": "四个",
+      "scene": "play",
+      "materials": "四块大积木",
+      "parent_script": "放一块数一个：一、二、三、四。",
+      "child_action_a": "看妈妈逐块搭起积木。",
+      "child_action_b": "自己逐块放入盒子，妈妈同步数数。",
+      "observe_for": "是否能逐个操作四件物品并保持注意。",
+      "safety_note": "使用大块圆角积木，堆叠高度不超过宝宝胸口。",
+      "material_tags": [
+        "toys_blocks"
+      ],
+      "interest_tags": [
+        "building"
+      ]
+    },
+    {
+      "answer": "1",
+      "category": "counting",
+      "id": "math_one",
+      "image_emoji": "🦆",
+      "kind": "activity",
+      "level": 1,
+      "prompt": "一只小鸭，数一数：一。",
+      "review_status": "published",
+      "subject": "math",
+      "title": "一个",
+      "scene": "meal",
+      "materials": "一个杯子或一个水果",
+      "parent_script": "这里有一个，我们摸一下：一。",
+      "child_action_a": "看妈妈触摸一次实物。",
+      "child_action_b": "按要求拿一个物品给妈妈。",
+      "observe_for": "是否把“一”与单个实物对应起来。",
+      "safety_note": "只使用不会误吞且适合宝宝抓握的物品。",
+      "material_tags": [
+        "food_tableware"
+      ],
+      "interest_tags": [
+        "food"
+      ]
+    },
+    {
+      "answer": "3",
+      "category": "counting",
+      "id": "math_three",
+      "image_emoji": "🍎🍎🍎",
+      "kind": "activity",
+      "level": 1,
+      "prompt": "三个苹果，一、二、三。",
+      "review_status": "published",
+      "subject": "math",
+      "title": "三个",
+      "scene": "meal",
+      "materials": "三个安全食物或大积木",
+      "parent_script": "我们一个一个摸：一、二、三。",
+      "child_action_a": "看妈妈逐个触摸三个物品。",
+      "child_action_b": "自己逐个移动，妈妈同步数到三。",
+      "observe_for": "是否能保持一一对应，不要求独立说出数字。",
+      "safety_note": "食物活动须符合进食安全要求并全程看护。",
+      "material_tags": [
+        "food_tableware"
+      ],
+      "interest_tags": [
+        "food"
+      ]
+    },
+    {
+      "answer": "2",
+      "category": "counting",
+      "id": "math_two",
+      "image_emoji": "🐦🐦",
+      "kind": "activity",
+      "level": 1,
+      "prompt": "两只小鸟，一、二。",
+      "review_status": "published",
+      "subject": "math",
+      "title": "两个",
+      "scene": "dressing",
+      "materials": "一双袜子或两块积木",
+      "parent_script": "一只、两只，一共有两个。",
+      "child_action_a": "看妈妈逐个移动两个物品。",
+      "child_action_b": "把两个物品逐个放进篮子。",
+      "observe_for": "是否会一件一件移动，并跟随数数节奏。",
+      "safety_note": "物品应足够大、无绳带缠绕风险。",
+      "material_tags": [
+        "clothing"
+      ],
+      "interest_tags": [
+        "movement"
+      ]
+    },
+    {
+      "answer": "一辆车",
+      "category": "quantity",
+      "id": "math_less",
+      "image_emoji": "🚗",
+      "kind": "activity",
+      "level": 1,
+      "prompt": "一辆车和两辆车，哪边少？",
+      "review_status": "published",
+      "subject": "math",
+      "title": "哪个少",
+      "scene": "play",
+      "materials": "三辆大玩具车，分成一和二",
+      "parent_script": "这边一辆，那边两辆，哪边少？",
+      "child_action_a": "看妈妈分别推动一辆和两辆车。",
+      "child_action_b": "指出只有一辆的一边。",
+      "observe_for": "是否注意到明显的多少差异。",
+      "safety_note": "玩具车无可脱落小轮，地面保持平整。",
+      "material_tags": [
+        "toys_blocks"
+      ],
+      "interest_tags": [
+        "vehicles"
+      ]
+    },
+    {
+      "answer": "刚好够，一样多",
+      "category": "quantity",
+      "id": "math_match",
+      "image_emoji": "🧸",
+      "kind": "activity",
+      "level": 1,
+      "prompt": "两只小熊配两个杯子，够不够？",
+      "review_status": "published",
+      "subject": "math",
+      "title": "一一配对",
+      "scene": "meal",
+      "materials": "两个杯子和两个玩具或两把勺子",
+      "parent_script": "一个配一个，大家都有。",
+      "child_action_a": "看妈妈给每个杯子放一把勺子。",
+      "child_action_b": "自己完成剩下的一组一一配对。",
+      "observe_for": "是否会把一个物品对应给另一个物品。",
+      "safety_note": "餐具应轻便、无尖角，全程看护。",
+      "material_tags": [
+        "food_tableware"
+      ],
+      "interest_tags": [
+        "food"
+      ]
+    },
+    {
+      "answer": "三颗草莓",
+      "category": "quantity",
+      "id": "math_more",
+      "image_emoji": "🍓",
+      "kind": "activity",
+      "level": 1,
+      "prompt": "三颗草莓和一颗草莓，哪边多？",
+      "review_status": "published",
+      "subject": "math",
+      "title": "哪个多",
+      "scene": "meal",
+      "materials": "三个同类物品和一个同类物品",
+      "parent_script": "看看两边，哪边多？",
+      "child_action_a": "看妈妈把两堆排开并指给宝宝。",
+      "child_action_b": "指出或拿走多的一堆。",
+      "observe_for": "是否能通过整体视觉注意明显的数量差异。",
+      "safety_note": "使用大块安全物品，避免误吞。",
+      "material_tags": [
+        "household_objects"
+      ],
+      "interest_tags": [
+        "food"
+      ]
+    },
+    {
+      "answer": "圆形",
+      "category": "shape",
+      "id": "math_circle",
+      "image_emoji": "🔴",
+      "kind": "activity",
+      "level": 1,
+      "prompt": "圆形没有尖尖的角，找找圆圆的东西。",
+      "review_status": "published",
+      "subject": "math",
+      "title": "圆形",
+      "scene": "outing",
+      "materials": "家里的盘子、杯底或安全圆形物品",
+      "parent_script": "摸一圈，圆圆的，没有尖角。",
+      "child_action_a": "跟妈妈沿边缘摸一圈。",
+      "child_action_b": "从两个物品中找出圆形的。",
+      "observe_for": "是否会关注物品轮廓并寻找相似形状。",
+      "safety_note": "不用硬币、瓶盖等可误吞小物件。",
+      "material_tags": [
+        "household_objects"
+      ],
+      "interest_tags": [
+        "outdoors"
+      ]
+    },
+    {
+      "answer": "正方形",
+      "category": "shape",
+      "id": "math_square",
+      "image_emoji": "🟦",
+      "kind": "activity",
+      "level": 1,
+      "prompt": "四条边一样长，四个角，是什么形状？",
+      "review_status": "published",
+      "subject": "math",
+      "title": "正方形",
+      "scene": "play",
+      "materials": "方形积木和一个圆形物品",
+      "parent_script": "这个有四条边，我们摸摸四个角。",
+      "child_action_a": "看妈妈逐边触摸方形积木。",
+      "child_action_b": "从两个物品中找出方形的。",
+      "observe_for": "是否注意直边和角，不要求说出形状名称。",
+      "safety_note": "积木边角圆滑，尺寸不可误吞。",
+      "material_tags": [
+        "toys_blocks"
+      ],
+      "interest_tags": [
+        "building"
+      ]
+    },
+    {
+      "answer": "三角形",
+      "category": "shape",
+      "id": "math_triangle",
+      "image_emoji": "🔺",
+      "kind": "activity",
+      "level": 1,
+      "prompt": "数一数有三个角，是什么形状？",
+      "review_status": "published",
+      "subject": "math",
+      "title": "三角形",
+      "scene": "meal",
+      "materials": "切成三角形的面包或三角形大积木",
+      "parent_script": "我们摸摸三个角：一、二、三。",
+      "child_action_a": "看妈妈沿三条边慢慢移动手指。",
+      "child_action_b": "从两个形状中找出有三个角的。",
+      "observe_for": "是否会沿轮廓观察三个明显的角。",
+      "safety_note": "食物切分须符合宝宝咀嚼能力，积木不得尖锐。",
+      "material_tags": [
+        "food_tableware",
+        "toys_blocks"
+      ],
+      "interest_tags": [
+        "food",
+        "building"
+      ]
+    }
+  ]
+}

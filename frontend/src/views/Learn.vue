@@ -7,7 +7,16 @@
     </header>
 
     <div class="page-body pad stack-5">
-      <p class="t-mom" style="margin:0">这三个都是<b>有编排</b>的学习流，内容顺序由应用决定。想到什么问什么请回首页用「问一问」。</p>
+      <p class="t-mom" style="margin:0">以下都是<b>有编排</b>的学习流，内容顺序由应用决定。每次选一个主题，轻松学一小组。</p>
+
+      <div class="duo">
+        <router-link class="tile" to="/subject-learn/chinese">
+          <span class="ico">📖</span><span class="t">语文启蒙</span><span class="s">常用字、反义词、儿歌</span>
+        </router-link>
+        <router-link class="tile" to="/subject-learn/math">
+          <span class="ico">🔢</span><span class="t">数学启蒙</span><span class="s">数数、多少、形状</span>
+        </router-link>
+      </div>
 
       <router-link class="mode s1" to="/sentences">
         <span class="ico">💬</span>

@@ -5,8 +5,8 @@ use std::sync::Arc;
 use sqlx::SqlitePool;
 use tokio::sync::RwLock;
 
-use crate::config::Config;
 use crate::auth::AuthService;
+use crate::config::Config;
 use crate::inference::InferenceClients;
 use crate::matcher::Matcher;
 
@@ -24,6 +24,7 @@ impl AppState {
     pub async fn new(cfg: Config) -> crate::error::AppResult<SharedState> {
         let pool = crate::db::connect(&cfg).await?;
         crate::db::seed_if_empty(&pool, &cfg.seed_dir).await?;
+        std::fs::create_dir_all(&cfg.content_image_dir)?;
 
         // 加载词句到匹配器
         let words = crate::store::load_words(&pool).await?;

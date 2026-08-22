@@ -8,8 +8,8 @@ use serde::Deserialize;
 use serde_json::json;
 use uuid::Uuid;
 
-use crate::error::{AppError, AppResult};
 use crate::auth::{self, AuthUser};
+use crate::error::{AppError, AppResult};
 use crate::models::{AgeBand, Child};
 use crate::state::SharedState;
 
@@ -30,7 +30,10 @@ struct FamilyInit {
     child_birthdate: Option<String>, // YYYY-MM-DD
 }
 
-async fn family_me(State(state): State<SharedState>, Extension(user): Extension<AuthUser>) -> AppResult<Json<serde_json::Value>> {
+async fn family_me(
+    State(state): State<SharedState>,
+    Extension(user): Extension<AuthUser>,
+) -> AppResult<Json<serde_json::Value>> {
     let pool = &state.pool;
     // 单家庭：取第一条
     let fam = sqlx::query_as::<_, (String, String, String)>(
@@ -122,6 +125,8 @@ async fn family_init(
             "screen_limit_min": 5,       // A 段手动关闭纯音频后上限 5 分钟/天（11.3）
             "session_limit_min": 3,
             "bedtime_hour": 21,
+            "available_materials": [],
+            "child_interests": [],
         })
         .to_string(),
     )
@@ -161,6 +166,8 @@ async fn family_init(
                     "screen_limit_min": 15,  // B 段默认 15 分钟/天（11.3）
                     "session_limit_min": 5,
                     "bedtime_hour": 21,
+                    "available_materials": [],
+                    "child_interests": [],
                 })
                 .to_string(),
             )
@@ -191,12 +198,57 @@ async fn family_settings(
 ) -> AppResult<Json<serde_json::Value>> {
     let pool = &state.pool;
     let family_id = auth::require_family_id(pool, &user).await?;
+    validate_preference_settings(&body.settings)?;
     sqlx::query("UPDATE family SET settings=? WHERE family_id=?")
         .bind(body.settings.to_string())
         .bind(&family_id)
         .execute(pool)
         .await?;
     Ok(Json(json!({ "ok": true })))
+}
+
+fn validate_preference_settings(settings: &serde_json::Value) -> AppResult<()> {
+    if !settings.is_object() {
+        return Err(AppError::BadRequest("settings 必须是对象".into()));
+    }
+    validate_tag_array(
+        settings,
+        "available_materials",
+        &[
+            "household_objects",
+            "toys_blocks",
+            "food_tableware",
+            "clothing",
+            "movement_space",
+        ],
+    )?;
+    validate_tag_array(
+        settings,
+        "child_interests",
+        &[
+            "animals", "music", "vehicles", "building", "food", "outdoors", "movement",
+        ],
+    )
+}
+
+fn validate_tag_array(settings: &serde_json::Value, key: &str, allowed: &[&str]) -> AppResult<()> {
+    let Some(value) = settings.get(key) else {
+        return Ok(());
+    };
+    let Some(values) = value.as_array() else {
+        return Err(AppError::BadRequest(format!("{} 必须是数组", key)));
+    };
+    if values.len() > allowed.len()
+        || values.iter().any(|value| {
+            value
+                .as_str()
+                .map(|tag| !allowed.contains(&tag))
+                .unwrap_or(true)
+        })
+    {
+        return Err(AppError::BadRequest(format!("{} 包含非法标签", key)));
+    }
+    Ok(())
 }
 
 #[derive(Deserialize)]
@@ -315,4 +367,30 @@ async fn child_get(
         "child": child,
         "age_band": band,
     })))
+}
+
+#[cfg(test)]
+mod preference_setting_tests {
+    use super::*;
+
+    #[test]
+    fn accepts_known_materials_and_interests() {
+        assert!(validate_preference_settings(&json!({
+            "available_materials": ["toys_blocks", "clothing"],
+            "child_interests": ["vehicles", "movement"]
+        }))
+        .is_ok());
+    }
+
+    #[test]
+    fn rejects_unknown_or_non_array_preferences() {
+        assert!(validate_preference_settings(&json!({
+            "available_materials": ["sharp_tools"]
+        }))
+        .is_err());
+        assert!(validate_preference_settings(&json!({
+            "child_interests": "animals"
+        }))
+        .is_err());
+    }
 }

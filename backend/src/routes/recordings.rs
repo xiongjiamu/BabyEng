@@ -11,8 +11,8 @@ use sqlx::sqlite::SqliteRow;
 use sqlx::Row;
 use uuid::Uuid;
 
-use crate::error::{AppError, AppResult};
 use crate::auth::{self, AuthUser};
+use crate::error::{AppError, AppResult};
 use crate::state::SharedState;
 
 pub fn router() -> Router<SharedState> {
@@ -23,6 +23,7 @@ pub fn router() -> Router<SharedState> {
         .route("/api/recordings/{id}/favorite", post(favorite))
         .route("/api/recordings/{id}/audio", get(audio))
         .route("/api/recordings/cleanup-expired", post(cleanup_expired))
+        .route("/api/recording-attempts/too-short", post(record_too_short))
 }
 
 #[derive(Deserialize)]
@@ -89,6 +90,7 @@ async fn upload(
     let mut target_type = "word".to_string();
     let mut target_id = String::new();
     let mut duration_ms: i64 = 0;
+    let mut ask_event_id: Option<String> = None;
 
     while let Some(field) = multipart
         .next_field()
@@ -129,6 +131,7 @@ async fn upload(
                     .and_then(|s| s.parse().ok())
                     .unwrap_or(0)
             }
+            "ask_event_id" => ask_event_id = field.text().await.ok().filter(|v| !v.is_empty()),
             _ => {}
         }
     }
@@ -142,6 +145,22 @@ async fn upload(
     auth::require_child(&state.pool, &user, &child_id).await?;
     if target_id.is_empty() {
         return Err(AppError::BadRequest("缺少 target_id".into()));
+    }
+
+    if let Some(event_id) = ask_event_id.as_deref() {
+        let linked: i64 = sqlx::query_scalar(
+            "SELECT COUNT(*) FROM ask_event ae JOIN child c ON c.child_id=? WHERE ae.id=? AND ae.family_id=c.family_id AND (ae.child_id IS NULL OR ae.child_id=?) AND ae.target_type=? AND ae.target_id=?",
+        )
+        .bind(&child_id)
+        .bind(event_id)
+        .bind(&child_id)
+        .bind(&target_type)
+        .bind(&target_id)
+        .fetch_one(&state.pool)
+        .await?;
+        if linked == 0 {
+            return Err(AppError::BadRequest("问答事件与本次跟读不匹配".into()));
+        }
     }
 
     // PRD 4.3 / 5.4：< 0.5s 不入库、不计学习记录
@@ -158,9 +177,10 @@ async fn upload(
 
     let now = chrono::Utc::now();
     let expires = now + Duration::days(30); // 默认 30 天过期（8.4）
+    let mut tx = state.pool.begin().await?;
     sqlx::query(
-        "INSERT INTO recording (id, child_id, target_type, target_id, audio_path, duration_ms, favorited, created_at, expires_at) \
-         VALUES (?,?,?,?,?,?,0,?,?)",
+        "INSERT INTO recording (id, child_id, target_type, target_id, audio_path, duration_ms, favorited, created_at, expires_at, ask_event_id) \
+         VALUES (?,?,?,?,?,?,0,?,?,?)",
     )
     .bind(&rec_id)
     .bind(&child_id)
@@ -170,8 +190,22 @@ async fn upload(
     .bind(duration_ms)
     .bind(now.to_rfc3339())
     .bind(expires.to_rfc3339())
-    .execute(&state.pool)
+    .bind(&ask_event_id)
+    .execute(&mut *tx)
     .await?;
+
+    sqlx::query(
+        "INSERT INTO recording_attempt (id, child_id, duration_ms, accepted, recording_id, created_at) VALUES (?,?,?,?,?,?)",
+    )
+    .bind(Uuid::new_v4().to_string())
+    .bind(&child_id)
+    .bind(duration_ms)
+    .bind(1_i64)
+    .bind(&rec_id)
+    .bind(now.to_rfc3339())
+    .execute(&mut *tx)
+    .await?;
+    tx.commit().await?;
 
     // 当日统计 + 打卡（7.1）
     crate::logic::bump_recording(&state.pool, &child_id, duration_ms).await?;
@@ -182,6 +216,34 @@ async fn upload(
         "duration_ms": duration_ms,
         "expires_at": expires.to_rfc3339(),
     })))
+}
+
+#[derive(Deserialize)]
+struct TooShortBody {
+    child_id: String,
+    duration_ms: i64,
+}
+
+async fn record_too_short(
+    State(state): State<SharedState>,
+    Extension(user): Extension<AuthUser>,
+    Json(body): Json<TooShortBody>,
+) -> AppResult<Json<serde_json::Value>> {
+    auth::require_child(&state.pool, &user, &body.child_id).await?;
+    if !(0..500).contains(&body.duration_ms) {
+        return Err(AppError::BadRequest("仅记录少于 0.5 秒的未保存录音".into()));
+    }
+    sqlx::query(
+        "INSERT INTO recording_attempt (id, child_id, duration_ms, accepted, created_at) VALUES (?,?,?,?,?)",
+    )
+    .bind(Uuid::new_v4().to_string())
+    .bind(&body.child_id)
+    .bind(body.duration_ms)
+    .bind(0_i64)
+    .bind(chrono::Utc::now().to_rfc3339())
+    .execute(&state.pool)
+    .await?;
+    Ok(Json(json!({ "ok": true })))
 }
 
 async fn favorite(
@@ -254,7 +316,10 @@ async fn audio(
 }
 
 /// 过期清理（30 天前非收藏，PRD 5.4 / 8.4）：设置页一键清理入口
-async fn cleanup_expired(State(state): State<SharedState>, Extension(user): Extension<AuthUser>) -> AppResult<Json<serde_json::Value>> {
+async fn cleanup_expired(
+    State(state): State<SharedState>,
+    Extension(user): Extension<AuthUser>,
+) -> AppResult<Json<serde_json::Value>> {
     let pool = &state.pool;
     let cutoff = (Local::now() - Duration::days(30))
         .format("%Y-%m-%dT%H:%M:%SZ")
@@ -278,7 +343,9 @@ async fn cleanup_expired(State(state): State<SharedState>, Extension(user): Exte
             .execute(pool)
             .await?;
     }
-    Ok(Json(json!({ "ok": true, "cleaned": rows_count, "freed_bytes": freed })))
+    Ok(Json(
+        json!({ "ok": true, "cleaned": rows_count, "freed_bytes": freed }),
+    ))
 }
 
 #[cfg(test)]

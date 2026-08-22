@@ -19,9 +19,10 @@ async fn healthz() -> Json<serde_json::Value> {
 
 async fn readyz(State(state): State<SharedState>) -> Json<serde_json::Value> {
     // 推理服务就绪状态（PRD 5.4「正在启动」提示条依据）
+    let tts_available = state.inference.tts_available();
     let ready = {
         let r = state.inference.ready.read().unwrap();
-        (r.tts, r.asr, r.llm)
+        (tts_available, r.asr, r.llm)
     };
     Json(json!({
         "ok": true,
